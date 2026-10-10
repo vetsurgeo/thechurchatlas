@@ -228,7 +228,7 @@
         countBadge.innerText = churchesData.length + ' Kilise';
         statusText.innerText = churchesData.length + ' konum aktif';
 
-        // Pinleri Haritaya Ekleme ve Etkileşim
+        // Pinleri Haritaya Ekleme (Popup yerine alttan açılan çekmeceyi tetikler)
         churchesData.forEach(church => {
             const marker = L.marker([church.lat, church.lng]).addTo(map);
 
@@ -246,8 +246,11 @@
         }
 
         // Haritada boş bir yere tıklandığında çekmeceyi kapat
-        map.on('click', () => {
-            closeDrawer();
+        map.on('click', (e) => {
+            // Eğer pin üzerine tıklanmadıysa çekmeceyi kapat
+            if (e.originalEvent.target.tagName !== 'IMG') {
+                closeDrawer();
+            }
         });
     </script>
 </body>
