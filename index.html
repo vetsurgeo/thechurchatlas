@@ -132,7 +132,7 @@
             left: 0;
             width: 100%;
             z-index: 2000;
-            background: rgba(255, 255, 255, 0.96);
+            background: rgba(255, 255, 255, 0.98);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
             border-top-left-radius: 20px;
@@ -164,18 +164,31 @@
             justify-content: center;
             z-index: 10;
         }
+        /* Şık Tasarlanmış Mimari Görsel Alanı */
         .drawer-img-container {
             width: 100%;
-            height: 180px;
+            height: 160px;
             border-radius: 12px;
             overflow: hidden;
             margin-bottom: 14px;
-            background: #e2e8f0;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
         }
         .drawer-img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        .img-placeholder-text {
+            color: #ffffff;
+            font-size: 2rem;
+            z-index: 1;
         }
         .drawer-header-row {
             display: flex;
@@ -232,14 +245,15 @@
     
     <div id="status-box">
         <span class="status-dot"></span>
-        <span id="status-text">Sistem kararlı ve aktif</span>
+        <span id="status-text">Kararlı görsel altyapısı aktif</span>
     </div>
 
     <!-- Detay Çekmecesi -->
     <div id="info-drawer">
         <button class="drawer-close" onclick="closeDrawer()">✕</button>
         <div class="drawer-img-container">
-            <img id="drawer-img" class="drawer-img" src="" alt="Kilise Görseli">
+            <span class="img-placeholder-text">⛪</span>
+            <img id="drawer-img" class="drawer-img" src="" alt="" onerror="this.style.display='none'">
         </div>
         <div class="drawer-header-row">
             <h2 id="drawer-name" class="drawer-title">Kilise Adı</h2>
@@ -253,7 +267,6 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
-        // Harita Başlatma
         const map = L.map('map', { zoomControl: false }).setView([38.4192, 27.1428], 13);
         L.control.zoom({ position: 'topright' }).addTo(map);
 
@@ -264,7 +277,6 @@
 
         setTimeout(() => { map.invalidateSize(); }, 300);
 
-        // Veri Kümesi
         const churchesData = [
             {
                 name: "İzmir St. Polycarp Kilisesi",
@@ -272,7 +284,7 @@
                 country: "Türkiye",
                 denomination: "Katolik",
                 badgeClass: "badge-katolik",
-                image: "https://images.unsplash.com/photo-1548625361-167a74070742?auto=format&fit=crop&w=800&q=80",
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/St._Polycarp_Church%2C_%C4%B0zmir.jpg/800px-St._Polycarp_Church%2C_%C4%B0zmir.jpg",
                 description: "İzmir'in ayakta kalan en eski Katolik kilisesidir. 1625 yılında Kanuni Sultan Süleyman'ın izni ve Fransa Kralı XIII. Louis'in desteğiyle inşa edilmiştir.",
                 lat: 38.4237,
                 lng: 27.1385
@@ -283,7 +295,7 @@
                 country: "Türkiye",
                 denomination: "Anglikan",
                 badgeClass: "badge-anglikan",
-                image: "https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?auto=format&fit=crop&w=800&q=80",
+                image: "",
                 description: "19. yüzyıldan kalma tarihi İngiliz anglikan kilisesidir. Gotik mimari izleri taşıyan yapı, bölgedeki Levanten mirasın önemli simgelerindendir.",
                 lat: 38.4342,
                 lng: 27.1415
@@ -294,7 +306,7 @@
                 country: "Türkiye",
                 denomination: "Katolik",
                 badgeClass: "badge-katolik",
-                image: "https://images.unsplash.com/photo-1543968996-ee822b8176ba?auto=format&fit=crop&w=800&q=80",
+                image: "",
                 description: "Alsancak bölgesinin merkezi konumunda yer alan, zarif mimari detaylarıyla dikkat çeken tarihi ibadethanelerdendir.",
                 lat: 38.4320,
                 lng: 27.1440
@@ -305,7 +317,7 @@
                 country: "Türkiye",
                 denomination: "Protestan",
                 badgeClass: "badge-protestan",
-                image: "https://images.unsplash.com/photo-1438032005730-c779502df39b?auto=format&fit=crop&w=800&q=80",
+                image: "",
                 description: "İzmir'deki aktif Protestan Hristiyan cemaatinin ibadet ve buluşma noktalarından biridir.",
                 lat: 38.4410,
                 lng: 27.1480
@@ -330,7 +342,13 @@
                 const marker = L.marker([church.lat, church.lng]).addTo(map);
 
                 marker.on('click', () => {
-                    drawerImg.src = church.image;
+                    if (church.image) {
+                        drawerImg.src = church.image;
+                        drawerImg.style.display = 'block';
+                    } else {
+                        drawerImg.src = '';
+                        drawerImg.style.display = 'none';
+                    }
                     drawerName.innerText = church.name;
                     drawerBadge.innerText = church.denomination;
                     drawerBadge.className = 'denomination-badge ' + church.badgeClass;
