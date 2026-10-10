@@ -35,12 +35,19 @@
             z-index: 1;
         }
         
-        /* Glassmorphism Başlık Kartı */
-        .header-card {
+        /* Glassmorphism Üst Panel */
+        .header-container {
             position: absolute;
             top: 16px;
             left: 16px;
+            right: 16px;
+            max-width: 400px;
             z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .header-card {
             background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
@@ -48,6 +55,11 @@
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.08);
             border: 1px solid rgba(255, 255, 255, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .header-title-wrapper {
             display: flex;
             align-items: center;
             gap: 10px;
@@ -65,6 +77,27 @@
             font-weight: 600;
             padding: 2px 8px;
             border-radius: 20px;
+        }
+
+        /* Arama Kutusu Stili */
+        .search-box {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 10px 16px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            font-size: 0.9rem;
+            color: #1e293b;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+        .search-box:focus {
+            background: rgba(255, 255, 255, 0.95);
+            border-color: #3b82f6;
+            box-shadow: 0 4px 20px rgba(59,130,246,0.15);
         }
 
         /* Şık Durum Bildirim Kutusu */
@@ -151,10 +184,15 @@
 </head>
 <body>
 
-    <div class="header-card">
-        <span style="font-size: 1.2rem;">⛪</span>
-        <span class="header-title">The Church Atlas</span>
-        <span id="church-count-badge" class="header-badge">0 Kilise</span>
+    <div class="header-container">
+        <div class="header-card">
+            <div class="header-title-wrapper">
+                <span style="font-size: 1.2rem;">⛪</span>
+                <span class="header-title">The Church Atlas</span>
+            </div>
+            <span id="church-count-badge" class="header-badge">0 Kilise</span>
+        </div>
+        <input type="text" id="search-input" class="search-box" placeholder="Kilise veya bölge ara..." oninput="filterChurches(this.value)">
     </div>
 
     <div id="map"></div>
@@ -228,26 +266,46 @@
         countBadge.innerText = churchesData.length + ' Kilise';
         statusText.innerText = churchesData.length + ' konum aktif';
 
-        // Pinleri Haritaya Ekleme (Popup yerine alttan açılan çekmeceyi tetikler)
-        churchesData.forEach(church => {
-            const marker = L.marker([church.lat, church.lng]).addTo(map);
+        let markers = [];
 
-            marker.on('click', () => {
-                drawerName.innerText = church.name;
-                drawerLoc.innerText = `${church.city}, ${church.country}`;
-                drawerDesc.innerText = church.description;
-                drawer.classList.add('active');
-                map.setView([church.lat, church.lng], 15, { animate: true });
+        // Pinleri Haritaya Ekleme
+        function renderMarkers(data) {
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+
+            data.forEach(church => {
+                const marker = L.marker([church.lat, church.lng]).addTo(map);
+
+                marker.on('click', () => {
+                    drawerName.innerText = church.name;
+                    drawerLoc.innerText = `${church.city}, ${church.country}`;
+                    drawerDesc.innerText = church.description;
+                    drawer.classList.add('active');
+                    map.setView([church.lat, church.lng], 15, { animate: true });
+                });
+
+                markers.push(marker);
             });
-        });
+        }
+
+        renderMarkers(churchesData);
+
+        // Arama/Filtreleme Fonksiyonu
+        function filterChurches(query) {
+            const filtered = churchesData.filter(church => 
+                church.name.toLowerCase().includes(query.toLowerCase()) ||
+                church.city.toLowerCase().includes(query.toLowerCase()) ||
+                church.description.toLowerCase().includes(query.toLowerCase())
+            );
+            renderMarkers(filtered);
+            countBadge.innerText = filtered.length + ' Kilise';
+        }
 
         function closeDrawer() {
             drawer.classList.remove('active');
         }
 
-        // Haritada boş bir yere tıklandığında çekmeceyi kapat
         map.on('click', (e) => {
-            // Eğer pin üzerine tıklanmadıysa çekmeceyi kapat
             if (e.originalEvent.target.tagName !== 'IMG') {
                 closeDrawer();
             }
