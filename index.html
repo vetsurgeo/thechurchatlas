@@ -92,7 +92,6 @@
             font-size: 0.9rem;
             color: #1e293b;
             outline: none;
-            transition: all 0.2s ease;
         }
         .search-box:focus {
             background: rgba(255, 255, 255, 0.95);
@@ -165,7 +164,6 @@
             justify-content: center;
             z-index: 10;
         }
-        /* Görsel Alanı */
         .drawer-img-container {
             width: 100%;
             height: 180px;
@@ -202,7 +200,6 @@
         .badge-katolik { background: #fee2e2; color: #991b1b; }
         .badge-anglikan { background: #e0e7ff; color: #3730a3; }
         .badge-protestan { background: #dcfce7; color: #166534; }
-        .badge-ortodoks { background: #fef3c7; color: #92400e; }
 
         .drawer-location {
             margin: 0 0 10px 0;
@@ -226,7 +223,7 @@
                 <span style="font-size: 1.2rem;">⛪</span>
                 <span class="header-title">The Church Atlas</span>
             </div>
-            <span id="church-count-badge" class="header-badge">0 Kilise</span>
+            <span id="church-count-badge" class="header-badge">4 Kilise</span>
         </div>
         <input type="text" id="search-input" class="search-box" placeholder="Kilise, bölge veya mezhep ara..." oninput="filterChurches(this.value)">
     </div>
@@ -235,10 +232,10 @@
     
     <div id="status-box">
         <span class="status-dot"></span>
-        <span id="status-text">Görsel galeri aktif</span>
+        <span id="status-text">Sistem kararlı ve aktif</span>
     </div>
 
-    <!-- Detay Çekmecesi (Drawer) -->
+    <!-- Detay Çekmecesi -->
     <div id="info-drawer">
         <button class="drawer-close" onclick="closeDrawer()">✕</button>
         <div class="drawer-img-container">
@@ -246,30 +243,18 @@
         </div>
         <div class="drawer-header-row">
             <h2 id="drawer-name" class="drawer-title">Kilise Adı</h2>
-            <span id="drawer-badge" class="denomination-badge">Katolik</span>
+            <span id="drawer-badge" class="denomination-badge badge-katolik">Katolik</span>
         </div>
         <p id="drawer-loc" class="drawer-location">Konum</p>
-        <p id="drawer-description" class="drawer-desc">Açıklama metni burada yer alacak.</p>
+        <p id="drawer-description" class="drawer-desc">Açıklama</p>
     </div>
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
-        const statusText = document.getElementById('status-text');
-        const countBadge = document.getElementById('church-count-badge');
-        const drawer = document.getElementById('info-drawer');
-        const drawerImg = document.getElementById('drawer-img');
-        const drawerName = document.getElementById('drawer-name');
-        const drawerBadge = document.getElementById('drawer-badge');
-        const drawerLoc = document.getElementById('drawer-loc');
-        const drawerDesc = document.getElementById('drawer-description');
-
         // Harita Başlatma
-        const map = L.map('map', {
-            zoomControl: false
-        }).setView([38.4192, 27.1428], 13);
-
+        const map = L.map('map', { zoomControl: false }).setView([38.4192, 27.1428], 13);
         L.control.zoom({ position: 'topright' }).addTo(map);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -279,7 +264,7 @@
 
         setTimeout(() => { map.invalidateSize(); }, 300);
 
-        // Görsel Destekli Kilise Veri Kümesi
+        // Veri Kümesi
         const churchesData = [
             {
                 name: "İzmir St. Polycarp Kilisesi",
@@ -327,7 +312,13 @@
             }
         ];
 
-        countBadge.innerText = churchesData.length + ' Kilise';
+        const drawer = document.getElementById('info-drawer');
+        const drawerImg = document.getElementById('drawer-img');
+        const drawerName = document.getElementById('drawer-name');
+        const drawerBadge = document.getElementById('drawer-badge');
+        const drawerLoc = document.getElementById('drawer-loc');
+        const drawerDesc = document.getElementById('drawer-description');
+        const countBadge = document.getElementById('church-count-badge');
 
         let markers = [];
 
@@ -336,4 +327,45 @@
             markers = [];
 
             data.forEach(church => {
-                const marker = L
+                const marker = L.marker([church.lat, church.lng]).addTo(map);
+
+                marker.on('click', () => {
+                    drawerImg.src = church.image;
+                    drawerName.innerText = church.name;
+                    drawerBadge.innerText = church.denomination;
+                    drawerBadge.className = 'denomination-badge ' + church.badgeClass;
+                    drawerLoc.innerText = `${church.city}, ${church.country}`;
+                    drawerDesc.innerText = church.description;
+                    drawer.classList.add('active');
+                    map.setView([church.lat, church.lng], 15, { animate: true });
+                });
+
+                markers.push(marker);
+            });
+        }
+
+        renderMarkers(churchesData);
+
+        function filterChurches(query) {
+            const filtered = churchesData.filter(church => 
+                church.name.toLowerCase().includes(query.toLowerCase()) ||
+                church.city.toLowerCase().includes(query.toLowerCase()) ||
+                church.denomination.toLowerCase().includes(query.toLowerCase()) ||
+                church.description.toLowerCase().includes(query.toLowerCase())
+            );
+            renderMarkers(filtered);
+            countBadge.innerText = filtered.length + ' Kilise';
+        }
+
+        function closeDrawer() {
+            drawer.classList.remove('active');
+        }
+
+        map.on('click', (e) => {
+            if (e.originalEvent.target.tagName !== 'IMG') {
+                closeDrawer();
+            }
+        });
+    </script>
+</body>
+</html>
