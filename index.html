@@ -7,21 +7,18 @@
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
-    <style>
+        <style>
         html, body {
             margin: 0;
             padding: 0;
-            width: 100%;
-            height: 100%;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            background: #f0f0f0;
         }
         #map {
-            position: absolute;
-            top: 0;
-            bottom: 0;
             width: 100%;
+            height: 100vh;
+            position: relative;
             z-index: 1;
         }
         .header-title {
@@ -36,9 +33,9 @@
             font-size: 1.1rem;
             font-weight: bold;
             color: #1a1a1a;
-            backdrop-filter: blur(4px);
         }
     </style>
+
 </head>
 <body>
 
