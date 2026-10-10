@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Church Atlas</title>
     
     <!-- Leaflet CSS -->
@@ -11,18 +11,17 @@
     <style>
         body, html {
             margin: 0;
-            padding: 0;
+            padding: 0.
             width: 100%;
             height: 100%;
-            background: #f0f0f0;
+            background: #e0e0e0;
         }
         #map {
-            width: 100%;
+            width: 100vw;
             height: 100vh;
             position: absolute;
             top: 0;
             left: 0;
-            z-index: 1;
         }
         .header-title {
             position: absolute;
@@ -38,12 +37,25 @@
             font-weight: bold;
             color: #1a1a1a;
         }
+        #debug-box {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(0,0,0,0.8);
+            color: #0f0;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body>
 
     <div class="header-title">⛪ The Church Atlas</div>
     <div id="map"></div>
+    <div id="debug-box">Yükleniyor...</div>
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -51,53 +63,51 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
-        // Haritayı başlat
-        const map = L.map('map').setView([39.0, 35.0], 6);
+        const debugBox = document.getElementById('debug-box');
 
-        // OpenStreetMap Katmanı
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap'
-        }).addTo(map);
+        try {
+            // Haritayı başlat
+            const map = L.map('map').setView([39.0, 35.0], 6);
 
-        // Mobil tarayıcılar için boyut güncelleme tetikleyicisi
-        setTimeout(function() {
-            map.invalidateSize();
-        }, 300);
+            // OpenStreetMap Katmanı
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
 
-        // Supabase Bağlantısı
-        const SUPABASE_URL = 'https://siucplaufmjhqdtorhf.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_SWkmm1DhgsaZfISIIQ_Wa5RfRLi';
-        
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            debugBox.innerText = 'Harita yüklendi, Supabase bağlanıyor...';
 
-        async function fetchChurches() {
-            try {
+            // Supabase Bağlantısı
+            const SUPABASE_URL = 'https://siucplaufmjhqdtorhf.supabase.co';
+            const SUPABASE_KEY = 'sb_publishable_SWkmm1DhgsaZfISIIQ_Wa5RfRLi';
+            
+            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+            async function fetchChurches() {
                 const { data, error } = await supabase.from('churches').select('*');
 
                 if (error) {
-                    console.error('Hata:', error);
+                    debugBox.innerText = 'Supabase Hata: ' + error.message;
                     return;
                 }
 
                 if (data) {
+                    debugBox.innerText = 'Kiliseler yüklendi: ' + data.length + ' adet';
                     data.forEach(church => {
                         if (church.location && church.location.coordinates) {
                             const lng = church.location.coordinates[0];
-                            const gizliLat = church.location.coordinates[1];
-
-                            L.marker([gizliLat, lng])
-                                .addTo(map)
-                                .bindPopup(`<b>${church.name}</b><br>${church.city || ''}`);
+                            const lat = church.location.coordinates[1];
+                            L.marker([lat, lng]).addTo(map).bindPopup(church.name);
                         }
                     });
                 }
-            } catch (err) {
-                console.error('Bağlantı hatası:', err);
             }
-        }
 
-        fetchChurches();
+            fetchChurches();
+
+        } catch (err) {
+            debugBox.innerText = 'JS Kritik Hata: ' + err.message;
+        }
     </script>
 </body>
 </html>
