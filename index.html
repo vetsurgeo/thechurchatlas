@@ -133,7 +133,7 @@
             left: 0;
             width: 100%;
             z-index: 2000;
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(255, 255, 255, 0.96);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
             border-top-left-radius: 20px;
@@ -142,13 +142,15 @@
             border-top: 1px solid rgba(255, 255, 255, 0.8);
             padding: 20px 24px 32px 24px;
             transition: bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            max-height: 85vh;
+            overflow-y: auto;
         }
         #info-drawer.active {
             bottom: 0;
         }
         .drawer-close {
             position: absolute;
-            top: 14px;
+            top: 16px;
             right: 18px;
             background: #f1f5f9;
             border: none;
@@ -161,12 +163,28 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            z-index: 10;
+        }
+        /* Görsel Alanı */
+        .drawer-img-container {
+            width: 100%;
+            height: 180px;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 14px;
+            background: #e2e8f0;
+        }
+        .drawer-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
         .drawer-header-row {
             display: flex;
             align-items: center;
             gap: 10px;
             margin-bottom: 4px;
+            flex-wrap: wrap;
         }
         .drawer-title {
             margin: 0;
@@ -187,7 +205,7 @@
         .badge-ortodoks { background: #fef3c7; color: #92400e; }
 
         .drawer-location {
-            margin: 0 0 12px 0;
+            margin: 0 0 10px 0;
             font-size: 0.85rem;
             color: #64748b;
             font-weight: 500;
@@ -217,15 +235,18 @@
     
     <div id="status-box">
         <span class="status-dot"></span>
-        <span id="status-text">Protestan kiliseleri eklendi</span>
+        <span id="status-text">Görsel galeri aktif</span>
     </div>
 
     <!-- Detay Çekmecesi (Drawer) -->
     <div id="info-drawer">
         <button class="drawer-close" onclick="closeDrawer()">✕</button>
+        <div class="drawer-img-container">
+            <img id="drawer-img" class="drawer-img" src="" alt="Kilise Görseli">
+        </div>
         <div class="drawer-header-row">
             <h2 id="drawer-name" class="drawer-title">Kilise Adı</h2>
-            <span id="drawer-badge" class="denomination-badge badge-katolik">Katolik</span>
+            <span id="drawer-badge" class="denomination-badge">Katolik</span>
         </div>
         <p id="drawer-loc" class="drawer-location">Konum</p>
         <p id="drawer-description" class="drawer-desc">Açıklama metni burada yer alacak.</p>
@@ -238,6 +259,7 @@
         const statusText = document.getElementById('status-text');
         const countBadge = document.getElementById('church-count-badge');
         const drawer = document.getElementById('info-drawer');
+        const drawerImg = document.getElementById('drawer-img');
         const drawerName = document.getElementById('drawer-name');
         const drawerBadge = document.getElementById('drawer-badge');
         const drawerLoc = document.getElementById('drawer-loc');
@@ -257,7 +279,7 @@
 
         setTimeout(() => { map.invalidateSize(); }, 300);
 
-        // Genişletilmiş Kilise Veri Kümesi (Protestan kilisesi eklendi)
+        // Görsel Destekli Kilise Veri Kümesi
         const churchesData = [
             {
                 name: "İzmir St. Polycarp Kilisesi",
@@ -265,6 +287,7 @@
                 country: "Türkiye",
                 denomination: "Katolik",
                 badgeClass: "badge-katolik",
+                image: "https://images.unsplash.com/photo-1548625361-167a74070742?auto=format&fit=crop&w=800&q=80",
                 description: "İzmir'in ayakta kalan en eski Katolik kilisesidir. 1625 yılında Kanuni Sultan Süleyman'ın izni ve Fransa Kralı XIII. Louis'in desteğiyle inşa edilmiştir.",
                 lat: 38.4237,
                 lng: 27.1385
@@ -275,6 +298,7 @@
                 country: "Türkiye",
                 denomination: "Anglikan",
                 badgeClass: "badge-anglikan",
+                image: "https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?auto=format&fit=crop&w=800&q=80",
                 description: "19. yüzyıldan kalma tarihi İngiliz anglikan kilisesidir. Gotik mimari izleri taşıyan yapı, bölgedeki Levanten mirasın önemli simgelerindendir.",
                 lat: 38.4342,
                 lng: 27.1415
@@ -285,6 +309,7 @@
                 country: "Türkiye",
                 denomination: "Katolik",
                 badgeClass: "badge-katolik",
+                image: "https://images.unsplash.com/photo-1543968996-ee822b8176ba?auto=format&fit=crop&w=800&q=80",
                 description: "Alsancak bölgesinin merkezi konumunda yer alan, zarif mimari detaylarıyla dikkat çeken tarihi ibadethanelerdendir.",
                 lat: 38.4320,
                 lng: 27.1440
@@ -295,6 +320,7 @@
                 country: "Türkiye",
                 denomination: "Protestan",
                 badgeClass: "badge-protestan",
+                image: "https://images.unsplash.com/photo-1438032005730-c779502df39b?auto=format&fit=crop&w=800&q=80",
                 description: "İzmir'deki aktif Protestan Hristiyan cemaatinin ibadet ve buluşma noktalarından biridir.",
                 lat: 38.4410,
                 lng: 27.1480
@@ -310,44 +336,4 @@
             markers = [];
 
             data.forEach(church => {
-                const marker = L.marker([church.lat, church.lng]).addTo(map);
-
-                marker.on('click', () => {
-                    drawerName.innerText = church.name;
-                    drawerBadge.innerText = church.denomination;
-                    drawerBadge.className = 'denomination-badge ' + church.badgeClass;
-                    drawerLoc.innerText = `${church.city}, ${church.country}`;
-                    drawerDesc.innerText = church.description;
-                    drawer.classList.add('active');
-                    map.setView([church.lat, church.lng], 15, { animate: true });
-                });
-
-                markers.push(marker);
-            });
-        }
-
-        renderMarkers(churchesData);
-
-        function filterChurches(query) {
-            const filtered = churchesData.filter(church => 
-                church.name.toLowerCase().includes(query.toLowerCase()) ||
-                church.city.toLowerCase().includes(query.toLowerCase()) ||
-                church.denomination.toLowerCase().includes(query.toLowerCase()) ||
-                church.description.toLowerCase().includes(query.toLowerCase())
-            );
-            renderMarkers(filtered);
-            countBadge.innerText = filtered.length + ' Kilise';
-        }
-
-        function closeDrawer() {
-            drawer.classList.remove('active');
-        }
-
-        map.on('click', (e) => {
-            if (e.originalEvent.target.tagName !== 'IMG') {
-                closeDrawer();
-            }
-        });
-    </script>
-</body>
-</html>
+                const marker = L
