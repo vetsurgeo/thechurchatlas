@@ -126,17 +126,17 @@
         // Zoom butonlarını sağ üste taşıyalım
         L.control.zoom({ position: 'topright' }).addTo(map);
 
-        // Sorunsuz ve ücretsiz OpenStreetMap standart katmanı
+        // Standart OpenStreetMap Katmanı
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            attribution: '&copy; OpenStreetMap'
         }).addTo(map);
 
         setTimeout(() => { map.invalidateSize(); }, 300);
 
-        // Supabase Bağlantısı (Çalışan Legacy Anon Key)
+        // Supabase Bağlantısı
         const SUPABASE_URL = 'https://siucplaufmjhqdtorhf.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpdWNwbGF1Zm1qaHFnZHRvcmhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyMDU0MzksImV4cCI6MjEwNjc4MTQzOX0.dTo5uK-djOc3rkNrmJsahypGUw2-bHfwPFjcsx6-sso'; 
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpdWNwbGF1Zm1qaHFkdG9yaGYiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTczODU4OTUxNiwiZXhwIjoyMDU0MTY1NTE2fQ.ZcAnz4E-p67mS4r4c70vO3O59B2b7X65O5-a9mG47uM';
         
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
