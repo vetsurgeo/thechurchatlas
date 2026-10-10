@@ -183,6 +183,7 @@
         }
         .badge-katolik { background: #fee2e2; color: #991b1b; }
         .badge-anglikan { background: #e0e7ff; color: #3730a3; }
+        .badge-protestan { background: #dcfce7; color: #166534; }
         .badge-ortodoks { background: #fef3c7; color: #92400e; }
 
         .drawer-location {
@@ -216,7 +217,7 @@
     
     <div id="status-box">
         <span class="status-dot"></span>
-        <span id="status-text">Mezhep altyapısı aktif</span>
+        <span id="status-text">Protestan kiliseleri eklendi</span>
     </div>
 
     <!-- Detay Çekmecesi (Drawer) -->
@@ -256,7 +257,7 @@
 
         setTimeout(() => { map.invalidateSize(); }, 300);
 
-        // Mezhep Bilgili Kilise Veri Kümesi
+        // Genişletilmiş Kilise Veri Kümesi (Protestan kilisesi eklendi)
         const churchesData = [
             {
                 name: "İzmir St. Polycarp Kilisesi",
@@ -287,6 +288,16 @@
                 description: "Alsancak bölgesinin merkezi konumunda yer alan, zarif mimari detaylarıyla dikkat çeken tarihi ibadethanelerdendir.",
                 lat: 38.4320,
                 lng: 27.1440
+            },
+            {
+                name: "İzmir Protestan Kilisesi (Transformation Church)",
+                city: "İzmir",
+                country: "Türkiye",
+                denomination: "Protestan",
+                badgeClass: "badge-protestan",
+                description: "İzmir'deki aktif Protestan Hristiyan cemaatinin ibadet ve buluşma noktalarından biridir.",
+                lat: 38.4410,
+                lng: 27.1480
             }
         ];
 
