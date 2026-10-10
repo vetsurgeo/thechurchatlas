@@ -11,7 +11,7 @@
     <style>
         body, html {
             margin: 0;
-            padding: 0.
+            padding: 0;
             width: 100%;
             height: 100%;
             background: #e0e0e0;
@@ -55,36 +55,33 @@
 
     <div class="header-title">⛪ The Church Atlas</div>
     <div id="map"></div>
-    <div id="debug-box">Yükleniyor...</div>
+    <div id="debug-box">Harita yüklendi...</div>
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Supabase JS -->
+    <!-- Supabase JS v2 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
         const debugBox = document.getElementById('debug-box');
 
-        try {
-            // Haritayı başlat
-            const map = L.map('map').setView([39.0, 35.0], 6);
+        // Haritayı başlat
+        const map = L.map('map').setView([39.0, 35.0], 6);
 
-            // OpenStreetMap Katmanı
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '© OpenStreetMap'
-            }).addTo(map);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
 
-            debugBox.innerText = 'Harita yüklendi, Supabase bağlanıyor...';
+        // Supabase Bağlantısı (Doğru kütüphane nesnesiyle)
+        const SUPABASE_URL = 'https://siucplaufmjhqdtorhf.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_SWkmm1DhgsaZfISIIQ_Wa5RfRLi';
+        
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-            // Supabase Bağlantısı
-            const SUPABASE_URL = 'https://siucplaufmjhqdtorhf.supabase.co';
-            const SUPABASE_KEY = 'sb_publishable_SWkmm1DhgsaZfISIIQ_Wa5RfRLi';
-            
-            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-            async function fetchChurches() {
-                const { data, error } = await supabase.from('churches').select('*');
+        async function fetchChurches() {
+            try {
+                const { data, error } = await supabaseClient.from('churches').select('*');
 
                 if (error) {
                     debugBox.innerText = 'Supabase Hata: ' + error.message;
@@ -92,22 +89,21 @@
                 }
 
                 if (data) {
-                    debugBox.innerText = 'Kiliseler yüklendi: ' + data.length + ' adet';
+                    debugBox.innerText = 'Kiliseler başarıyla yüklendi: ' + data.length + ' adet';
                     data.forEach(church => {
                         if (church.location && church.location.coordinates) {
                             const lng = church.location.coordinates[0];
                             const lat = church.location.coordinates[1];
-                            L.marker([lat, lng]).addTo(map).bindPopup(church.name);
+                            L.marker([lat, lng]).addTo(map).bindPopup(`<b>${church.name}</b>`);
                         }
                     });
                 }
+            } catch (err) {
+                debugBox.innerText = 'Bağlantı Kritik Hata: ' + err.message;
             }
-
-            fetchChurches();
-
-        } catch (err) {
-            debugBox.innerText = 'JS Kritik Hata: ' + err.message;
         }
+
+        fetchChurches();
     </script>
 </body>
 </html>
