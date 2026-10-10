@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>The Church Atlas</title>
     
     <!-- Leaflet CSS -->
@@ -14,11 +14,15 @@
             padding: 0;
             width: 100%;
             height: 100%;
-            overflow: hidden;
+            background: #f0f0f0;
         }
         #map {
             width: 100%;
             height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
         }
         .header-title {
             position: absolute;
@@ -56,6 +60,11 @@
             attribution: '© OpenStreetMap'
         }).addTo(map);
 
+        // Mobil tarayıcılar için boyut güncelleme tetikleyicisi
+        setTimeout(function() {
+            map.invalidateSize();
+        }, 300);
+
         // Supabase Bağlantısı
         const SUPABASE_URL = 'https://siucplaufmjhqdtorhf.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_SWkmm1DhgsaZfISIIQ_Wa5RfRLi';
@@ -63,24 +72,28 @@
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         async function fetchChurches() {
-            const { data, error } = await supabase.from('churches').select('*');
+            try {
+                const { data, error } = await supabase.from('churches').select('*');
 
-            if (error) {
-                console.error('Hata:', error);
-                return;
-            }
+                if (error) {
+                    console.error('Hata:', error);
+                    return;
+                }
 
-            if (data) {
-                data.forEach(church => {
-                    if (church.location && church.location.coordinates) {
-                        const lng = church.location.coordinates[0];
-                        const lat = church.location.coordinates[1];
+                if (data) {
+                    data.forEach(church => {
+                        if (church.location && church.location.coordinates) {
+                            const lng = church.location.coordinates[0];
+                            const gizliLat = church.location.coordinates[1];
 
-                        L.marker([lat, lng])
-                            .addTo(map)
-                            .bindPopup(`<b>${church.name}</b><br>${church.city || ''}`);
-                    }
-                });
+                            L.marker([gizliLat, lng])
+                                .addTo(map)
+                                .bindPopup(`<b>${church.name}</b><br>${church.city || ''}`);
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error('Bağlantı hatası:', err);
             }
         }
 
