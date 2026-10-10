@@ -164,10 +164,9 @@
             justify-content: center;
             z-index: 10;
         }
-        /* Şık Tasarlanmış Mimari Görsel Alanı */
         .drawer-img-container {
             width: 100%;
-            height: 160px;
+            height: 180px;
             border-radius: 12px;
             overflow: hidden;
             margin-bottom: 14px;
@@ -245,7 +244,7 @@
     
     <div id="status-box">
         <span class="status-dot"></span>
-        <span id="status-text">Kararlı görsel altyapısı aktif</span>
+        <span id="status-text">Gerçek arşiv fotoğrafları yüklendi</span>
     </div>
 
     <!-- Detay Çekmecesi -->
@@ -277,6 +276,7 @@
 
         setTimeout(() => { map.invalidateSize(); }, 300);
 
+        // Gerçek Arşiv Görselleriyle Güncellenmiş Veri Kümesi
         const churchesData = [
             {
                 name: "İzmir St. Polycarp Kilisesi",
@@ -295,7 +295,7 @@
                 country: "Türkiye",
                 denomination: "Anglikan",
                 badgeClass: "badge-anglikan",
-                image: "",
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/Cathedral_of_Saint_John%2C_Izmir_02.jpg/800px-Cathedral_of_Saint_John%2C_Izmir_02.jpg",
                 description: "19. yüzyıldan kalma tarihi İngiliz anglikan kilisesidir. Gotik mimari izleri taşıyan yapı, bölgedeki Levanten mirasın önemli simgelerindendir.",
                 lat: 38.4342,
                 lng: 27.1415
@@ -306,7 +306,7 @@
                 country: "Türkiye",
                 denomination: "Katolik",
                 badgeClass: "badge-katolik",
-                image: "",
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/StJohntheEvangelistIzmirAnglican.jpg/800px-StJohntheEvangelistIzmirAnglican.jpg",
                 description: "Alsancak bölgesinin merkezi konumunda yer alan, zarif mimari detaylarıyla dikkat çeken tarihi ibadethanelerdendir.",
                 lat: 38.4320,
                 lng: 27.1440
