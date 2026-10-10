@@ -41,17 +41,17 @@
             top: 16px;
             left: 16px;
             right: 16px;
-            max-width: 400px;
+            max-width: 420px;
             z-index: 1000;
             display: flex;
             flex-direction: column;
             gap: 10px;
         }
         .header-card {
-            background: rgba(255, 255, 255, 0.85);
+            background: rgba(255, 255, 255, 0.88);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            padding: 12px 20px;
+            padding: 12px 18px;
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.08);
             border: 1px solid rgba(255, 255, 255, 0.6);
@@ -68,7 +68,11 @@
             font-size: 1rem;
             font-weight: 700;
             color: #1e293b;
-            letter-spacing: -0.02em;
+        }
+        .header-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
         }
         .header-badge {
             background: #e2e8f0;
@@ -78,11 +82,21 @@
             padding: 2px 8px;
             border-radius: 20px;
         }
+        .admin-btn {
+            background: #0f172a;
+            color: #fff;
+            border: none;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 5px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
 
         /* Arama Kutusu Stili */
         .search-box {
             width: 100%;
-            background: rgba(255, 255, 255, 0.85);
+            background: rgba(255, 255, 255, 0.88);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             padding: 10px 16px;
@@ -92,11 +106,6 @@
             font-size: 0.9rem;
             color: #1e293b;
             outline: none;
-        }
-        .search-box:focus {
-            background: rgba(255, 255, 255, 0.95);
-            border-color: #3b82f6;
-            box-shadow: 0 4px 20px rgba(59,130,246,0.15);
         }
 
         /* Şık Durum Bildirim Kutusu */
@@ -189,37 +198,122 @@
         .badge-protestan { background: #dcfce7; color: #166534; }
 
         .drawer-location {
-            margin: 0 0 14px 0;
+            margin: 0 0 10px 0;
             font-size: 0.85rem;
             color: #64748b;
             font-weight: 500;
         }
         .drawer-desc {
-            margin: 0 0 20px 0;
+            margin: 0 0 16px 0;
             font-size: 0.925rem;
             color: #334155;
             line-height: 1.6;
         }
 
-        /* Fotoğraf/Yorum Katkı Butonu */
-        .contrib-btn {
-            width: 100%;
-            background: #0f172a;
-            color: #ffffff;
-            border: none;
-            padding: 12px;
-            border-radius: 12px;
-            font-weight: 600;
+        /* Katkı Formu Alanı */
+        .contrib-section {
+            border-top: 1px solid #e2e8f0;
+            padding-top: 16px;
+            margin-top: 16px;
+        }
+        .contrib-title {
             font-size: 0.9rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 10px;
+        }
+        .contrib-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            outline: none;
+        }
+        .contrib-input:focus {
+            border-color: #3b82f6;
+        }
+        .contrib-submit {
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.85rem;
             cursor: pointer;
-            display: flex;
+            width: 100%;
+        }
+        .contrib-submit:hover {
+            background: #1d4ed8;
+        }
+
+        /* Yönetici Modalı */
+        #admin-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 3000;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            transition: background 0.2s;
         }
-        .contrib-btn:hover {
-            background: #1e293b;
+        .modal-content {
+            background: #fff;
+            width: 90%;
+            max-width: 450px;
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .modal-title {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+        .pending-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .pending-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .btn-approve {
+            background: #22c55e;
+            color: #fff;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .btn-reject {
+            background: #ef4444;
+            color: #fff;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
         }
     </style>
 </head>
@@ -231,7 +325,10 @@
                 <span style="font-size: 1.2rem;">⛪</span>
                 <span class="header-title">The Church Atlas</span>
             </div>
-            <span id="church-count-badge" class="header-badge">4 Kilise</span>
+            <div class="header-actions">
+                <span id="church-count-badge" class="header-badge">4 Kilise</span>
+                <button class="admin-btn" onclick="openAdminModal()">Yönetici</button>
+            </div>
         </div>
         <input type="text" id="search-input" class="search-box" placeholder="Kilise, bölge veya mezhep ara..." oninput="filterChurches(this.value)">
     </div>
@@ -240,7 +337,7 @@
     
     <div id="status-box">
         <span class="status-dot"></span>
-        <span id="status-text">Kararlı mod aktif</span>
+        <span id="status-text">Katkı ve onay sistemi aktif</span>
     </div>
 
     <!-- Detay Çekmecesi -->
@@ -252,9 +349,28 @@
         </div>
         <p id="drawer-loc" class="drawer-location">Konum</p>
         <p id="drawer-description" class="drawer-desc">Açıklama</p>
-        <button class="contrib-btn" onclick="alert('Fotoğraf ve Yorum Gönderme Modülü yakında eklenecektir!')">
-            📸 Bu Kiliseye Fotoğraf / Yorum Ekle
-        </button>
+        
+        <!-- Kullanıcı Katkı Formu -->
+        <div class="contrib-section">
+            <div class="contrib-title">💬 Bu Kiliseye Yorum / Bilgi Ekle</div>
+            <input type="text" id="contrib-name" class="contrib-input" placeholder="Adınız Soyadınız">
+            <input type="text" id="contrib-photo" class="contrib-input" placeholder="Fotoğraf Linki (İsteğe bağlı - URL)">
+            <textarea id="contrib-comment" class="contrib-input" placeholder="Yorumunuz veya ek bilgi..." rows="2" style="resize:none;"></textarea>
+            <button class="contrib-submit" onclick="submitContribution()">Onaya Gönder</button>
+        </div>
+    </div>
+
+    <!-- Yönetici Onay Paneli Modalı -->
+    <div id="admin-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">🛡️ Yönetici Onay Havuzu</h3>
+                <button class="drawer-close" style="position:static;" onclick="closeAdminModal()">✕</button>
+            </div>
+            <div id="pending-list">
+                <p style="color: #64748b; font-size: 0.9rem;">Onay bekleyen katkı bulunmuyor.</p>
+            </div>
+        </div>
     </div>
 
     <!-- Leaflet JS -->
@@ -273,6 +389,7 @@
 
         const churchesData = [
             {
+                id: 1,
                 name: "İzmir St. Polycarp Kilisesi",
                 city: "İzmir",
                 country: "Türkiye",
@@ -280,9 +397,11 @@
                 badgeClass: "badge-katolik",
                 description: "İzmir'in ayakta kalan en eski Katolik kilisesidir. 1625 yılında Kanuni Sultan Süleyman'ın izni ve Fransa Kralı XIII. Louis'in desteğiyle inşa edilmiştir.",
                 lat: 38.4237,
-                lng: 27.1385
+                lng: 27.1385,
+                comments: []
             },
             {
+                id: 2,
                 name: "Alsancak Aziz Yuhanna (St. John) Anglican Kilisesi",
                 city: "İzmir",
                 country: "Türkiye",
@@ -290,9 +409,11 @@
                 badgeClass: "badge-anglikan",
                 description: "19. yüzyıldan kalma tarihi İngiliz anglikan kilisesidir. Gotik mimari izleri taşıyan yapı, bölgedeki Levanten mirasın önemli simgelerindendir.",
                 lat: 38.4342,
-                lng: 27.1415
+                lng: 27.1415,
+                comments: []
             },
             {
+                id: 3,
                 name: "İzmir Aziz Rozary (Rosary) Katolik Kilisesi",
                 city: "İzmir",
                 country: "Türkiye",
@@ -300,9 +421,11 @@
                 badgeClass: "badge-katolik",
                 description: "Alsancak bölgesinin merkezi konumunda yer alan, zarif mimari detaylarıyla dikkat çeken tarihi ibadethanelerdendir.",
                 lat: 38.4320,
-                lng: 27.1440
+                lng: 27.1440,
+                comments: []
             },
             {
+                id: 4,
                 name: "İzmir Protestan Kilisesi (Transformation Church)",
                 city: "İzmir",
                 country: "Türkiye",
@@ -310,9 +433,14 @@
                 badgeClass: "badge-protestan",
                 description: "İzmir'deki aktif Protestan Hristiyan cemaatinin ibadet ve buluşma noktalarından biridir.",
                 lat: 38.4410,
-                lng: 27.1480
+                lng: 27.1480,
+                comments: []
             }
         ];
+
+        // Onay bekleyen katkılar havuzu (Memory state)
+        let pendingContributions = [];
+        let activeChurchId = null;
 
         const drawer = document.getElementById('info-drawer');
         const drawerName = document.getElementById('drawer-name');
@@ -331,11 +459,22 @@
                 const marker = L.marker([church.lat, church.lng]).addTo(map);
 
                 marker.on('click', () => {
+                    activeChurchId = church.id;
                     drawerName.innerText = church.name;
                     drawerBadge.innerText = church.denomination;
                     drawerBadge.className = 'denomination-badge ' + church.badgeClass;
                     drawerLoc.innerText = `${church.city}, ${church.country}`;
-                    drawerDesc.innerText = church.description;
+                    
+                    // Açıklama ve onaylanmış yorumlar
+                    let htmlDesc = church.description;
+                    if (church.comments && church.comments.length > 0) {
+                        htmlDesc += `<br><br><strong>Ziyaretçi Yorumları:</strong>`;
+                        church.comments.forEach(c => {
+                            htmlDesc += `<div style="font-size:0.825rem; margin-top:4px; padding:6px; background:#f1f5f9; border-radius:6px;">💬 <strong>${c.name}:</strong> ${c.text}</div>`;
+                        });
+                    }
+                    drawerDesc.innerHTML = htmlDesc;
+
                     drawer.classList.add('active');
                     map.setView([church.lat, church.lng], 15, { animate: true });
                 });
@@ -350,22 +489,4 @@
             const filtered = churchesData.filter(church => 
                 church.name.toLowerCase().includes(query.toLowerCase()) ||
                 church.city.toLowerCase().includes(query.toLowerCase()) ||
-                church.denomination.toLowerCase().includes(query.toLowerCase()) ||
-                church.description.toLowerCase().includes(query.toLowerCase())
-            );
-            renderMarkers(filtered);
-            countBadge.innerText = filtered.length + ' Kilise';
-        }
-
-        function closeDrawer() {
-            drawer.classList.remove('active');
-        }
-
-        map.on('click', (e) => {
-            if (e.originalEvent.target.tagName !== 'IMG') {
-                closeDrawer();
-            }
-        });
-    </script>
-</body>
-</html>
+                
