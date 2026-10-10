@@ -162,12 +162,29 @@
             align-items: center;
             justify-content: center;
         }
+        .drawer-header-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 4px;
+        }
         .drawer-title {
-            margin: 0 0 4px 0;
+            margin: 0;
             font-size: 1.15rem;
             font-weight: 700;
             color: #0f172a;
         }
+        .denomination-badge {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 12px;
+            text-transform: uppercase;
+        }
+        .badge-katolik { background: #fee2e2; color: #991b1b; }
+        .badge-anglikan { background: #e0e7ff; color: #3730a3; }
+        .badge-ortodoks { background: #fef3c7; color: #92400e; }
+
         .drawer-location {
             margin: 0 0 12px 0;
             font-size: 0.85rem;
@@ -192,20 +209,23 @@
             </div>
             <span id="church-count-badge" class="header-badge">0 Kilise</span>
         </div>
-        <input type="text" id="search-input" class="search-box" placeholder="Kilise veya bölge ara..." oninput="filterChurches(this.value)">
+        <input type="text" id="search-input" class="search-box" placeholder="Kilise, bölge veya mezhep ara..." oninput="filterChurches(this.value)">
     </div>
 
     <div id="map"></div>
     
     <div id="status-box">
         <span class="status-dot"></span>
-        <span id="status-text">Atlas yayına hazır</span>
+        <span id="status-text">Mezhep altyapısı aktif</span>
     </div>
 
     <!-- Detay Çekmecesi (Drawer) -->
     <div id="info-drawer">
         <button class="drawer-close" onclick="closeDrawer()">✕</button>
-        <h2 id="drawer-name" class="drawer-title">Kilise Adı</h2>
+        <div class="drawer-header-row">
+            <h2 id="drawer-name" class="drawer-title">Kilise Adı</h2>
+            <span id="drawer-badge" class="denomination-badge badge-katolik">Katolik</span>
+        </div>
         <p id="drawer-loc" class="drawer-location">Konum</p>
         <p id="drawer-description" class="drawer-desc">Açıklama metni burada yer alacak.</p>
     </div>
@@ -218,6 +238,7 @@
         const countBadge = document.getElementById('church-count-badge');
         const drawer = document.getElementById('info-drawer');
         const drawerName = document.getElementById('drawer-name');
+        const drawerBadge = document.getElementById('drawer-badge');
         const drawerLoc = document.getElementById('drawer-loc');
         const drawerDesc = document.getElementById('drawer-description');
 
@@ -235,12 +256,14 @@
 
         setTimeout(() => { map.invalidateSize(); }, 300);
 
-        // Kilise Veri Kümesi
+        // Mezhep Bilgili Kilise Veri Kümesi
         const churchesData = [
             {
                 name: "İzmir St. Polycarp Kilisesi",
                 city: "İzmir",
                 country: "Türkiye",
+                denomination: "Katolik",
+                badgeClass: "badge-katolik",
                 description: "İzmir'in ayakta kalan en eski Katolik kilisesidir. 1625 yılında Kanuni Sultan Süleyman'ın izni ve Fransa Kralı XIII. Louis'in desteğiyle inşa edilmiştir.",
                 lat: 38.4237,
                 lng: 27.1385
@@ -249,6 +272,8 @@
                 name: "Alsancak Aziz Yuhanna (St. John) Anglican Kilisesi",
                 city: "İzmir",
                 country: "Türkiye",
+                denomination: "Anglikan",
+                badgeClass: "badge-anglikan",
                 description: "19. yüzyıldan kalma tarihi İngiliz anglikan kilisesidir. Gotik mimari izleri taşıyan yapı, bölgedeki Levanten mirasın önemli simgelerindendir.",
                 lat: 38.4342,
                 lng: 27.1415
@@ -257,6 +282,8 @@
                 name: "İzmir Aziz Rozary (Rosary) Katolik Kilisesi",
                 city: "İzmir",
                 country: "Türkiye",
+                denomination: "Katolik",
+                badgeClass: "badge-katolik",
                 description: "Alsancak bölgesinin merkezi konumunda yer alan, zarif mimari detaylarıyla dikkat çeken tarihi ibadethanelerdendir.",
                 lat: 38.4320,
                 lng: 27.1440
@@ -264,11 +291,9 @@
         ];
 
         countBadge.innerText = churchesData.length + ' Kilise';
-        statusText.innerText = churchesData.length + ' konum aktif';
 
         let markers = [];
 
-        // Pinleri Haritaya Ekleme
         function renderMarkers(data) {
             markers.forEach(m => map.removeLayer(m));
             markers = [];
@@ -278,6 +303,8 @@
 
                 marker.on('click', () => {
                     drawerName.innerText = church.name;
+                    drawerBadge.innerText = church.denomination;
+                    drawerBadge.className = 'denomination-badge ' + church.badgeClass;
                     drawerLoc.innerText = `${church.city}, ${church.country}`;
                     drawerDesc.innerText = church.description;
                     drawer.classList.add('active');
@@ -290,11 +317,11 @@
 
         renderMarkers(churchesData);
 
-        // Arama/Filtreleme Fonksiyonu
         function filterChurches(query) {
             const filtered = churchesData.filter(church => 
                 church.name.toLowerCase().includes(query.toLowerCase()) ||
                 church.city.toLowerCase().includes(query.toLowerCase()) ||
+                church.denomination.toLowerCase().includes(query.toLowerCase()) ||
                 church.description.toLowerCase().includes(query.toLowerCase())
             );
             renderMarkers(filtered);
