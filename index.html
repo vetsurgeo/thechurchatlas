@@ -80,11 +80,12 @@
             map.invalidateSize();
         }, 300);
 
-        // Supabase Bağlantısı
+                // Supabase Bağlantısı
         const SUPABASE_URL = 'https://siucplaufmjhqdtorhf.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_SWkmm1DhgsaZfISIIQ_Wa5RfRLi';
         
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 
         async function fetchChurches() {
             try {
