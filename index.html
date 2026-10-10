@@ -35,7 +35,6 @@
             z-index: 1;
         }
         
-        /* Glassmorphism Başlık Kartı */
         .header-card {
             position: absolute;
             top: 16px;
@@ -67,7 +66,6 @@
             border-radius: 20px;
         }
 
-        /* Şık Durum Bildirim Kutusu */
         #status-box {
             position: absolute;
             bottom: 24px;
@@ -106,7 +104,7 @@
     
     <div id="status-box">
         <span class="status-dot"></span>
-        <span id="status-text">Veriler yükleniyor...</span>
+        <span id="status-text">Bağlanıyor...</span>
     </div>
 
     <!-- Leaflet JS -->
@@ -118,15 +116,12 @@
         const statusText = document.getElementById('status-text');
         const countBadge = document.getElementById('church-count-badge');
 
-        // Harita Başlatma
         const map = L.map('map', {
             zoomControl: false
         }).setView([38.4192, 27.1428], 12);
 
-        // Zoom butonlarını sağ üste taşıyalım
         L.control.zoom({ position: 'topright' }).addTo(map);
 
-        // Standart OpenStreetMap Katmanı
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '&copy; OpenStreetMap'
@@ -134,22 +129,25 @@
 
         setTimeout(() => { map.invalidateSize(); }, 300);
 
-        // Supabase Bağlantısı
-        const SUPABASE_URL = 'https://siucplaufmjhqdtorhf.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpdWNwbGF1Zm1qaHFkdG9yaGYiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTczODU4OTUxNiwiZXhwIjoyMDU0MTY1NTE2fQ.ZcAnz4E-p67mS4r4c70vO3O59B2b7X65O5-a9mG47uM';
+        // Supabase Bağlantı Bilgileri (Trim ile boşluk riskini sıfırlıyoruz)
+        const SUPABASE_URL = 'https://siucplaufmjhqdtorhf.supabase.co'.trim();
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpdWNwbGF1Zm1qaHFkdG9yaGYiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTczODU4OTUxNiwiZXhwIjoyMDU0MTY1NTE2fQ.ZcAnz4E-p67mS4r4c70vO3O59B2b7X65O5-a9mG47uM'.trim();
         
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         async function fetchChurches() {
             try {
+                console.log("Supabase'e istek atılıyor...");
                 const { data, error } = await supabaseClient.from('churches').select('*');
 
                 if (error) {
-                    statusText.innerText = 'Bağlantı Hatası: ' + error.message;
+                    console.error("Supabase hata detayı:", error);
+                    statusText.innerText = 'DB Hata: ' + error.message;
                     return;
                 }
 
                 if (data) {
+                    console.log("Veriler geldi:", data);
                     statusText.innerText = 'Atlas hazır';
                     countBadge.innerText = data.length + ' Kilise';
 
@@ -170,7 +168,8 @@
                     });
                 }
             } catch (err) {
-                statusText.innerText = 'Hata oluştu';
+                console.error("Kritik ağ hatası:", err);
+                statusText.innerText = 'Ağ Hatası (Fetch Failed)';
             }
         }
 
