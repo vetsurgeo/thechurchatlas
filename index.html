@@ -139,7 +139,7 @@
             border-top-right-radius: 20px;
             box-shadow: 0 -10px 30px rgba(0,0,0,0.15);
             border-top: 1px solid rgba(255, 255, 255, 0.8);
-            padding: 20px 24px 32px 24px;
+            padding: 24px 24px 36px 24px;
             transition: bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1);
             max-height: 85vh;
             overflow-y: auto;
@@ -149,8 +149,8 @@
         }
         .drawer-close {
             position: absolute;
-            top: 16px;
-            right: 18px;
+            top: 18px;
+            right: 20px;
             background: #f1f5f9;
             border: none;
             width: 32px;
@@ -164,48 +164,23 @@
             justify-content: center;
             z-index: 10;
         }
-        .drawer-img-container {
-            width: 100%;
-            height: 180px;
-            border-radius: 12px;
-            overflow: hidden;
-            margin-bottom: 14px;
-            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-        }
-        .drawer-img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
-        .img-placeholder-text {
-            color: #ffffff;
-            font-size: 2rem;
-            z-index: 1;
-        }
         .drawer-header-row {
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
             flex-wrap: wrap;
         }
         .drawer-title {
             margin: 0;
-            font-size: 1.15rem;
+            font-size: 1.2rem;
             font-weight: 700;
             color: #0f172a;
         }
         .denomination-badge {
             font-size: 0.7rem;
             font-weight: 600;
-            padding: 2px 8px;
+            padding: 3px 10px;
             border-radius: 12px;
             text-transform: uppercase;
         }
@@ -214,16 +189,37 @@
         .badge-protestan { background: #dcfce7; color: #166534; }
 
         .drawer-location {
-            margin: 0 0 10px 0;
+            margin: 0 0 14px 0;
             font-size: 0.85rem;
             color: #64748b;
             font-weight: 500;
         }
         .drawer-desc {
-            margin: 0;
-            font-size: 0.9rem;
+            margin: 0 0 20px 0;
+            font-size: 0.925rem;
             color: #334155;
-            line-height: 1.5;
+            line-height: 1.6;
+        }
+
+        /* Fotoğraf/Yorum Katkı Butonu */
+        .contrib-btn {
+            width: 100%;
+            background: #0f172a;
+            color: #ffffff;
+            border: none;
+            padding: 12px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: background 0.2s;
+        }
+        .contrib-btn:hover {
+            background: #1e293b;
         }
     </style>
 </head>
@@ -244,22 +240,21 @@
     
     <div id="status-box">
         <span class="status-dot"></span>
-        <span id="status-text">Görseller güncellendi</span>
+        <span id="status-text">Kararlı mod aktif</span>
     </div>
 
     <!-- Detay Çekmecesi -->
     <div id="info-drawer">
         <button class="drawer-close" onclick="closeDrawer()">✕</button>
-        <div class="drawer-img-container">
-            <span class="img-placeholder-text">⛪</span>
-            <img id="drawer-img" class="drawer-img" src="" alt="" onerror="this.style.display='none'">
-        </div>
         <div class="drawer-header-row">
             <h2 id="drawer-name" class="drawer-title">Kilise Adı</h2>
             <span id="drawer-badge" class="denomination-badge badge-katolik">Katolik</span>
         </div>
         <p id="drawer-loc" class="drawer-location">Konum</p>
         <p id="drawer-description" class="drawer-desc">Açıklama</p>
+        <button class="contrib-btn" onclick="alert('Fotoğraf ve Yorum Gönderme Modülü yakında eklenecektir!')">
+            📸 Bu Kiliseye Fotoğraf / Yorum Ekle
+        </button>
     </div>
 
     <!-- Leaflet JS -->
@@ -276,7 +271,6 @@
 
         setTimeout(() => { map.invalidateSize(); }, 300);
 
-        // Stabil ve Doğrudan Görsel Bağlantılı Veri Kümesi
         const churchesData = [
             {
                 name: "İzmir St. Polycarp Kilisesi",
@@ -284,7 +278,6 @@
                 country: "Türkiye",
                 denomination: "Katolik",
                 badgeClass: "badge-katolik",
-                image: "https://images.unsplash.com/photo-1548625361-167a74070742?auto=format&fit=crop&w=800&q=80",
                 description: "İzmir'in ayakta kalan en eski Katolik kilisesidir. 1625 yılında Kanuni Sultan Süleyman'ın izni ve Fransa Kralı XIII. Louis'in desteğiyle inşa edilmiştir.",
                 lat: 38.4237,
                 lng: 27.1385
@@ -295,7 +288,6 @@
                 country: "Türkiye",
                 denomination: "Anglikan",
                 badgeClass: "badge-anglikan",
-                image: "https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?auto=format&fit=crop&w=800&q=80",
                 description: "19. yüzyıldan kalma tarihi İngiliz anglikan kilisesidir. Gotik mimari izleri taşıyan yapı, bölgedeki Levanten mirasın önemli simgelerindendir.",
                 lat: 38.4342,
                 lng: 27.1415
@@ -306,7 +298,6 @@
                 country: "Türkiye",
                 denomination: "Katolik",
                 badgeClass: "badge-katolik",
-                image: "https://images.unsplash.com/photo-1543968996-ee822b8176ba?auto=format&fit=crop&w=800&q=80",
                 description: "Alsancak bölgesinin merkezi konumunda yer alan, zarif mimari detaylarıyla dikkat çeken tarihi ibadethanelerdendir.",
                 lat: 38.4320,
                 lng: 27.1440
@@ -317,7 +308,6 @@
                 country: "Türkiye",
                 denomination: "Protestan",
                 badgeClass: "badge-protestan",
-                image: "https://images.unsplash.com/photo-1438032005730-c779502df39b?auto=format&fit=crop&w=800&q=80",
                 description: "İzmir'deki aktif Protestan Hristiyan cemaatinin ibadet ve buluşma noktalarından biridir.",
                 lat: 38.4410,
                 lng: 27.1480
@@ -325,7 +315,6 @@
         ];
 
         const drawer = document.getElementById('info-drawer');
-        const drawerImg = document.getElementById('drawer-img');
         const drawerName = document.getElementById('drawer-name');
         const drawerBadge = document.getElementById('drawer-badge');
         const drawerLoc = document.getElementById('drawer-loc');
@@ -342,13 +331,6 @@
                 const marker = L.marker([church.lat, church.lng]).addTo(map);
 
                 marker.on('click', () => {
-                    if (church.image) {
-                        drawerImg.src = church.image;
-                        drawerImg.style.display = 'block';
-                    } else {
-                        drawerImg.src = '';
-                        drawerImg.style.display = 'none';
-                    }
                     drawerName.innerText = church.name;
                     drawerBadge.innerText = church.denomination;
                     drawerBadge.className = 'denomination-badge ' + church.badgeClass;
