@@ -1,10 +1,6 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-        <!-- PWA Manifest Bağlantısı -->
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#0f172a">
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>The Church Atlas</title>
@@ -16,6 +12,12 @@
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- PWA Manifest ve Mobil Entegrasyon Ayarları -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
     <style>
         * {
@@ -177,6 +179,22 @@
             justify-content: center;
             z-index: 10;
         }
+        .drawer-img-container {
+            width: 100%;
+            height: 160px;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 12px;
+            background: #1e293b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .drawer-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
         .drawer-header-row {
             display: flex;
             align-items: center;
@@ -209,9 +227,9 @@
         }
         .drawer-desc {
             margin: 0 0 16px 0;
-            font-size: 0.925rem;
+            font-size: 0.9rem;
             color: #334155;
-            line-height: 1.6;
+            line-height: 1.5;
         }
 
         /* Katkı Formu Alanı */
@@ -333,12 +351,15 @@
     
     <div id="status-box">
         <span class="status-dot"></span>
-        <span id="status-text">Katkı ve onay sistemi aktif</span>
+        <span id="status-text">Sistem kararlı ve tam donanımlı</span>
     </div>
 
     <!-- Detay Çekmecesi -->
     <div id="info-drawer">
         <button class="drawer-close" onclick="closeDrawer()">✕</button>
+        <div class="drawer-img-container">
+            <img id="drawer-img" class="drawer-img" src="" alt="Kilise Görseli">
+        </div>
         <div class="drawer-header-row">
             <h2 id="drawer-name" class="drawer-title">Kilise Adı</h2>
             <span id="drawer-badge" class="denomination-badge badge-katolik">Katolik</span>
@@ -348,9 +369,9 @@
         
         <!-- Kullanıcı Katkı Formu -->
         <div class="contrib-section">
-            <div class="contrib-title">💬 Bu Kiliseye Yorum / Bilgi Ekle</div>
+            <div class="contrib-title">💬 Fotoğraf / Yorum Ekle</div>
             <input type="text" id="contrib-name" class="contrib-input" placeholder="Adınız Soyadınız">
-            <input type="text" id="contrib-photo" class="contrib-input" placeholder="Fotoğraf Linki (İsteğe bağlı - URL)">
+            <input type="text" id="contrib-photo" class="contrib-input" placeholder="Fotoğraf Linki (URL)">
             <textarea id="contrib-comment" class="contrib-input" placeholder="Yorumunuz veya ek bilgi..." rows="2" style="resize:none;"></textarea>
             <button class="contrib-submit" onclick="submitContribution()">Onaya Gönder</button>
         </div>
@@ -373,6 +394,15 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
+        // PWA Service Worker Kayıt Betiği
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('Service Worker aktif:', reg.scope))
+                    .catch(err => console.log('Service Worker kayıt hatası:', err));
+            });
+        }
+
         const map = L.map('map', { zoomControl: false }).setView([38.4192, 27.1428], 13);
         L.control.zoom({ position: 'topright' }).addTo(map);
 
@@ -383,7 +413,7 @@
 
         setTimeout(() => { map.invalidateSize(); }, 300);
 
-        const churchesData = [
+        let churchesData = [
             {
                 id: 1,
                 name: "İzmir St. Polycarp Kilisesi",
@@ -391,53 +421,57 @@
                 country: "Türkiye",
                 denomination: "Katolik",
                 badgeClass: "badge-katolik",
-                description: "İzmir'in ayakta kalan en eski Katolik kilisesidir. 1625 yılında Kanuni Sultan Süleyman'ın izni ve Fransa Kralı XIII. Louis'in desteğiyle inşa edilmiştir.",
+                image: "https://images.unsplash.com/photo-1548625361-167a74070742?auto=format&fit=crop&w=800&q=80",
+                description: "İzmir'in ayakta kalan en eski Katolik kilisesidir. 1625 yılında Kanuni Sultan Süleyman'ın izniyle inşa edilmiştir.",
                 lat: 38.4237,
                 lng: 27.1385,
                 comments: []
             },
             {
                 id: 2,
-                name: "Alsancak Aziz Yuhanna (St. John) Anglican Kilisesi",
+                name: "Alsancak Aziz Yuhanna Anglican Kilisesi",
                 city: "İzmir",
                 country: "Türkiye",
                 denomination: "Anglikan",
                 badgeClass: "badge-anglikan",
-                description: "19. yüzyıldan kalma tarihi İngiliz anglikan kilisesidir. Gotik mimari izleri taşıyan yapı, bölgedeki Levanten mirasın önemli simgelerindendir.",
+                image: "https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?auto=format&fit=crop&w=800&q=80",
+                description: "19. yüzyıldan kalma tarihi İngiliz anglikan kilisesidir. Gotik mimari izleri taşır.",
                 lat: 38.4342,
                 lng: 27.1415,
                 comments: []
             },
             {
                 id: 3,
-                name: "İzmir Aziz Rozary (Rosary) Katolik Kilisesi",
+                name: "İzmir Aziz Rozary Katolik Kilisesi",
                 city: "İzmir",
                 country: "Türkiye",
                 denomination: "Katolik",
                 badgeClass: "badge-katolik",
-                description: "Alsancak bölgesinin merkezi konumunda yer alan, zarif mimari detaylarıyla dikkat çeken tarihi ibadethanelerdendir.",
+                image: "https://images.unsplash.com/photo-1543968996-ee822b8176ba?auto=format&fit=crop&w=800&q=80",
+                description: "Alsancak bölgesinin merkezi konumunda yer alan zarif tarihi ibadethanelerdendir.",
                 lat: 38.4320,
                 lng: 27.1440,
                 comments: []
             },
             {
                 id: 4,
-                name: "İzmir Protestan Kilisesi (Transformation Church)",
+                name: "İzmir Protestan Kilisesi",
                 city: "İzmir",
                 country: "Türkiye",
                 denomination: "Protestan",
                 badgeClass: "badge-protestan",
-                description: "İzmir'deki aktif Protestan Hristiyan cemaatinin ibadet ve buluşma noktalarından biridir.",
+                image: "https://images.unsplash.com/photo-1438032005730-c779502df39b?auto=format&fit=crop&w=800&q=80",
+                description: "İzmir'deki aktif Protestan Hristiyan cemaatinin ibadet noktalarından biridir.",
                 lat: 38.4410,
                 lng: 27.1480,
                 comments: []
             }
         ];
 
-        let pendingContributions = [];
-        let activeChurchId = null;
+        let pendingContributions = JSON.parse(localStorage.getItem('pendingContributions')) || [];
 
         const drawer = document.getElementById('info-drawer');
+        const drawerImg = document.getElementById('drawer-img');
         const drawerName = document.getElementById('drawer-name');
         const drawerBadge = document.getElementById('drawer-badge');
         const drawerLoc = document.getElementById('drawer-loc');
@@ -455,6 +489,7 @@
 
                 marker.on('click', () => {
                     activeChurchId = church.id;
+                    drawerImg.src = church.image || "https://images.unsplash.com/photo-1548625361-167a74070742?auto=format&fit=crop&w=800&q=80";
                     drawerName.innerText = church.name;
                     drawerBadge.innerText = church.denomination;
                     drawerBadge.className = 'denomination-badge ' + church.badgeClass;
@@ -478,6 +513,8 @@
         }
 
         renderMarkers(churchesData);
+
+        let activeChurchId = null;
 
         function filterChurches(query) {
             const filtered = churchesData.filter(church => 
@@ -515,7 +552,8 @@
                 comment: comment
             });
 
-            alert('Katkınız başarıyla yönetici onayına gönderilmiştir.');
+            localStorage.setItem('pendingContributions', JSON.stringify(pendingContributions));
+            alert('Katkınız yönetici onayına gönderildi!');
             
             document.getElementById('contrib-name').value = '';
             document.getElementById('contrib-photo').value = '';
@@ -534,9 +572,9 @@
                         <div class="pending-item">
                             <div style="font-size:0.8rem; font-weight:700; color:#2563eb;">⛪ ${item.churchName}</div>
                             <div style="font-size:0.85rem; margin:4px 0;"><strong>${item.name}:</strong> ${item.comment}</div>
-                            ${item.photo ? `<div style="font-size:0.75rem; color:#64748b; word-break:break-all;">📷 Fotoğraf: ${item.photo}</div>` : ''}
+                            ${item.photo ? `<div style="font-size:0.75rem; color:#64748b; word-break:break-all; margin-top:4px;">📷 <strong>Önerilen Resim:</strong> <a href="${item.photo}" target="_blank">Linki Gör</a></div>` : ''}
                             <div class="pending-actions">
-                                <button class="btn-approve" onclick="approveItem(${item.id})">Onayla</button>
+                                <button class="btn-approve" onclick="approveItem(${item.id})">Onayla & Yayınla</button>
                                 <button class="btn-reject" onclick="rejectItem(${item.id})">Reddet</button>
                             </div>
                         </div>
@@ -558,10 +596,15 @@
                 const church = churchesData.find(c => c.id === item.churchId);
                 if (church) {
                     church.comments.push({ name: item.name, text: item.comment });
+                    if (item.photo) {
+                        church.image = item.photo;
+                    }
                 }
                 pendingContributions.splice(index, 1);
-                alert('Katkı onaylandı!');
+                localStorage.setItem('pendingContributions', JSON.stringify(pendingContributions));
+                alert('Katkı onaylandı ve canlıya alındı!');
                 openAdminModal();
+                renderMarkers(churchesData);
             }
         }
 
@@ -569,6 +612,7 @@
             const index = pendingContributions.findIndex(p => p.id === id);
             if (index !== -1) {
                 pendingContributions.splice(index, 1);
+                localStorage.setItem('pendingContributions', JSON.stringify(pendingContributions));
                 alert('Katkı reddedildi.');
                 openAdminModal();
             }
@@ -580,15 +624,5 @@
             }
         });
     </script>
-        <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(reg => console.log('Service Worker kayıt başarılı:', reg.scope))
-                    .catch(err => console.log('Service Worker kayıt hatası:', err));
-            });
-        }
-    </script>
-
 </body>
 </html>
