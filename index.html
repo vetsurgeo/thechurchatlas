@@ -4,17 +4,631 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>The Church Atlas</title>
-
+    
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
+    
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
+    
     <!-- PWA Manifest ve Mobil Entegrasyon Ayarları -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0f172a">
-</head> <!-- Burası eklenmeli -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #f8f9fa;
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        
+        /* Glassmorphism Üst Panel */
+        .header-container {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            right: 16px;
+            max-width: 420px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .header-card {
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 12px 18px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .header-title-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .header-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        .header-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .header-badge {
+            background: #e2e8f0;
+            color: #475569;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 20px;
+        }
+        .admin-btn {
+            background: #0f172a;
+            color: #fff;
+            border: none;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 5px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        /* Arama Kutusu Stili */
+        .search-box {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 10px 16px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            font-size: 0.9rem;
+            color: #1e293b;
+            outline: none;
+        }
+
+        /* Şık Durum Bildirim Kutusu */
+        #status-box {
+            position: absolute;
+            bottom: 24px;
+            left: 16px;
+            z-index: 1000;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+            color: #f8fafc;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 0.825rem;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #22c55e;
+            display: inline-block;
+        }
+
+        /* Modern Alt Bilgi Çekmecesi (Bottom Drawer) */
+        #info-drawer {
+            position: absolute;
+            bottom: -100%;
+            left: 0;
+            width: 100%;
+            z-index: 2000;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.15);
+            border-top: 1px solid rgba(255, 255, 255, 0.8);
+            padding: 24px 24px 36px 24px;
+            transition: bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+        #info-drawer.active {
+            bottom: 0;
+        }
+        .drawer-close {
+            position: absolute;
+            top: 18px;
+            right: 20px;
+            background: #f1f5f9;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            font-size: 1rem;
+            cursor: pointer;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+        .drawer-img-container {
+            width: 100%;
+            height: 160px;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 12px;
+            background: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .drawer-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .drawer-header-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 6px;
+            flex-wrap: wrap;
+        }
+        .drawer-title {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .denomination-badge {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 12px;
+            text-transform: uppercase;
+        }
+        .badge-katolik { background: #fee2e2; color: #991b1b; }
+        .badge-anglikan { background: #e0e7ff; color: #3730a3; }
+        .badge-protestan { background: #dcfce7; color: #166534; }
+
+        .drawer-location {
+            margin: 0 0 10px 0;
+            font-size: 0.85rem;
+            color: #64748b;
+            font-weight: 500;
+        }
+        .drawer-desc {
+            margin: 0 0 16px 0;
+            font-size: 0.9rem;
+            color: #334155;
+            line-height: 1.5;
+        }
+
+        /* Katkı Formu Alanı */
+        .contrib-section {
+            border-top: 1px solid #e2e8f0;
+            padding-top: 16px;
+            margin-top: 16px;
+        }
+        .contrib-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 10px;
+        }
+        .contrib-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            outline: none;
+        }
+        .contrib-input:focus {
+            border-color: #3b82f6;
+        }
+        .contrib-submit {
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        /* Yönetici Modalı */
+        #admin-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 3000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: #fff;
+            width: 90%;
+            max-width: 450px;
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .pending-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .pending-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .btn-approve {
+            background: #22c55e;
+            color: #fff;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .btn-reject {
+            background: #ef4444;
+            color: #fff;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
 <body>
+
+    <div class="header-container">
+        <div class="header-card">
+            <div class="header-title-wrapper">
+                <span style="font-size: 1.2rem;">⛪</span>
+                <span class="header-title">The Church Atlas</span>
+            </div>
+            <div class="header-actions">
+                <span id="church-count-badge" class="header-badge">4 Kilise</span>
+                <button class="admin-btn" onclick="openAdminModal()">Yönetici</button>
+            </div>
+        </div>
+        <input type="text" id="search-input" class="search-box" placeholder="Kilise, bölge veya mezhep ara..." oninput="filterChurches(this.value)">
+    </div>
+
+    <div id="map"></div>
+    
+    <div id="status-box">
+        <span class="status-dot"></span>
+        <span id="status-text">Kararlı yerel görsel altyapısı aktif</span>
+    </div>
+
+    <!-- Detay Çekmecesi -->
+    <div id="info-drawer">
+        <button class="drawer-close" onclick="closeDrawer()">✕</button>
+        <div class="drawer-img-container">
+            <img id="drawer-img" class="drawer-img" src="" alt="Kilise Görseli">
+        </div>
+        <div class="drawer-header-row">
+            <h2 id="drawer-name" class="drawer-title">Kilise Adı</h2>
+            <span id="drawer-badge" class="denomination-badge badge-katolik">Katolik</span>
+        </div>
+        <p id="drawer-loc" class="drawer-location">Konum</p>
+        <div id="drawer-description" class="drawer-desc">Açıklama</div>
+        
+        <!-- Kullanıcı Katkı Formu -->
+        <div class="contrib-section">
+            <div class="contrib-title">💬 Fotoğraf / Yorum Ekle</div>
+            <input type="text" id="contrib-name" class="contrib-input" placeholder="Adınız Soyadınız">
+            <input type="text" id="contrib-photo" class="contrib-input" placeholder="Fotoğraf Linki veya Yolu">
+            <textarea id="contrib-comment" class="contrib-input" placeholder="Yorumunuz veya ek bilgi..." rows="2" style="resize:none;"></textarea>
+            <button class="contrib-submit" onclick="submitContribution()">Onaya Gönder</button>
+        </div>
+    </div>
+
+    <!-- Yönetici Onay Paneli Modalı -->
+    <div id="admin-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="margin:0; font-size:1.1rem; font-weight:700;">🛡️ Yönetici Onay Havuzu</h3>
+                <button class="drawer-close" style="position:static;" onclick="closeAdminModal()">✕</button>
+            </div>
+            <div id="pending-list">
+                <p style="color: #64748b; font-size: 0.9rem;">Onay bekleyen katkı bulunmuyor.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // PWA Service Worker Kayıt Betiği
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('Service Worker aktif:', reg.scope))
+                    .catch(err => console.log('Service Worker kayıt hatası:', err));
+            });
+        }
+
+        const map = L.map('map', { zoomControl: false }).setView([38.4192, 27.1428], 13);
+        L.control.zoom({ position: 'topright' }).addTo(map);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(map);
+
+        setTimeout(() => { map.invalidateSize(); }, 300);
+
+        // Kiliseler (Yerel/Özel görsellere hazır yol yapısı)
+        let churchesData = [
+            {
+                id: 1,
+                name: "İzmir St. Polycarp Kilisesi",
+                city: "İzmir",
+                country: "Türkiye",
+                denomination: "Katolik",
+                badgeClass: "badge-katolik",
+                image: "images/polycarp.jpg", // Kendi klasörünüze koyacağınız gerçek yol
+                description: "İzmir'in ayakta kalan en eski Katolik kilisesidir. 1625 yılında Kanuni Sultan Süleyman'ın izniyle inşa edilmiştir.",
+                lat: 38.4237,
+                lng: 27.1385,
+                comments: []
+            },
+            {
+                id: 2,
+                name: "Alsancak Aziz Yuhanna Anglican Kilisesi",
+                city: "İzmir",
+                country: "Türkiye",
+                denomination: "Anglikan",
+                badgeClass: "badge-anglikan",
+                image: "images/stjohn.jpg",
+                description: "19. yüzyıldan kalma tarihi İngiliz anglikan kilisesidir. Gotik mimari izleri taşır.",
+                lat: 38.4342,
+                lng: 27.1415,
+                comments: []
+            },
+            {
+                id: 3,
+                name: "İzmir Aziz Rozary Katolik Kilisesi",
+                city: "İzmir",
+                country: "Türkiye",
+                denomination: "Katolik",
+                badgeClass: "badge-katolik",
+                image: "images/rosary.jpg",
+                description: "Alsancak bölgesinin merkezi konumunda yer alan zarif tarihi ibadethanelerdendir.",
+                lat: 38.4320,
+                lng: 27.1440,
+                comments: []
+            },
+            {
+                id: 4,
+                name: "İzmir Protestan Kilisesi",
+                city: "İzmir",
+                country: "Türkiye",
+                denomination: "Protestan",
+                badgeClass: "badge-protestan",
+                image: "images/protestan.jpg",
+                description: "İzmir'deki aktif Protestan Hristiyan cemaatinin ibadet noktalarından biridir.",
+                lat: 38.4410,
+                lng: 27.1480,
+                comments: []
+            }
+        ];
+
+        let pendingContributions = JSON.parse(localStorage.getItem('pendingContributions')) || [];
+
+        const drawer = document.getElementById('info-drawer');
+        const drawerImg = document.getElementById('drawer-img');
+        const drawerName = document.getElementById('drawer-name');
+        const drawerBadge = document.getElementById('drawer-badge');
+        const drawerLoc = document.getElementById('drawer-loc');
+        const drawerDesc = document.getElementById('drawer-description');
+        const countBadge = document.getElementById('church-count-badge');
+
+        let markers = [];
+
+        function renderMarkers(data) {
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+
+            data.forEach(church => {
+                const marker = L.marker([church.lat, church.lng]).addTo(map);
+
+                marker.on('click', () => {
+                    activeChurchId = church.id;
+                    drawerImg.src = church.image;
+                    // Eğer resim yüklenemezse veya boşsa şık bir yer tutucu gösterebiliriz:
+                    drawerImg.onerror = function() {
+                        this.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='1.5'><rect width='18' height='18' x='3' y='3' rx='2' ry='2'/><circle cx='9' cy='9' r='2'/><path d='m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21'/></svg>";
+                    };
+
+                    drawerName.innerText = church.name;
+                    drawerBadge.innerText = church.denomination;
+                    drawerBadge.className = 'denomination-badge ' + church.badgeClass;
+                    drawerLoc.innerText = `${church.city}, ${church.country}`;
+                    
+                    let htmlDesc = church.description;
+                    if (church.comments && church.comments.length > 0) {
+                        htmlDesc += `<br><br><strong>Ziyaretçi Yorumları:</strong>`;
+                        church.comments.forEach(c => {
+                            htmlDesc += `<div style="font-size:0.825rem; margin-top:6px; padding:8px; background:#f1f5f9; border-radius:6px;">💬 <strong>${c.name}:</strong> ${c.text}</div>`;
+                        });
+                    }
+                    drawerDesc.innerHTML = htmlDesc;
+
+                    drawer.classList.add('active');
+                    map.setView([church.lat, church.lng], 15, { animate: true });
+                });
+
+                markers.push(marker);
+            });
+        }
+
+        renderMarkers(churchesData);
+
+        let activeChurchId = null;
+
+        function filterChurches(query) {
+            const filtered = churchesData.filter(church => 
+                church.name.toLowerCase().includes(query.toLowerCase()) ||
+                church.city.toLowerCase().includes(query.toLowerCase()) ||
+                church.denomination.toLowerCase().includes(query.toLowerCase()) ||
+                church.description.toLowerCase().includes(query.toLowerCase())
+            );
+            renderMarkers(filtered);
+            countBadge.innerText = filtered.length + ' Kilise';
+        }
+
+        function closeDrawer() {
+            drawer.classList.remove('active');
+        }
+
+        function submitContribution() {
+            const name = document.getElementById('contrib-name').value.trim();
+            const photo = document.getElementById('contrib-photo').value.trim();
+            const comment = document.getElementById('contrib-comment').value.trim();
+
+            if (!name || !comment) {
+                alert('Lütfen adınızı ve yorumunuzu doldurun.');
+                return;
+            }
+
+            const churchObj = churchesData.find(c => c.id === activeChurchId);
+
+            pendingContributions.push({
+                id: Date.now(),
+                churchName: churchObj ? churchObj.name : 'Kilise',
+                churchId: activeChurchId,
+                name: name,
+                photo: photo,
+                comment: comment
+            });
+
+            localStorage.setItem('pendingContributions', JSON.stringify(pendingContributions));
+            alert('Katkınız yönetici onayına gönderildi!');
+            
+            document.getElementById('contrib-name').value = '';
+            document.getElementById('contrib-photo').value = '';
+            document.getElementById('contrib-comment').value = '';
+            closeDrawer();
+        }
+
+        function openAdminModal() {
+            const listContainer = document.getElementById('pending-list');
+            if (pendingContributions.length === 0) {
+                listContainer.innerHTML = `<p style="color: #64748b; font-size: 0.9rem;">Onay bekleyen katkı bulunmuyor.</p>`;
+            } else {
+                let html = '';
+                pendingContributions.forEach(item => {
+                    html += `
+                        <div class="pending-item">
+                            <div style="font-size:0.8rem; font-weight:700; color:#2563eb;">⛪ ${item.churchName}</div>
+                            <div style="font-size:0.85rem; margin:4px 0;"><strong>${item.name}:</strong> ${item.comment}</div>
+                            ${item.photo ? `<div style="font-size:0.75rem; color:#64748b; word-break:break-all; margin-top:4px;">📷 <strong>Önerilen Resim:</strong> ${item.photo}</div>` : ''}
+                            <div class="pending-actions">
+                                <button class="btn-approve" onclick="approveItem(${item.id})">Onayla & Yayınla</button>
+                                <button class="btn-reject" onclick="rejectItem(${item.id})">Reddet</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                listContainer.innerHTML = html;
+            }
+            document.getElementById('admin-modal').style.display = 'flex';
+        }
+
+        function closeAdminModal() {
+            document.getElementById('admin-modal').style.display = 'none';
+        }
+
+        function approveItem(id) {
+            const index = pendingContributions.findIndex(p => p.id === id);
+            if (index !== -1) {
+                const item = pendingContributions[index];
+                const church = churchesData.find(c => c.id === item.churchId);
+                if (church) {
+                    church.comments.push({ name: item.name, text: item.comment });
+                    if (item.photo) {
+                        church.image = item.photo;
+                    }
+                }
+                pendingContributions.splice(index, 1);
+                localStorage.setItem('pendingContributions', JSON.stringify(pendingContributions));
+                alert('Katkı onaylandı ve canlıya alındı!');
+                openAdminModal();
+                renderMarkers(churchesData);
+            }
+        }
+
+        function rejectItem(id) {
+            const index = pendingContributions.findIndex(p => p.id === id);
+            if (index !== -1) {
+                pendingContributions.splice(index, 1);
+                localStorage.setItem('pendingContributions', JSON.stringify(pendingContributions));
+                alert('Katkı reddedildi.');
+                openAdminModal();
+            }
+        }
+
+        map.on('click', (e) => {
+            if (e.originalEvent.target.tagName !== 'INPUT' && e.originalEvent.target.tagName !== 'TEXTAREA') {
+                closeDrawer();
+            }
+        });
+    </script>
+</body>
+</html>
