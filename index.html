@@ -13,6 +13,9 @@
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <!-- PWA Manifest ve Mobil Entegrasyon Ayarları -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0f172a">
@@ -340,7 +343,7 @@
                 <span class="header-title">The Church Atlas</span>
             </div>
             <div class="header-actions">
-                <span id="church-count-badge" class="header-badge">4 Kilise</span>
+                <span id="church-count-badge" class="header-badge">0 Kilise</span>
                 <button class="admin-btn" onclick="openAdminModal()">Yönetici</button>
             </div>
         </div>
@@ -351,7 +354,7 @@
     
     <div id="status-box">
         <span class="status-dot"></span>
-        <span id="status-text">Kararlı yerel görsel altyapısı aktif</span>
+        <span id="status-text">Supabase + Otomatik Wikipedia Görsel Aktif</span>
     </div>
 
     <!-- Detay Çekmecesi -->
@@ -371,7 +374,7 @@
         <div class="contrib-section">
             <div class="contrib-title">💬 Fotoğraf / Yorum Ekle</div>
             <input type="text" id="contrib-name" class="contrib-input" placeholder="Adınız Soyadınız">
-            <input type="text" id="contrib-photo" class="contrib-input" placeholder="Fotoğraf Linki veya Yolu">
+            <input type="text" id="contrib-photo" class="contrib-input" placeholder="Fotoğraf Linki (URL)">
             <textarea id="contrib-comment" class="contrib-input" placeholder="Yorumunuz veya ek bilgi..." rows="2" style="resize:none;"></textarea>
             <button class="contrib-submit" onclick="submitContribution()">Onaya Gönder</button>
         </div>
@@ -381,11 +384,11 @@
     <div id="admin-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 style="margin:0; font-size:1.1rem; font-weight:700;">🛡️ Yönetici Onay Havuzu</h3>
+                <h3 style="margin:0; font-size:1.1rem; font-weight:700;">🛡️ Bulut Onay Havuzu</h3>
                 <button class="drawer-close" style="position:static;" onclick="closeAdminModal()">✕</button>
             </div>
             <div id="pending-list">
-                <p style="color: #64748b; font-size: 0.9rem;">Onay bekleyen katkı bulunmuyor.</p>
+                <p style="color: #64748b; font-size: 0.9rem;">Onay bekleyen katkı yükleniyor...</p>
             </div>
         </div>
     </div>
@@ -394,14 +397,15 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
-        // PWA Service Worker Kayıt Betiği
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(reg => console.log('Service Worker aktif:', reg.scope))
-                    .catch(err => console.log('Service Worker kayıt hatası:', err));
-            });
-        }
+        // Supabase Bağlantı Bilgileriniz
+        const SUPABASE_URL = 'BURAYA_SUPABASE_PROJECT_URL_YAZINIZ';
+        const SUPABASE_ANON_KEY = 'BURAYA_SUPABASE_ANON_KEY_YAZINIZ';
+        
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let churchesData = [];
+        let markers = [];
+        let activeChurchId = null;
 
         const map = L.map('map', { zoomControl: false }).setView([38.4192, 27.1428], 13);
         L.control.zoom({ position: 'topright' }).addTo(map);
@@ -413,64 +417,6 @@
 
         setTimeout(() => { map.invalidateSize(); }, 300);
 
-        // Kiliseler (Yerel/Özel görsellere hazır yol yapısı)
-        let churchesData = [
-            {
-                id: 1,
-                name: "İzmir St. Polycarp Kilisesi",
-                city: "İzmir",
-                country: "Türkiye",
-                denomination: "Katolik",
-                badgeClass: "badge-katolik",
-                image: "images/polycarp.jpg", // Kendi klasörünüze koyacağınız gerçek yol
-                description: "İzmir'in ayakta kalan en eski Katolik kilisesidir. 1625 yılında Kanuni Sultan Süleyman'ın izniyle inşa edilmiştir.",
-                lat: 38.4237,
-                lng: 27.1385,
-                comments: []
-            },
-            {
-                id: 2,
-                name: "Alsancak Aziz Yuhanna Anglican Kilisesi",
-                city: "İzmir",
-                country: "Türkiye",
-                denomination: "Anglikan",
-                badgeClass: "badge-anglikan",
-                image: "images/stjohn.jpg",
-                description: "19. yüzyıldan kalma tarihi İngiliz anglikan kilisesidir. Gotik mimari izleri taşır.",
-                lat: 38.4342,
-                lng: 27.1415,
-                comments: []
-            },
-            {
-                id: 3,
-                name: "İzmir Aziz Rozary Katolik Kilisesi",
-                city: "İzmir",
-                country: "Türkiye",
-                denomination: "Katolik",
-                badgeClass: "badge-katolik",
-                image: "images/rosary.jpg",
-                description: "Alsancak bölgesinin merkezi konumunda yer alan zarif tarihi ibadethanelerdendir.",
-                lat: 38.4320,
-                lng: 27.1440,
-                comments: []
-            },
-            {
-                id: 4,
-                name: "İzmir Protestan Kilisesi",
-                city: "İzmir",
-                country: "Türkiye",
-                denomination: "Protestan",
-                badgeClass: "badge-protestan",
-                image: "images/protestan.jpg",
-                description: "İzmir'deki aktif Protestan Hristiyan cemaatinin ibadet noktalarından biridir.",
-                lat: 38.4410,
-                lng: 27.1480,
-                comments: []
-            }
-        ];
-
-        let pendingContributions = JSON.parse(localStorage.getItem('pendingContributions')) || [];
-
         const drawer = document.getElementById('info-drawer');
         const drawerImg = document.getElementById('drawer-img');
         const drawerName = document.getElementById('drawer-name');
@@ -479,7 +425,43 @@
         const drawerDesc = document.getElementById('drawer-description');
         const countBadge = document.getElementById('church-count-badge');
 
-        let markers = [];
+        // Kiliseleri Supabase'den Çekme
+        async function fetchChurches() {
+            const { data, error } = await supabaseClient.from('churches').select('*');
+            if (error) {
+                console.error('Kilise verileri alınamadı:', error);
+                return;
+            }
+            churchesData = data || [];
+            renderMarkers(churchesData);
+            countBadge.innerText = churchesData.length + ' Kilise';
+        }
+
+        // Wikipedia'dan Otomatik Görsel Çekme Fonksiyonu
+        async function fetchWikiImage(churchName) {
+            try {
+                // Önce Türkçe Wikipedia'da arama yap
+                let response = await fetch(`https://tr.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(churchName)}`);
+                if (response.ok) {
+                    let data = await response.json();
+                    if (data && data.thumbnail && data.thumbnail.source) {
+                        return data.thumbnail.source;
+                    }
+                }
+                
+                // Türkçe bulunamazsa İngilizce Wikipedia'da dene
+                response = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(churchName)}`);
+                if (response.ok) {
+                    let data = await response.json();
+                    if (data && data.thumbnail && data.thumbnail.source) {
+                        return data.thumbnail.source;
+                    }
+                }
+            } catch (e) {
+                console.log('Wikipedia görsel çekme hatası:', e);
+            }
+            return null;
+        }
 
         function renderMarkers(data) {
             markers.forEach(m => map.removeLayer(m));
@@ -488,20 +470,31 @@
             data.forEach(church => {
                 const marker = L.marker([church.lat, church.lng]).addTo(map);
 
-                marker.on('click', () => {
+                marker.on('click', async () => {
                     activeChurchId = church.id;
-                    drawerImg.src = church.image;
-                    // Eğer resim yüklenemezse veya boşsa şık bir yer tutucu gösterebiliriz:
-                    drawerImg.onerror = function() {
-                        this.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='1.5'><rect width='18' height='18' x='3' y='3' rx='2' ry='2'/><circle cx='9' cy='9' r='2'/><path d='m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21'/></svg>";
-                    };
-
+                    
+                    // Önce mevcut resmi veya yerel yolu ata, yoksa Wikipedia'dan otomatik çek
+                    let displayImg = church.image;
+                    if (!displayImg || displayImg.startsWith('images/')) {
+                        // Geçici yükleniyor görseli göster
+                        drawerImg.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='1.5'><rect width='18' height='18' x='3' y='3' rx='2' ry='2'/><circle cx='9' cy='9' r='2'/><path d='m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21'/></svg>";
+                        
+                        // Wikipedia'dan resmi bulmaya çalış
+                        const wikiImg = await fetchWikiImage(church.name);
+                        if (wikiImg) {
+                            displayImg = wikiImg;
+                        } else {
+                            displayImg = "https://images.unsplash.com/photo-1548625361-167a74070742?auto=format&fit=crop&w=800&q=80";
+                        }
+                    }
+                    
+                    drawerImg.src = displayImg;
                     drawerName.innerText = church.name;
                     drawerBadge.innerText = church.denomination;
-                    drawerBadge.className = 'denomination-badge ' + church.badgeClass;
+                    drawerBadge.className = 'denomination-badge ' + church.badge_class;
                     drawerLoc.innerText = `${church.city}, ${church.country}`;
                     
-                    let htmlDesc = church.description;
+                    let htmlDesc = church.description || "";
                     if (church.comments && church.comments.length > 0) {
                         htmlDesc += `<br><br><strong>Ziyaretçi Yorumları:</strong>`;
                         church.comments.forEach(c => {
@@ -518,9 +511,8 @@
             });
         }
 
-        renderMarkers(churchesData);
-
-        let activeChurchId = null;
+        // Sayfa yüklendiğinde verileri getir
+        fetchChurches();
 
         function filterChurches(query) {
             const filtered = churchesData.filter(church => 
@@ -537,7 +529,8 @@
             drawer.classList.remove('active');
         }
 
-        function submitContribution() {
+        // Katkıyı Supabase tablosuna gönderme
+        async function submitContribution() {
             const name = document.getElementById('contrib-name').value.trim();
             const photo = document.getElementById('contrib-photo').value.trim();
             const comment = document.getElementById('contrib-comment').value.trim();
@@ -549,38 +542,46 @@
 
             const churchObj = churchesData.find(c => c.id === activeChurchId);
 
-            pendingContributions.push({
-                id: Date.now(),
-                churchName: churchObj ? churchObj.name : 'Kilise',
-                churchId: activeChurchId,
+            const { error } = await supabaseClient.from('pending_contributions').insert([{
+                church_id: activeChurchId,
+                church_name: churchObj ? churchObj.name : 'Kilise',
                 name: name,
                 photo: photo,
                 comment: comment
-            });
+            }]);
 
-            localStorage.setItem('pendingContributions', JSON.stringify(pendingContributions));
-            alert('Katkınız yönetici onayına gönderildi!');
-            
+            if (error) {
+                alert('Katkı gönderilirken bir hata oluştu.');
+                console.error(error);
+                return;
+            }
+
+            alert('Katkınız başarıyla bulut onay havuzuna gönderildi!');
             document.getElementById('contrib-name').value = '';
             document.getElementById('contrib-photo').value = '';
             document.getElementById('contrib-comment').value = '';
             closeDrawer();
         }
 
-        function openAdminModal() {
+        // Yönetici Panelini Açma ve Buluttan Verileri Çekme
+        async function openAdminModal() {
             const listContainer = document.getElementById('pending-list');
-            if (pendingContributions.length === 0) {
+            listContainer.innerHTML = `<p style="color: #64748b; font-size: 0.9rem;">Yükleniyor...</p>`;
+            
+            const { data: pendingItems, error } = await supabaseClient.from('pending_contributions').select('*');
+            
+            if (error || !pendingItems || pendingItems.length === 0) {
                 listContainer.innerHTML = `<p style="color: #64748b; font-size: 0.9rem;">Onay bekleyen katkı bulunmuyor.</p>`;
             } else {
                 let html = '';
-                pendingContributions.forEach(item => {
+                pendingItems.forEach(item => {
                     html += `
                         <div class="pending-item">
-                            <div style="font-size:0.8rem; font-weight:700; color:#2563eb;">⛪ ${item.churchName}</div>
+                            <div style="font-size:0.8rem; font-weight:700; color:#2563eb;">⛪ ${item.church_name}</div>
                             <div style="font-size:0.85rem; margin:4px 0;"><strong>${item.name}:</strong> ${item.comment}</div>
-                            ${item.photo ? `<div style="font-size:0.75rem; color:#64748b; word-break:break-all; margin-top:4px;">📷 <strong>Önerilen Resim:</strong> ${item.photo}</div>` : ''}
+                            ${item.photo ? `<div style="font-size:0.75rem; color:#64748b; word-break:break-all; margin-top:4px;">📷 <strong>Önerilen Resim:</strong> <a href="${item.photo}" target="_blank">Linki Gör</a></div>` : ''}
                             <div class="pending-actions">
-                                <button class="btn-approve" onclick="approveItem(${item.id})">Onayla & Yayınla</button>
+                                <button class="btn-approve" onclick="approveItem(${item.id}, ${item.church_id}, '${encodeURIComponent(item.name)}', '${encodeURIComponent(item.comment)}', '${encodeURIComponent(item.photo || '')}')">Onayla & Yayınla</button>
                                 <button class="btn-reject" onclick="rejectItem(${item.id})">Reddet</button>
                             </div>
                         </div>
@@ -595,33 +596,47 @@
             document.getElementById('admin-modal').style.display = 'none';
         }
 
-        function approveItem(id) {
-            const index = pendingContributions.findIndex(p => p.id === id);
-            if (index !== -1) {
-                const item = pendingContributions[index];
-                const church = churchesData.find(c => c.id === item.churchId);
-                if (church) {
-                    church.comments.push({ name: item.name, text: item.comment });
-                    if (item.photo) {
-                        church.image = item.photo;
-                    }
+        // Katkıyı Onaylama ve Supabase Üzerinde Güncelleme
+        async function approveItem(contribId, churchId, encName, encComment, encPhoto) {
+            const name = decodeURIComponent(encName);
+            const comment = decodeURIComponent(encComment);
+            const photo = decodeURIComponent(encPhoto);
+
+            const church = churchesData.find(c => c.id === churchId);
+            if (church) {
+                let updatedComments = church.comments || [];
+                updatedComments.push({ name: name, text: comment });
+
+                let updatePayload = { comments: updatedComments };
+                if (photo && photo !== "null" && photo !== "") {
+                    updatePayload.image = photo;
                 }
-                pendingContributions.splice(index, 1);
-                localStorage.setItem('pendingContributions', JSON.stringify(pendingContributions));
-                alert('Katkı onaylandı ve canlıya alındı!');
-                openAdminModal();
-                renderMarkers(churchesData);
+
+                // Churches tablosunu güncelle
+                const { error: updateError } = await supabaseClient
+                    .from('churches')
+                    .update(updatePayload)
+                    .eq('id', churchId);
+
+                if (updateError) {
+                    alert('Güncelleme sırasında hata oluştu.');
+                    return;
+                }
             }
+
+            // Onaylanan veriyi pending tablosundan sil
+            await supabaseClient.from('pending_contributions').delete().eq('id', contribId);
+
+            alert('Katkı onaylandı ve bulutta canlıya alındı!');
+            openAdminModal();
+            fetchChurches();
         }
 
-        function rejectItem(id) {
-            const index = pendingContributions.findIndex(p => p.id === id);
-            if (index !== -1) {
-                pendingContributions.splice(index, 1);
-                localStorage.setItem('pendingContributions', JSON.stringify(pendingContributions));
-                alert('Katkı reddedildi.');
-                openAdminModal();
-            }
+        // Katkıyı Reddetme
+        async function rejectItem(contribId) {
+            await supabaseClient.from('pending_contributions').delete().eq('id', contribId);
+            alert('Katkı reddedildi.');
+            openAdminModal();
         }
 
         map.on('click', (e) => {
