@@ -85,6 +85,30 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
 .lb-next{right:8px}
 .lb-footer{position:absolute;left:0;right:0;bottom:0;padding:24px 16px 16px;color:#e2e8f0;font-size:.8rem;text-align:center;display:flex;flex-direction:column;gap:2px;background:linear-gradient(transparent,rgba(2,6,23,.85));pointer-events:none}
 #lb-count{font-weight:600}
+
+/* Yönetici: sekmeler, kilise yönetimi, konum seçici */
+.admin-tabs{display:flex;gap:6px;margin-bottom:12px}
+.admin-tabs button{flex:1;padding:8px;border:1px solid #e2e8f0;background:#f8fafc;border-radius:8px;font-size:.8rem;font-weight:600;color:#334155;cursor:pointer}
+.admin-tabs button.active{background:#0f172a;color:#fff;border-color:#0f172a}
+.church-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:8px;background:#f8fafc}
+.church-row>div{min-width:0}
+.church-row-name{font-size:.85rem;font-weight:600;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.church-row-meta{font-size:.72rem;color:#64748b}
+.btn-secondary{background:#e2e8f0;color:#0f172a;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:.8rem;font-weight:600}
+.btn-secondary.wide{width:100%;padding:10px;margin-bottom:6px}
+.btn-approve:disabled{opacity:.5;cursor:default}
+.field-label{display:block;font-size:.75rem;font-weight:600;color:#475569;margin:6px 0 4px}
+.row2{display:flex;gap:8px}
+.row2>div,.row2>.contrib-input{flex:1;min-width:0}
+.small{font-size:.75rem;margin:0 0 8px}
+#church-form details{margin:6px 0 8px}
+#church-form summary{font-size:.8rem;font-weight:600;color:#475569;cursor:pointer;margin-bottom:6px}
+#pick-bar{position:fixed;left:12px;right:12px;bottom:16px;z-index:3200;background:#0f172a;color:#fff;border-radius:14px;padding:12px 14px;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+#pick-text{font-size:.9rem;font-weight:700;margin-bottom:4px}
+.pick-hint{font-size:.72rem;color:#cbd5e1;margin-bottom:10px;line-height:1.4}
+.pick-actions{display:flex;gap:8px}
+.pick-icon{font-size:28px;line-height:32px;text-align:center;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4))}
+.badge-ortodoks{background:#fef3c7;color:#92400e}
 </style>
 </head>
 <body>
@@ -156,9 +180,63 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
       <p id="admin-login-msg" class="err"></p>
     </div>
     <div id="admin-panel" hidden>
+      <div class="admin-tabs">
+        <button type="button" id="tab-pending" class="active">Onay bekleyenler</button>
+        <button type="button" id="tab-churches">Kiliseler</button>
+      </div>
       <div id="pending-list"></div>
+      <div id="church-admin" hidden>
+        <button type="button" class="contrib-submit" id="church-add-btn">+ Yeni kilise ekle</button>
+        <div id="church-admin-list" style="margin-top:12px"></div>
+      </div>
       <button class="btn-reject" id="admin-logout" style="margin-top:8px">Çıkış yap</button>
     </div>
+    <div id="church-form" hidden>
+      <h4 id="cf-title" style="margin:0 0 8px;font-size:1rem">Yeni kilise ekle</h4>
+      <label class="field-label" for="cf-name">Kilise adı *</label>
+      <input id="cf-name" class="contrib-input" maxlength="150">
+      <div class="row2">
+        <div><label class="field-label" for="cf-city">Şehir</label><input id="cf-city" class="contrib-input" maxlength="80"></div>
+        <div><label class="field-label" for="cf-country">Ülke</label><input id="cf-country" class="contrib-input" maxlength="80"></div>
+      </div>
+      <label class="field-label" for="cf-denom">Mezhep</label>
+      <select id="cf-denom" class="contrib-input">
+        <option>Katolik</option><option>Anglikan</option><option>Protestan</option><option>Ortodoks</option><option>Diğer</option>
+      </select>
+      <label class="field-label" for="cf-desc">Açıklama</label>
+      <textarea id="cf-desc" class="contrib-input" rows="3" maxlength="1500" style="resize:vertical"></textarea>
+      <label class="field-label" for="cf-lat">Konum *</label>
+      <div class="row2">
+        <input id="cf-lat" class="contrib-input" placeholder="Enlem (38.4256)" inputmode="decimal" aria-label="Enlem">
+        <input id="cf-lng" class="contrib-input" placeholder="Boylam (27.1357)" inputmode="decimal" aria-label="Boylam">
+      </div>
+      <button type="button" class="btn-secondary wide" id="cf-pick">📍 Haritadan seç</button>
+      <p class="muted small">İpucu: Google Maps'ten kopyaladığın "38.4256, 27.1357" yazısını Enlem kutusuna yapıştırırsan iki kutu birden dolar.</p>
+      <details>
+        <summary>Wikipedia / Wikidata (isteğe bağlı)</summary>
+        <label class="field-label" for="cf-wikidata">Wikidata kimliği</label>
+        <input id="cf-wikidata" class="contrib-input" placeholder="Q12345">
+        <label class="field-label" for="cf-wtr">Wikipedia sayfa başlığı (Türkçe)</label>
+        <input id="cf-wtr" class="contrib-input">
+        <label class="field-label" for="cf-wen">Wikipedia sayfa başlığı (İngilizce)</label>
+        <input id="cf-wen" class="contrib-input">
+      </details>
+      <p id="cf-msg" class="err"></p>
+      <div class="pending-actions">
+        <button type="button" class="btn-approve" id="cf-save">Kaydet</button>
+        <button type="button" class="btn-secondary" id="cf-cancel">Vazgeç</button>
+        <button type="button" class="btn-reject" id="cf-delete" hidden>Sil</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="pick-bar" hidden>
+  <div id="pick-text">Konumu seçmek için haritaya dokunun</div>
+  <div class="pick-hint">Yakınlaştırıp dokun, 📍 işaretini sürükleyerek ince ayar yap. Sağ üstteki düğmeden uydu görünümüne geçebilirsin.</div>
+  <div class="pick-actions">
+    <button type="button" class="btn-approve" id="pick-ok" disabled>Bu konumu kullan</button>
+    <button type="button" class="btn-secondary" id="pick-cancel">İptal</button>
   </div>
 </div>
 
@@ -190,7 +268,10 @@ if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWo
 /* ---------------- Harita ---------------- */
 const map=L.map('map',{zoomControl:false}).setView([38.4192,27.1428],13);
 L.control.zoom({position:'topright'}).addTo(map);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
+const osmLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
+const satLayer=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Tiles &copy; Esri'});
+L.control.layers({'Harita':osmLayer,'Uydu':satLayer},null,{position:'topright'}).addTo(map);
+let pickMode=false;
 setTimeout(()=>map.invalidateSize(),300);
 
 /* ==========================================================
@@ -266,7 +347,7 @@ async function getWikiImage(c){
    VERİ (Supabase)
    ========================================================== */
 let churchesData=[],markers=[],activeChurchId=null;
-const DENOM={Katolik:'badge-katolik',Anglikan:'badge-anglikan',Protestan:'badge-protestan'};
+const DENOM={Katolik:'badge-katolik',Anglikan:'badge-anglikan',Protestan:'badge-protestan',Ortodoks:'badge-ortodoks'};
 
 async function loadChurches(){
   if(!sb){setStatus('Supabase ayarları eksik (SUPABASE_URL / SUPABASE_KEY)','error');$('church-count-badge').textContent='0 Kilise';return}
@@ -300,7 +381,7 @@ function renderMarkers(data,fit){
   markers.forEach(m=>map.removeLayer(m));markers=[];
   data.forEach(c=>{
     const m=L.marker([c.lat,c.lng]).addTo(map);
-    m.on('click',()=>openChurch(c));
+    m.on('click',()=>{if(pickMode)return;openChurch(c)});
     markers.push(m);
   });
   $('church-count-badge').textContent=data.length+' Kilise';
@@ -395,7 +476,10 @@ function openChurch(c){
 }
 
 $('drawer-close').addEventListener('click',()=>$('info-drawer').classList.remove('active'));
-map.on('click',()=>$('info-drawer').classList.remove('active'));
+map.on('click',e=>{
+  if(pickMode){setPick(e.latlng);return}
+  $('info-drawer').classList.remove('active');
+});
 
 const imgBox=$('drawer-img-box');
 imgBox.addEventListener('click',()=>{if(imgBox.classList.contains('has-photos'))openLightbox(0)});
@@ -475,19 +559,182 @@ $('contrib-submit').addEventListener('click',async()=>{
 function syncAdminBtn(){$('admin-btn').hidden=location.hash!=='#admin'}
 addEventListener('hashchange',syncAdminBtn);syncAdminBtn();
 
+let adminTab='pending';
+
 async function openAdmin(){
+  if(pickMode)return;
   $('admin-modal').style.display='flex';
   if(!sb){showLogin();$('admin-login-msg').textContent='Supabase ayarları eksik.';return}
   const{data}=await sb.auth.getSession();
   data?.session?showPanel():showLogin();
 }
 function closeAdmin(){$('admin-modal').style.display='none'}
-function showLogin(){$('admin-login').hidden=false;$('admin-panel').hidden=true}
-async function showPanel(){$('admin-login').hidden=true;$('admin-panel').hidden=false;await refreshPending()}
+function showLogin(){$('admin-login').hidden=false;$('admin-panel').hidden=true;$('church-form').hidden=true}
+function showPanel(){
+  $('admin-login').hidden=true;$('church-form').hidden=true;$('admin-panel').hidden=false;
+  setTab(adminTab);
+}
+function setTab(t){
+  adminTab=t;
+  $('tab-pending').classList.toggle('active',t==='pending');
+  $('tab-churches').classList.toggle('active',t==='churches');
+  $('pending-list').hidden=t!=='pending';
+  $('church-admin').hidden=t!=='churches';
+  if(t==='pending')refreshPending();else renderChurchAdmin();
+}
+
+/* ---------------- Yönetici: kilise ekle / düzenle / sil ---------------- */
+let editingChurchId=null;
+const DENOMS=['Katolik','Anglikan','Protestan','Ortodoks','Diğer'];
+
+function parseCoord(v){
+  const t=String(v??'').trim().replace(',','.');
+  if(!t)return NaN;
+  const n=Number(t);
+  return Number.isFinite(n)?n:NaN;
+}
+function validCoords(lat,lng){return Number.isFinite(lat)&&Number.isFinite(lng)&&lat>=-90&&lat<=90&&lng>=-180&&lng<=180}
+
+function renderChurchAdmin(){
+  const list=$('church-admin-list');list.replaceChildren();
+  if(!churchesData.length){list.textContent='Henüz kilise yok.';list.className='muted';return}
+  list.className='';
+  churchesData.forEach(c=>{
+    const row=document.createElement('div');row.className='church-row';
+    const info=document.createElement('div');
+    const n=document.createElement('div');n.className='church-row-name';n.textContent=c.name;
+    const m=document.createElement('div');m.className='church-row-meta';
+    m.textContent=c.denomination+' · '+Number(c.lat).toFixed(5)+', '+Number(c.lng).toFixed(5);
+    info.append(n,m);
+    const b=document.createElement('button');b.type='button';b.className='btn-secondary';b.textContent='Düzenle';
+    b.addEventListener('click',()=>openChurchForm(c));
+    row.append(info,b);list.append(row);
+  });
+}
+
+function openChurchForm(c){
+  editingChurchId=c?c.id:null;
+  $('cf-title').textContent=c?'Kiliseyi düzenle':'Yeni kilise ekle';
+  $('cf-name').value=c?c.name:'';
+  $('cf-city').value=c?c.city:'İzmir';
+  $('cf-country').value=c?c.country:'Türkiye';
+  $('cf-denom').value=c?(DENOMS.includes(c.denomination)?c.denomination:'Diğer'):'Katolik';
+  $('cf-desc').value=c?c.description:'';
+  $('cf-lat').value=c?c.lat:'';
+  $('cf-lng').value=c?c.lng:'';
+  $('cf-wikidata').value=c?(c.wikidata||''):'';
+  $('cf-wtr').value=c?(c.wikiTitles?.tr||''):'';
+  $('cf-wen').value=c?(c.wikiTitles?.en||''):'';
+  $('cf-delete').hidden=!c;
+  $('cf-msg').textContent='';
+  $('admin-panel').hidden=true;
+  $('church-form').hidden=false;
+}
+
+// "38.4256, 27.1357" gibi bir çifti yapıştırınca iki kutuyu birden doldur
+$('cf-lat').addEventListener('input',()=>{
+  const m=$('cf-lat').value.match(/^\s*(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)\s*$/);
+  if(m){$('cf-lat').value=m[1];$('cf-lng').value=m[2]}
+});
+
+$('tab-pending').addEventListener('click',()=>setTab('pending'));
+$('tab-churches').addEventListener('click',()=>setTab('churches'));
+$('church-add-btn').addEventListener('click',()=>openChurchForm(null));
+$('cf-cancel').addEventListener('click',()=>{adminTab='churches';showPanel()});
+
+$('cf-save').addEventListener('click',async()=>{
+  const msg=$('cf-msg');msg.textContent='';
+  if(!sb){msg.textContent='Supabase ayarları eksik.';return}
+  const name=$('cf-name').value.trim();
+  const lat=parseCoord($('cf-lat').value),lng=parseCoord($('cf-lng').value);
+  const wd=$('cf-wikidata').value.trim().toUpperCase();
+  if(!name){msg.textContent='Kilise adı gerekli.';return}
+  if(!validCoords(lat,lng)){msg.textContent='Geçerli bir konum gir veya haritadan seç.';return}
+  if(wd&&!/^Q\d+$/.test(wd)){msg.textContent='Wikidata kimliği Q ile başlayan bir sayı olmalı (örn. Q12345).';return}
+  const titles={};
+  const tr=$('cf-wtr').value.trim(),en=$('cf-wen').value.trim();
+  if(tr)titles.tr=tr;
+  if(en)titles.en=en;
+  const row={
+    name,
+    city:$('cf-city').value.trim(),
+    country:$('cf-country').value.trim(),
+    denomination:$('cf-denom').value,
+    description:$('cf-desc').value.trim(),
+    lat,lng,
+    wikidata:wd||null,
+    wiki_titles:titles
+  };
+  const btn=$('cf-save');btn.disabled=true;
+  const q=editingChurchId
+    ?sb.from('atlas_churches').update(row).eq('id',editingChurchId).select()
+    :sb.from('atlas_churches').insert(row).select();
+  const{data,error}=await q;
+  btn.disabled=false;
+  if(error){msg.textContent='Kaydedilemedi: '+error.message;return}
+  if(!data||!data.length){msg.textContent='Kaydedilemedi. Yönetici hesabıyla giriş yaptığından emin ol.';return}
+  toast(editingChurchId?'Kilise güncellendi.':'Kilise eklendi.');
+  await loadChurches();
+  adminTab='churches';showPanel();
+});
+
+$('cf-delete').addEventListener('click',async()=>{
+  if(!editingChurchId||!sb)return;
+  if(!confirm('Bu kilise ve ona ait tüm yorum ve fotoğraf katkıları kalıcı olarak silinecek. Emin misin?'))return;
+  const{data,error}=await sb.from('atlas_churches').delete().eq('id',editingChurchId).select();
+  if(error){$('cf-msg').textContent='Silinemedi: '+error.message;return}
+  if(!data||!data.length){$('cf-msg').textContent='Silinemedi. Yönetici hesabıyla giriş yaptığından emin ol.';return}
+  toast('Kilise silindi.');
+  await loadChurches();
+  adminTab='churches';showPanel();
+});
+
+/* ---------------- Haritadan konum seçme ---------------- */
+let pickMarker=null,pickLatLng=null;
+const pickIcon=L.divIcon({className:'pick-icon',html:'📍',iconSize:[32,32],iconAnchor:[16,30]});
+
+function setPick(latlng){
+  pickLatLng=latlng;
+  if(!pickMarker){
+    pickMarker=L.marker(latlng,{icon:pickIcon,draggable:true,zIndexOffset:1000}).addTo(map);
+    pickMarker.on('dragend',()=>setPick(pickMarker.getLatLng()));
+  }else{
+    pickMarker.setLatLng(latlng);
+  }
+  $('pick-text').textContent=latlng.lat.toFixed(6)+', '+latlng.lng.toFixed(6);
+  $('pick-ok').disabled=false;
+}
+
+function startPick(){
+  pickMode=true;pickLatLng=null;
+  $('info-drawer').classList.remove('active');
+  $('admin-modal').style.display='none';
+  $('pick-bar').hidden=false;
+  $('pick-ok').disabled=true;
+  $('pick-text').textContent='Konumu seçmek için haritaya dokunun';
+  map.getContainer().style.cursor='crosshair';
+  const lat=parseCoord($('cf-lat').value),lng=parseCoord($('cf-lng').value);
+  if(validCoords(lat,lng)){setPick(L.latLng(lat,lng));map.setView([lat,lng],17)}
+}
+
+function endPick(apply){
+  if(apply&&pickLatLng){
+    $('cf-lat').value=pickLatLng.lat.toFixed(6);
+    $('cf-lng').value=pickLatLng.lng.toFixed(6);
+  }
+  pickMode=false;
+  $('pick-bar').hidden=true;
+  map.getContainer().style.cursor='';
+  if(pickMarker){map.removeLayer(pickMarker);pickMarker=null}
+  $('admin-modal').style.display='flex';
+}
+$('cf-pick').addEventListener('click',startPick);
+$('pick-ok').addEventListener('click',()=>endPick(true));
+$('pick-cancel').addEventListener('click',()=>endPick(false));
 
 $('admin-btn').addEventListener('click',openAdmin);
 $('admin-close').addEventListener('click',closeAdmin);
-$('admin-modal').addEventListener('click',e=>{if(e.target.id==='admin-modal')closeAdmin()});
+$('admin-modal').addEventListener('click',e=>{if(e.target.id==='admin-modal'&&$('church-form').hidden)closeAdmin()});
 
 $('admin-login-btn').addEventListener('click',async()=>{
   const msg=$('admin-login-msg');msg.textContent='';
