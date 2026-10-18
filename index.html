@@ -18,6 +18,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
 *{box-sizing:border-box;font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif}
+[hidden]{display:none!important}
 html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#f8f9fa}
 #map{width:100%;height:100%;position:absolute;top:0;left:0;z-index:1}
 .header-container{position:absolute;top:16px;left:16px;right:16px;max-width:420px;z-index:1000;display:flex;flex-direction:column;gap:10px}
@@ -32,9 +33,16 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
 #info-drawer{position:absolute;bottom:-100%;left:0;width:100%;z-index:2000;background:rgba(255,255,255,.98);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top-left-radius:20px;border-top-right-radius:20px;box-shadow:0 -10px 30px rgba(0,0,0,.15);border-top:1px solid rgba(255,255,255,.8);padding:24px 24px 36px;transition:bottom .3s cubic-bezier(.16,1,.3,1);max-height:85vh;overflow-y:auto}
 #info-drawer.active{bottom:0}
 .drawer-close{position:absolute;top:18px;right:20px;background:#f1f5f9;border:none;width:32px;height:32px;border-radius:50%;font-size:1rem;cursor:pointer;color:#64748b;display:flex;align-items:center;justify-content:center;z-index:10}
-.drawer-img-container{width:100%;height:160px;border-radius:12px;overflow:hidden;margin-bottom:6px;background:#e2e8f0;display:flex;align-items:center;justify-content:center}
-.drawer-img{width:100%;height:100%;object-fit:cover}
+.drawer-img-container{position:relative;width:100%;min-height:160px;border-radius:12px;overflow:hidden;margin-bottom:6px;background:#0f172a;display:flex;align-items:center;justify-content:center}
+.drawer-img-container.has-photos{cursor:zoom-in}
+.drawer-img{display:block;max-width:100%;max-height:55vh;width:auto;height:auto;object-fit:contain}
+.drawer-img.is-placeholder{width:64px;height:64px;margin:48px 0}
+.photo-hint{position:absolute;right:8px;bottom:8px;background:rgba(15,23,42,.75);color:#fff;font-size:.7rem;font-weight:600;padding:4px 8px;border-radius:999px;pointer-events:none}
 .img-credit{font-size:.7rem;color:#94a3b8;margin:0 0 10px 2px;min-height:1em}
+.drawer-thumbs{display:flex;gap:6px;overflow-x:auto;margin:0 0 12px;padding-bottom:4px}
+.drawer-thumbs button{flex:none;width:56px;height:56px;padding:0;border:2px solid transparent;border-radius:8px;overflow:hidden;background:#e2e8f0;cursor:pointer}
+.drawer-thumbs button:focus-visible{border-color:#3b82f6;outline:none}
+.drawer-thumbs img{width:100%;height:100%;object-fit:cover;display:block}
 .drawer-header-row{display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap}
 .drawer-title{margin:0;font-size:1.2rem;font-weight:700;color:#0f172a}
 .denomination-badge{font-size:.7rem;font-weight:600;padding:3px 10px;border-radius:12px;text-transform:uppercase}
@@ -55,6 +63,7 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
 .modal-content{background:#fff;width:100%;max-width:450px;padding:24px;border-radius:16px;box-shadow:0 10px 25px rgba(0,0,0,.2);max-height:80vh;overflow-y:auto;position:relative}
 .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
 .pending-item{background:#f8fafc;border:1px solid #e2e8f0;padding:12px;border-radius:8px;margin-bottom:10px}
+.pending-preview{display:block;max-width:100%;max-height:160px;border-radius:8px;margin-top:8px;background:#0f172a;object-fit:contain}
 .pending-actions{display:flex;gap:8px;margin-top:8px}
 .btn-approve{background:#22c55e;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:.8rem;font-weight:600}
 .btn-reject{background:#ef4444;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:.8rem;font-weight:600}
@@ -62,6 +71,20 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
 .err{color:#ef4444;font-size:.8rem;margin:8px 0 0}
 #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#0f172a;color:#fff;padding:10px 16px;border-radius:10px;font-size:.85rem;font-weight:500;z-index:4000;opacity:0;pointer-events:none;transition:.25s;max-width:calc(100% - 32px);text-align:center}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* Tam ekran fotoğraf görüntüleyici */
+#lightbox{position:fixed;inset:0;z-index:3500;background:rgba(2,6,23,.96);display:flex;align-items:center;justify-content:center}
+.lb-stage{width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:60px 12px 80px}
+#lb-img{max-width:100%;max-height:100%;object-fit:contain;touch-action:pan-y pinch-zoom;user-select:none;-webkit-user-select:none}
+#lb-msg{color:#cbd5e1;font-size:.9rem}
+.lb-btn{position:absolute;background:rgba(255,255,255,.16);color:#fff;border:none;border-radius:50%;width:44px;height:44px;font-size:1.5rem;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2}
+.lb-btn:focus-visible{outline:2px solid #fff}
+.lb-close{top:12px;right:12px}
+.lb-nav{top:50%;transform:translateY(-50%)}
+.lb-prev{left:8px}
+.lb-next{right:8px}
+.lb-footer{position:absolute;left:0;right:0;bottom:0;padding:24px 16px 16px;color:#e2e8f0;font-size:.8rem;text-align:center;display:flex;flex-direction:column;gap:2px;background:linear-gradient(transparent,rgba(2,6,23,.85));pointer-events:none}
+#lb-count{font-weight:600}
 </style>
 </head>
 <body>
@@ -88,8 +111,12 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
 
 <div id="info-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-name">
   <button class="drawer-close" id="drawer-close" aria-label="Kapat">✕</button>
-  <div class="drawer-img-container"><img id="drawer-img" class="drawer-img" alt=""></div>
+  <div class="drawer-img-container" id="drawer-img-box">
+    <img id="drawer-img" class="drawer-img is-placeholder" alt="">
+    <span class="photo-hint" id="photo-hint" hidden></span>
+  </div>
   <p id="drawer-credit" class="img-credit"></p>
+  <div id="drawer-thumbs" class="drawer-thumbs" hidden></div>
   <div class="drawer-header-row">
     <h2 id="drawer-name" class="drawer-title"></h2>
     <span id="drawer-badge" class="denomination-badge"></span>
@@ -103,6 +130,17 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
     <textarea id="contrib-comment" class="contrib-input" placeholder="Yorumunuz veya ek bilgi..." rows="2" maxlength="1000" style="resize:none"></textarea>
     <button class="contrib-submit" id="contrib-submit">Onaya Gönder</button>
   </div>
+</div>
+
+<div id="lightbox" role="dialog" aria-modal="true" aria-label="Fotoğraf görüntüleyici" hidden>
+  <button class="lb-btn lb-close" id="lb-close" aria-label="Kapat">✕</button>
+  <button class="lb-btn lb-nav lb-prev" id="lb-prev" aria-label="Önceki fotoğraf">‹</button>
+  <div class="lb-stage" id="lb-stage">
+    <img id="lb-img" alt="">
+    <p id="lb-msg" hidden>Görsel yüklenemedi.</p>
+  </div>
+  <button class="lb-btn lb-nav lb-next" id="lb-next" aria-label="Sonraki fotoğraf">›</button>
+  <div class="lb-footer"><span id="lb-count"></span><span id="lb-caption"></span></div>
 </div>
 
 <div id="admin-modal" role="dialog" aria-modal="true" aria-labelledby="admin-title">
@@ -130,8 +168,7 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* ==========================================================
-   AYARLAR — Supabase > Project Settings > API sayfasından kopyala.
-   Yalnızca publishable (anon) anahtarı yaz. secret / service_role ASLA.
+   AYARLAR — Yalnızca publishable (anon) anahtar. secret / service_role ASLA.
    ========================================================== */
 const SUPABASE_URL='https://siucplaufmjhqgdtorhf.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpdWNwbGF1Zm1qaHFnZHRvcmhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyMDU0MzksImV4cCI6MjEwNjc4MTQzOX0.dTo5uK-djOc3rkNrmJsahypGUw2-bHfwPFjcsx6-sso';
@@ -157,11 +194,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,att
 setTimeout(()=>map.invalidateSize(),300);
 
 /* ==========================================================
-   GÖRSEL ÇÖZÜMLEME
-   Öncelik: 1) onaylı kullanıcı fotoğrafı
-            2) Wikidata (wikidata kimliği varsa)
-            3) Wikipedia (kesin başlık, yoksa dikkatli arama)
-            4) sabit simge
+   WİKİ GÖRSEL ÇÖZÜMLEME (Wikidata > Wikipedia başlığı > dikkatli arama)
    ========================================================== */
 const PLACEHOLDER="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='1.5'><rect width='18' height='18' x='3' y='3' rx='2' ry='2'/><circle cx='9' cy='9' r='2'/><path d='m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21'/></svg>";
 
@@ -194,12 +227,12 @@ function relevant(church,page){
 async function wikidataImage(qid){
   const d=await fetchJSON('https://www.wikidata.org/w/api.php?action=wbgetentities&props=claims&format=json&origin=*&ids='+encodeURIComponent(qid));
   const file=d?.entities?.[qid]?.claims?.P18?.[0]?.mainsnak?.datavalue?.value;
-  return file?'https://commons.wikimedia.org/wiki/Special:FilePath/'+encodeURIComponent(file)+'?width=800':null;
+  return file?'https://commons.wikimedia.org/wiki/Special:FilePath/'+encodeURIComponent(file)+'?width=1200':null;
 }
 
 async function wikipediaImage(church,lang){
   const base='https://'+lang+'.wikipedia.org/w/api.php';
-  const common='&prop=pageimages|description&piprop=thumbnail&pithumbsize=800&format=json&origin=*';
+  const common='&prop=pageimages|description&piprop=thumbnail&pithumbsize=1200&format=json&origin=*';
   const exact=church.wikiTitles?.[lang];
   const url=exact
     ?base+'?action=query&redirects=1&titles='+encodeURIComponent(exact)+common
@@ -216,18 +249,17 @@ async function findAutoImage(c){
   return null;
 }
 
-async function resolveChurchImage(c){
-  if(c.userImage&&safeImageUrl(c.userImage))return{url:c.userImage,source:'user'};
+async function getWikiImage(c){
   const sig=(c.wikidata||'')+'|'+JSON.stringify(c.wikiTitles||{});
   const hit=autoCache[c.id];
   if(hit&&hit.sig===sig){
     const age=Date.now()-hit.t;
-    if(hit.url&&age<TTL_FOUND)return{url:hit.url,source:'wiki'};
-    if(!hit.url&&age<TTL_MISSING)return{url:null,source:null};
+    if(hit.url&&age<TTL_FOUND)return hit.url;
+    if(!hit.url&&age<TTL_MISSING)return null;
   }
   const url=await findAutoImage(c);
   autoCache[c.id]={url,t:Date.now(),sig};saveCache();
-  return{url,source:url?'wiki':null};
+  return url;
 }
 
 /* ==========================================================
@@ -247,13 +279,13 @@ async function loadChurches(){
   const approved=kr.data||[];
   churchesData=cr.data.map(c=>{
     const mine=approved.filter(x=>x.church_id===c.id);
-    const photos=mine.filter(x=>x.photo_url);
     return{
       id:c.id,name:c.name,city:c.city||'',country:c.country||'',
       denomination:c.denomination,badgeClass:DENOM[c.denomination]||'badge-diger',
       description:c.description||'',lat:c.lat,lng:c.lng,
       wikidata:c.wikidata||'',wikiTitles:c.wiki_titles||{},
-      userImage:photos.length?photos[photos.length-1].photo_url:null,
+      // Onaylı ziyaretçi fotoğrafları, en yeni en başta
+      photos:mine.filter(x=>x.photo_url&&safeImageUrl(x.photo_url)).map(x=>({url:x.photo_url,by:x.name})).reverse(),
       comments:mine.filter(x=>x.comment).map(x=>({name:x.name,text:x.comment}))
     };
   });
@@ -282,18 +314,68 @@ function applyFilter(fit){
 }
 $('search-input').addEventListener('input',()=>applyFilter(true));
 
-function setDrawerImage(url,source){
-  const img=$('drawer-img');
-  img.onerror=()=>{img.onerror=null;img.src=PLACEHOLDER;$('drawer-credit').textContent=''};
-  img.src=url||PLACEHOLDER;
-  $('drawer-credit').textContent=source==='wiki'?'Görsel: Wikipedia / Wikimedia Commons':source==='user'?'Görsel: Ziyaretçi katkısı':'';
+/* ---------------- Fotoğraf alanı (çekmece) ---------------- */
+let currentPhotos=[]; // [{url, credit}]
+
+function renderPhotoUI(){
+  const box=$('drawer-img-box'),img=$('drawer-img'),first=currentPhotos[0];
+
+  img.onerror=()=>{
+    img.onerror=null;
+    img.classList.add('is-placeholder');
+    img.src=PLACEHOLDER;
+    $('drawer-credit').textContent='';
+    box.classList.remove('has-photos');
+    $('photo-hint').hidden=true;
+  };
+
+  if(first){
+    img.classList.remove('is-placeholder');
+    if(img.getAttribute('src')!==first.url)img.src=first.url;
+    $('drawer-credit').textContent=first.credit;
+    box.classList.add('has-photos');
+    box.setAttribute('role','button');box.tabIndex=0;box.setAttribute('aria-label','Fotoğrafı tam ekran aç');
+    const hint=$('photo-hint');hint.hidden=false;
+    hint.textContent='🔍 Büyüt'+(currentPhotos.length>1?' · '+currentPhotos.length+' fotoğraf':'');
+  }else{
+    img.classList.add('is-placeholder');
+    img.src=PLACEHOLDER;
+    $('drawer-credit').textContent='';
+    box.classList.remove('has-photos');
+    box.removeAttribute('role');box.removeAttribute('tabindex');box.removeAttribute('aria-label');
+    $('photo-hint').hidden=true;
+  }
+
+  const th=$('drawer-thumbs');th.replaceChildren();
+  if(currentPhotos.length>1){
+    currentPhotos.forEach((p,i)=>{
+      const b=document.createElement('button');b.type='button';b.setAttribute('aria-label',(i+1)+'. fotoğrafı aç');
+      const t=document.createElement('img');t.src=p.url;t.alt='';t.loading='lazy';
+      t.onerror=()=>b.remove();
+      b.append(t);
+      b.addEventListener('click',()=>openLightbox(i));
+      th.append(b);
+    });
+  }
+  th.hidden=currentPhotos.length<=1;
+
+  if(!$('lightbox').hidden)updateLbMeta();
 }
 
 function openChurch(c){
   activeChurchId=c.id;
   $('drawer-img').alt=c.name+' görseli';
-  setDrawerImage(null,null);
-  resolveChurchImage(c).then(r=>{if(activeChurchId===c.id&&r.url)setDrawerImage(r.url,r.source)});
+
+  const userPhotos=c.photos.map(p=>({url:p.url,credit:'Ziyaretçi katkısı · '+p.by}));
+  currentPhotos=userPhotos.slice();
+  renderPhotoUI();
+
+  // Wikipedia/Wikidata görseli, ziyaretçi fotoğraflarının ardına eklenir
+  getWikiImage(c).then(url=>{
+    if(activeChurchId!==c.id||!url)return;
+    currentPhotos=[...userPhotos,{url,credit:'Wikipedia / Wikimedia Commons'}];
+    renderPhotoUI();
+  });
 
   $('drawer-name').textContent=c.name;
   const badge=$('drawer-badge');badge.textContent=c.denomination;badge.className='denomination-badge '+c.badgeClass;
@@ -314,6 +396,63 @@ function openChurch(c){
 
 $('drawer-close').addEventListener('click',()=>$('info-drawer').classList.remove('active'));
 map.on('click',()=>$('info-drawer').classList.remove('active'));
+
+const imgBox=$('drawer-img-box');
+imgBox.addEventListener('click',()=>{if(imgBox.classList.contains('has-photos'))openLightbox(0)});
+imgBox.addEventListener('keydown',e=>{
+  if((e.key==='Enter'||e.key===' ')&&imgBox.classList.contains('has-photos')){e.preventDefault();openLightbox(0)}
+});
+
+/* ---------------- Tam ekran görüntüleyici ---------------- */
+const lb=$('lightbox'),lbImg=$('lb-img');
+let lbIndex=0,lbOpener=null;
+
+function updateLbMeta(){
+  const n=currentPhotos.length;
+  if(lbIndex>n-1)lbIndex=Math.max(0,n-1);
+  $('lb-count').textContent=n?(lbIndex+1)+' / '+n:'';
+  $('lb-prev').hidden=n<2;
+  $('lb-next').hidden=n<2;
+}
+function showLb(){
+  const p=currentPhotos[lbIndex];if(!p)return;
+  $('lb-msg').hidden=true;lbImg.hidden=false;
+  lbImg.onerror=()=>{lbImg.hidden=true;$('lb-msg').hidden=false};
+  lbImg.alt=$('drawer-name').textContent;
+  lbImg.src=p.url;
+  $('lb-caption').textContent=p.credit;
+  updateLbMeta();
+}
+function openLightbox(i){
+  if(!currentPhotos.length)return;
+  lbIndex=i;lbOpener=document.activeElement;
+  lb.hidden=false;showLb();$('lb-close').focus();
+}
+function closeLightbox(){
+  lb.hidden=true;lbImg.onerror=null;lbImg.removeAttribute('src');
+  if(lbOpener&&lbOpener.focus)lbOpener.focus();
+}
+function lbStep(d){
+  const n=currentPhotos.length;if(n<2)return;
+  lbIndex=(lbIndex+d+n)%n;showLb();
+}
+$('lb-close').addEventListener('click',closeLightbox);
+$('lb-prev').addEventListener('click',()=>lbStep(-1));
+$('lb-next').addEventListener('click',()=>lbStep(1));
+lb.addEventListener('click',e=>{if(e.target===lb||e.target.id==='lb-stage')closeLightbox()});
+addEventListener('keydown',e=>{
+  if(lb.hidden)return;
+  if(e.key==='Escape')closeLightbox();
+  else if(e.key==='ArrowLeft')lbStep(-1);
+  else if(e.key==='ArrowRight')lbStep(1);
+});
+let touchX=null;
+lb.addEventListener('touchstart',e=>{touchX=e.touches.length===1?e.touches[0].clientX:null},{passive:true});
+lb.addEventListener('touchend',e=>{
+  if(touchX===null)return;
+  const dx=e.changedTouches[0].clientX-touchX;touchX=null;
+  if(Math.abs(dx)>60)lbStep(dx<0?1:-1);
+},{passive:true});
 
 /* ---------------- Katkı gönderme (herkes) ---------------- */
 $('contrib-submit').addEventListener('click',async()=>{
@@ -379,9 +518,16 @@ async function refreshPending(){
     box.append(church,body);
     const photo=item.photo_url&&safeImageUrl(item.photo_url);
     if(photo){
+      // Onaylamadan önce fotoğrafı görebil
+      const pv=document.createElement('img');pv.className='pending-preview';pv.alt='Önerilen fotoğraf önizlemesi';
+      pv.loading='lazy';pv.referrerPolicy='no-referrer';pv.src=photo;
+      const fail=document.createElement('div');fail.style.cssText='font-size:.75rem;color:#b45309;margin-top:6px';fail.hidden=true;
+      fail.textContent='Önizleme yüklenemedi. Bu bağlantı doğrudan bir resim olmayabilir; onaylamadan önce linki kontrol et.';
+      pv.onerror=()=>{pv.hidden=true;fail.hidden=false};
       const p=document.createElement('div');p.style.cssText='font-size:.75rem;color:#64748b;word-break:break-all;margin-top:4px';
       const a=document.createElement('a');a.href=photo;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Linki gör';
-      p.append('📷 Önerilen resim: ',a);box.append(p);
+      p.append('📷 ',a);
+      box.append(pv,fail,p);
     }
     const actions=document.createElement('div');actions.className='pending-actions';
     const ok=document.createElement('button');ok.className='btn-approve';ok.textContent='Onayla';
