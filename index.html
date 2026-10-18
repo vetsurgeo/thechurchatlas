@@ -109,6 +109,14 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
 .pick-actions{display:flex;gap:8px}
 .pick-icon{font-size:28px;line-height:32px;text-align:center;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4))}
 .badge-ortodoks{background:#fef3c7;color:#92400e}
+
+/* Fotoğraf yükleme */
+.file-preview{position:relative;margin-bottom:8px}
+.file-preview img{display:block;width:100%;max-height:180px;object-fit:contain;background:#0f172a;border-radius:8px}
+.file-preview button{position:absolute;top:6px;right:6px;width:28px;height:28px;border:none;border-radius:50%;background:rgba(15,23,42,.8);color:#fff;font-size:.85rem;cursor:pointer}
+.link-alt{margin:0 0 8px}
+.link-alt summary{font-size:.78rem;color:#64748b;cursor:pointer;margin-bottom:6px}
+.legal{font-size:.7rem;color:#94a3b8;line-height:1.4;margin:0 0 8px}
 </style>
 </head>
 <body>
@@ -150,8 +158,18 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
   <div class="contrib-section">
     <div class="contrib-title">💬 Fotoğraf / Yorum Ekle</div>
     <input type="text" id="contrib-name" class="contrib-input" placeholder="Adınız Soyadınız" autocomplete="name" maxlength="80">
-    <input type="url" id="contrib-photo" class="contrib-input" placeholder="Fotoğraf bağlantısı (https://...)" inputmode="url">
-    <textarea id="contrib-comment" class="contrib-input" placeholder="Yorumunuz veya ek bilgi..." rows="2" maxlength="1000" style="resize:none"></textarea>
+    <input type="file" id="contrib-file" accept="image/*" hidden>
+    <button type="button" class="btn-secondary wide" id="contrib-file-btn">📷 Fotoğraf seç / çek</button>
+    <div class="file-preview" id="contrib-file-preview" hidden>
+      <img id="contrib-file-img" alt="Seçilen fotoğraf önizlemesi">
+      <button type="button" id="contrib-file-clear" aria-label="Fotoğrafı kaldır">✕</button>
+    </div>
+    <details class="link-alt">
+      <summary>veya fotoğraf bağlantısı yapıştır</summary>
+      <input type="url" id="contrib-photo" class="contrib-input" placeholder="https://..." inputmode="url">
+    </details>
+    <textarea id="contrib-comment" class="contrib-input" placeholder="Yorumunuz veya ek bilgi (fotoğraf eklediyseniz isteğe bağlı)" rows="2" maxlength="1000" style="resize:none"></textarea>
+    <p class="legal">Fotoğraf göndererek görselin size ait olduğunu ve adınızla birlikte yayınlanmasına izin verdiğinizi onaylarsınız. Katkılar yönetici onayından sonra görünür.</p>
     <button class="contrib-submit" id="contrib-submit">Onaya Gönder</button>
   </div>
 </div>
@@ -539,17 +557,89 @@ lb.addEventListener('touchend',e=>{
 },{passive:true});
 
 /* ---------------- Katkı gönderme (herkes) ---------------- */
+const PHOTO_BUCKET='church-photos';
+let pickedBlob=null;
+const fileInput=$('contrib-file');
+
+function uid(){return (crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(16).slice(2))}
+
+// Telefon fotoğraflarını yüklemeden önce küçültür (en uzun kenar 1600 px, JPEG)
+async function resizeImage(file,max=1600,quality=0.82){
+  let bmp;
+  try{bmp=await createImageBitmap(file,{imageOrientation:'from-image'})}
+  catch{
+    bmp=await new Promise((res,rej)=>{
+      const img=new Image(),u=URL.createObjectURL(file);
+      img.onload=()=>{URL.revokeObjectURL(u);res(img)};
+      img.onerror=rej;img.src=u;
+    });
+  }
+  const w0=bmp.width||bmp.naturalWidth,h0=bmp.height||bmp.naturalHeight;
+  if(!w0||!h0)throw new Error('boyut');
+  const scale=Math.min(1,max/Math.max(w0,h0));
+  const canvas=document.createElement('canvas');
+  canvas.width=Math.round(w0*scale);canvas.height=Math.round(h0*scale);
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.drawImage(bmp,0,0,canvas.width,canvas.height);
+  if(bmp.close)bmp.close();
+  const blob=await new Promise(r=>canvas.toBlob(r,'image/jpeg',quality));
+  if(!blob)throw new Error('kodlama');
+  return blob;
+}
+
+function clearPicked(){
+  pickedBlob=null;fileInput.value='';
+  const img=$('contrib-file-img');
+  if(img.src&&img.src.startsWith('blob:'))URL.revokeObjectURL(img.src);
+  img.removeAttribute('src');
+  $('contrib-file-preview').hidden=true;
+}
+
+$('contrib-file-btn').addEventListener('click',()=>fileInput.click());
+$('contrib-file-clear').addEventListener('click',clearPicked);
+fileInput.addEventListener('change',async()=>{
+  const f=fileInput.files&&fileInput.files[0];
+  if(!f)return;
+  try{
+    const blob=await resizeImage(f);
+    clearPicked();
+    pickedBlob=blob;
+    $('contrib-file-img').src=URL.createObjectURL(blob);
+    $('contrib-file-preview').hidden=false;
+  }catch(e){
+    clearPicked();
+    toast('Bu fotoğraf okunamadı. Başka bir fotoğraf deneyin.');
+  }
+});
+
 $('contrib-submit').addEventListener('click',async()=>{
-  const name=$('contrib-name').value.trim(),photo=$('contrib-photo').value.trim(),comment=$('contrib-comment').value.trim();
+  const name=$('contrib-name').value.trim(),link=$('contrib-photo').value.trim(),comment=$('contrib-comment').value.trim();
   if(!sb)return toast('Supabase ayarları eksik.');
   if(!activeChurchId)return toast('Önce haritadan bir kilise seçin.');
-  if(!name||!comment)return toast('Lütfen adınızı ve yorumunuzu doldurun.');
-  if(photo&&!safeImageUrl(photo))return toast('Fotoğraf bağlantısı https:// ile başlamalı.');
+  if(!name)return toast('Lütfen adınızı yazın.');
+  if(!comment&&!pickedBlob&&!link)return toast('Bir yorum yazın veya fotoğraf ekleyin.');
+  if(link&&!safeImageUrl(link))return toast('Fotoğraf bağlantısı https:// ile başlamalı.');
+
   const btn=$('contrib-submit');btn.disabled=true;
-  const{error}=await sb.from('atlas_contributions').insert({church_id:activeChurchId,name,comment,photo_url:photo||null});
-  btn.disabled=false;
-  if(error)return toast('Gönderilemedi: '+error.message);
+  let photoUrl=link||null;
+  try{
+    if(pickedBlob){
+      btn.textContent='Fotoğraf yükleniyor...';
+      const path='uploads/'+uid()+'.jpg';
+      const{error:upErr}=await sb.storage.from(PHOTO_BUCKET).upload(path,pickedBlob,{contentType:'image/jpeg',upsert:false});
+      if(upErr)throw upErr;
+      photoUrl=sb.storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl;
+    }
+    const{error}=await sb.from('atlas_contributions').insert({church_id:activeChurchId,name,comment,photo_url:photoUrl});
+    if(error)throw error;
+  }catch(err){
+    btn.disabled=false;btn.textContent='Onaya Gönder';
+    return toast('Gönderilemedi: '+(err.message||err));
+  }
+  btn.disabled=false;btn.textContent='Onaya Gönder';
   ['contrib-name','contrib-photo','contrib-comment'].forEach(i=>$(i).value='');
+  clearPicked();
   $('info-drawer').classList.remove('active');
   toast('Katkınız yönetici onayına gönderildi. Teşekkürler!');
 });
@@ -761,7 +851,7 @@ async function refreshPending(){
     church.textContent='⛪ '+(item.atlas_churches?.name||'Kilise');
     const body=document.createElement('div');body.style.cssText='font-size:.85rem;margin:4px 0';
     const author=document.createElement('strong');author.textContent=item.name;
-    body.append(author,': ',item.comment);
+    body.append(author,': ',item.comment||'(yalnızca fotoğraf)');
     box.append(church,body);
     const photo=item.photo_url&&safeImageUrl(item.photo_url);
     if(photo){
@@ -780,15 +870,24 @@ async function refreshPending(){
     const ok=document.createElement('button');ok.className='btn-approve';ok.textContent='Onayla';
     ok.addEventListener('click',()=>moderate(item.id,'approved'));
     const no=document.createElement('button');no.className='btn-reject';no.textContent='Reddet';
-    no.addEventListener('click',()=>moderate(item.id,'rejected'));
+    no.addEventListener('click',()=>moderate(item.id,'rejected',item.photo_url));
     actions.append(ok,no);box.append(actions);list.append(box);
   });
 }
 
-async function moderate(id,status){
+// Reddedilen katkının yüklenmiş fotoğrafını depodan siler (yer kazanmak için)
+async function removeStoredPhoto(url){
+  const prefix=SUPABASE_URL+'/storage/v1/object/public/'+PHOTO_BUCKET+'/';
+  if(!url||!url.startsWith(prefix))return;
+  const path=decodeURIComponent(url.slice(prefix.length));
+  await sb.storage.from(PHOTO_BUCKET).remove([path]);
+}
+
+async function moderate(id,status,photoUrl){
   const{data,error}=await sb.from('atlas_contributions').update({status}).eq('id',id).select();
   if(error)return toast('Hata: '+error.message);
   if(!data||!data.length)return toast('İşlem yapılamadı. Yönetici hesabıyla giriş yaptığından emin ol.');
+  if(status==='rejected')removeStoredPhoto(photoUrl).catch(()=>{});
   toast(status==='approved'?'Katkı yayınlandı.':'Katkı reddedildi.');
   await refreshPending();
   if(status==='approved')await loadChurches();
