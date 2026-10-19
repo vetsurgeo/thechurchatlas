@@ -845,17 +845,25 @@ function foldText(t){
   return String(t||'').toLocaleLowerCase('tr').replace(/ı/g,'i').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,' ');
 }
 function guessDenomination(...texts){
-  const toks=foldText(texts.filter(Boolean).join(' ')).split(/\s+/).filter(Boolean);
+  const raw=texts.filter(Boolean).join(' ');
+  const toks=foldText(raw).split(/\s+/).filter(Boolean);
   const has=(...stems)=>toks.some(t=>stems.some(x=>t.startsWith(x)));
   const is=(...words)=>toks.some(t=>words.includes(t));
-  // Açık mezhep sözcükleri
+  const greekScript=/[\u0370-\u03ff\u1f00-\u1fff]/.test(raw);
+
+  // 1) Açık mezhep sözcükleri
   if(has('anglik','anglic','episcop','ingiliz')||is('england','english'))return 'Anglikan';
-  if(has('katolik','catholic')||is('latin','vatikan'))return 'Katolik';
-  if(has('ortodoks','orthodox','ortodox','ermeni','armenian','surya','syriac','kopt','coptic')||is('rum','greek','rus','russian'))return 'Ortodoks';
-  if(has('protestan','protestant','baptist','evanjel','evangel','luter','lutheran','reform','presbiter','presbyter','pentekost','pentecost','metodist','methodist','adventist','advent','kardesler')||is('brethren','incil','gospel'))return 'Protestan';
-  // Zayıf ipuçları: aziz adlarının yazılış biçimi
+  if(has('katolik','catholic')||is('latin','vatikan')||/καθολικ/i.test(raw))return 'Katolik';
+  if(has('ortodoks','orthodox','ortodox','ermeni','armenian','surya','syriac','kopt','coptic','surp','sourp')||is('rum','greek','rus','russian')||/ορθοδοξ/i.test(raw))return 'Ortodoks';
+  // 2) Yunan alfabesiyle yazılmış ad: Rum Ortodoks
+  if(greekScript)return 'Ortodoks';
+  // 3) Rum Ortodoks kiliselerinin Latin harfleriyle yazılan tipik adları (Aya/Agios/Panayia...)
+  if(is('aya','agia','agios','ayios','ayia','panagia','panayia','hagia','aghios','ag','agh','aghia','aghii','agii','agtia','ay','hristos','christos','analipsis','taxiarchis','zoodochos','profitis','prophitis')
+     ||has('analips','taxiarch','zoodoch','aghi','agio','agia','ayio','ayvas','aytod'))return 'Ortodoks';
+  // 4) Protestan
+  if(has('protestan','protestant','baptist','evanjel','evangelic','evangelisch','luter','lutheran','reform','presbiter','presbyter','pentekost','pentecost','metodist','methodist','adventist','advent','kardesler')||is('brethren','incil','gospel'))return 'Protestan';
+  // 5) Zayıf ipuçları: Katolik aziz adı yazılışları
   if(is('santa','sant','santo','san','notre','dame','sainte','rosaire','rosario','rozario','rosary','lourdes')||has('fransisk','francisc','kapuci','capuc','cizvit','jesuit','dominik'))return 'Katolik';
-  if(is('aya','agia','agios','ayios','ayia','panagia','hagia','aghios'))return 'Ortodoks';
   return 'Diğer';
 }
 
