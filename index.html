@@ -109,6 +109,8 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
 .pick-actions{display:flex;gap:8px}
 .pick-icon{font-size:28px;line-height:32px;text-align:center;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4))}
 .badge-ortodoks{background:#fef3c7;color:#92400e}
+.badge-oryantal{background:#fce7f3;color:#9d174d}
+.badge-dogu{background:#ccfbf1;color:#115e59}
 
 /* Fotoğraf yükleme */
 .file-preview{position:relative;margin-bottom:8px}
@@ -266,11 +268,11 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
           <button type="button" class="btn-secondary" id="city-go">Ara</button>
         </div>
         <div id="city-results"></div>
-        <button type="button" class="btn-secondary wide" id="fix-denom-btn">🪄 Mezhebi "Diğer" olanları otomatik düzelt</button>
+        <button type="button" class="btn-secondary wide" id="fix-denom-btn">🪄 Mezhepleri otomatik düzelt</button>
         <div class="church-filters">
           <input type="search" id="church-filter" class="contrib-input" placeholder="Listede ara..." aria-label="Kilise listesinde ara">
           <select id="church-filter-denom" class="contrib-input" aria-label="Mezhebe göre filtrele">
-            <option value="">Tüm mezhepler</option><option>Katolik</option><option>Anglikan</option><option>Protestan</option><option>Ortodoks</option><option>Diğer</option>
+            <option value="">Tüm mezhepler</option><option>Katolik</option><option>Ortodoks</option><option>Oryantal Ortodoks</option><option>Doğu Kilisesi</option><option>Protestan</option><option>Anglikan</option><option>Diğer</option>
           </select>
         </div>
         <div id="church-admin-list"></div>
@@ -304,7 +306,7 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
       </div>
       <label class="field-label" for="cf-denom">Mezhep</label>
       <select id="cf-denom" class="contrib-input">
-        <option>Katolik</option><option>Anglikan</option><option>Protestan</option><option>Ortodoks</option><option>Diğer</option>
+        <option>Katolik</option><option>Ortodoks</option><option>Oryantal Ortodoks</option><option>Doğu Kilisesi</option><option>Protestan</option><option>Anglikan</option><option>Diğer</option>
       </select>
       <label class="field-label" for="cf-desc">Açıklama</label>
       <textarea id="cf-desc" class="contrib-input" rows="3" maxlength="1500" style="resize:vertical"></textarea>
@@ -449,7 +451,7 @@ async function getWikiImage(c){
    VERİ (Supabase)
    ========================================================== */
 let churchesData=[],markers=[],activeChurchId=null;
-const DENOM={Katolik:'badge-katolik',Anglikan:'badge-anglikan',Protestan:'badge-protestan',Ortodoks:'badge-ortodoks'};
+const DENOM={Katolik:'badge-katolik',Ortodoks:'badge-ortodoks','Oryantal Ortodoks':'badge-oryantal','Doğu Kilisesi':'badge-dogu',Protestan:'badge-protestan',Anglikan:'badge-anglikan'};
 
 let firstLoad=true;
 async function loadChurches(){
@@ -779,7 +781,7 @@ function setTab(t){
 
 /* ---------------- Yönetici: kilise ekle / düzenle / sil ---------------- */
 let editingChurchId=null;
-const DENOMS=['Katolik','Anglikan','Protestan','Ortodoks','Diğer'];
+const DENOMS=['Katolik','Ortodoks','Oryantal Ortodoks','Doğu Kilisesi','Protestan','Anglikan','Diğer'];
 
 function parseCoord(v){
   const t=String(v??'').trim().replace(',','.');
@@ -910,15 +912,18 @@ function foldText(t){
 }
 function guessDenomination(...texts){
   const raw=texts.filter(Boolean).join(' ');
-  const toks=foldText(raw).split(/\s+/).filter(Boolean);
+  const folded=foldText(raw);
+  const toks=folded.split(/\s+/).filter(Boolean);
   const has=(...stems)=>toks.some(t=>stems.some(x=>t.startsWith(x)));
   const is=(...words)=>toks.some(t=>words.includes(t));
   const greekScript=/[\u0370-\u03ff\u1f00-\u1fff]/.test(raw);
 
-  // 1) Açık mezhep sözcükleri
+  // 1) Açık mezhep sözcükleri (sıra önemli: "Ermeni Katolik" Katolik'tir, "Süryani Kilisesi" Oryantal Ortodoks'tur)
   if(has('anglik','anglic','episcop','ingiliz')||is('england','english'))return 'Anglikan';
-  if(has('katolik','catholic')||is('latin','vatikan')||/καθολικ/i.test(raw))return 'Katolik';
-  if(has('ortodoks','orthodox','ortodox','ermeni','armenian','surya','syriac','kopt','coptic','surp','sourp')||is('rum','greek','rus','russian')||/ορθοδοξ/i.test(raw))return 'Ortodoks';
+  if(has('katolik','catholic','keldani','chaldean')||is('latin','vatikan')||/καθολικ/i.test(raw))return 'Katolik';
+  if(has('asur','assyri','nestori','nesturi')||/church of the east|dogu kilise/.test(folded))return 'Doğu Kilisesi';
+  if(has('ermeni','armenian','surya','syriac','kopt','kipti','kibti','coptic','etiyop','habes','ethiop','eritre','malankara','oryantal','oriental','surp','sourp'))return 'Oryantal Ortodoks';
+  if(has('ortodoks','orthodox','ortodox')||is('rum','greek','rus','russian')||/ορθοδοξ/i.test(raw))return 'Ortodoks';
   // 2) Yunan alfabesiyle yazılmış ad: Rum Ortodoks
   if(greekScript)return 'Ortodoks';
   // 3) Rum Ortodoks kiliselerinin Latin harfleriyle yazılan tipik adları (Aya/Agios/Panayia...)
@@ -938,17 +943,20 @@ $('cf-name').addEventListener('input',()=>{
   if(g!=='Diğer')$('cf-denom').value=g;
 });
 
-// "Diğer" olan tüm kiliseleri addan tahmin edip toplu güncelle
+// Mezhebi "Diğer" olanları addan tahmin edip toplu güncelle.
+// Ayrıca eskiden "Ortodoks" yazılmış ama adı Ermeni/Süryani/Asur olan kayıtları da yeni sınıfına taşır.
 $('fix-denom-btn').addEventListener('click',async()=>{
   if(!sb)return;
   const groups={};
   churchesData.forEach(c=>{
-    if(c.denomination!=='Diğer')return;
     const g=guessDenomination(c.name);
-    if(g!=='Diğer')(groups[g]=groups[g]||[]).push(c.id);
+    if(g==='Diğer'||g===c.denomination)return;
+    const fromOther=c.denomination==='Diğer';
+    const fixOldOrthodox=c.denomination==='Ortodoks'&&(g==='Oryantal Ortodoks'||g==='Doğu Kilisesi');
+    if(fromOther||fixOldOrthodox)(groups[g]=groups[g]||[]).push(c.id);
   });
   const total=Object.values(groups).reduce((n,a)=>n+a.length,0);
-  if(!total){toast('Addan tahmin edilebilen "Diğer" kilise yok. Kalanları listeden elle seçebilirsin.');return}
+  if(!total){toast('Otomatik düzeltilebilecek kilise bulunamadı. Kalanları listeden elle seçebilirsin.');return}
   const btn=$('fix-denom-btn');btn.disabled=true;
   let done=0;
   for(const [den,ids] of Object.entries(groups)){
@@ -975,8 +983,10 @@ let importCandidates=[];
 function mapDenomination(tags){
   const d=String(tags.denomination||'').toLowerCase();
   if(/anglican|episcopal|church of england/.test(d))return 'Anglikan';
-  if(/catholic|latin/.test(d)&&!/orthodox/.test(d))return 'Katolik';
-  if(/orthodox|armenian|coptic|syriac/.test(d))return 'Ortodoks';
+  if(/catholic|latin|chaldean/.test(d))return 'Katolik';                     // Doğu Katolik kiliseleri dahil
+  if(/assyrian|nestorian|church.of.the.east/.test(d))return 'Doğu Kilisesi';
+  if(/armenian|coptic|syriac|ethiopian|eritrean|oriental|malankara|jacobite|tewahedo/.test(d))return 'Oryantal Ortodoks';
+  if(/orthodox/.test(d))return 'Ortodoks';
   if(/protestant|evangelical|baptist|lutheran|presbyterian|pentecostal|methodist|reformed|adventist|charismatic|free_church/.test(d))return 'Protestan';
   return 'Diğer';
 }
@@ -1044,7 +1054,7 @@ async function runWikidata([s,w,n,e]){
       const label=b.itemLabel?b.itemLabel.value:'';
       if(!m||!label||/^Q\d+$/.test(label))continue;
       let den=mapDenomination({denomination:(b.denLabel?b.denLabel.value:'').toLowerCase()});
-      if(den==='Diğer')den=guessDenomination(label);
+      if(den==='Diğer')den=guessDenomination(label,b.denLabel?b.denLabel.value:'');
       const cur=byItem.get(qid);
       if(!cur)byItem.set(qid,{name:label,lat:Number(m[2]),lng:Number(m[1]),denomination:den,wikidata:qid,wiki_titles:{},description:'',city:''});
       else if(cur.denomination==='Diğer'&&den!=='Diğer')cur.denomination=den;
