@@ -165,6 +165,19 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
 .import-tools input{flex:2;min-width:0}
 .import-tools select{flex:1;min-width:0}
 .import-footer{position:sticky;bottom:0;z-index:2;background:#fff;margin:10px -24px -24px;padding:12px 24px 24px;border-top:1px solid #e2e8f0}
+
+/* Destek düğmesi ve penceresi (yumuşak, dikkat dağıtmayan) */
+.support-btn{background:rgba(255,255,255,.9);border:1px solid #e2e8f0;border-radius:8px;font-size:.95rem;line-height:1;padding:4px 8px;cursor:pointer}
+.support-btn:hover{background:#fff}
+#support-modal{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:3000;align-items:center;justify-content:center;padding:16px}
+#support-modal .modal-content{text-align:center;max-width:380px}
+.support-emoji{font-size:2rem;margin-bottom:6px}
+.support-title{margin:0 0 8px;font-size:1.1rem;font-weight:700;color:#0f172a}
+.support-text{margin:0 0 16px;font-size:.88rem;line-height:1.55;color:#475569}
+.support-cta{display:inline-block;background:#0f172a;color:#fff;text-decoration:none;font-weight:600;font-size:.88rem;padding:10px 18px;border-radius:999px}
+.support-cta:hover{background:#1e293b}
+.support-note{margin:12px 0 0;font-size:.72rem;color:#94a3b8;line-height:1.4}
+.support-close{display:block;margin:14px auto 0;background:none;border:none;color:#64748b;font-size:.8rem;cursor:pointer;text-decoration:underline}
 </style>
 </head>
 <body>
@@ -176,6 +189,7 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
     </div>
     <div class="header-actions">
       <span id="church-count-badge" class="header-badge">…</span>
+      <button class="support-btn" id="support-btn" hidden aria-label="Projeye destek ol" title="Projeye destek ol">☕</button>
       <button class="admin-btn" id="admin-btn" hidden>Yönetici</button>
     </div>
   </div>
@@ -367,6 +381,17 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
   </div>
 </div>
 
+<div id="support-modal" role="dialog" aria-modal="true" aria-labelledby="support-title">
+  <div class="modal-content">
+    <div class="support-emoji" aria-hidden="true">☕</div>
+    <h3 class="support-title" id="support-title">Projeye destek ol</h3>
+    <p class="support-text">The Church Atlas, dünyadaki kilise mirasını belgelemek için herkesin katkı verebildiği bağımsız bir proje. Sunucu, depolama ve alan adı giderlerini karşılamak için gönüllü desteğin projenin ayakta kalmasına yardım eder.</p>
+    <a class="support-cta" id="support-link" href="#" target="_blank" rel="noopener noreferrer">☕ Bir kahve ısmarla</a>
+    <p class="support-note">Destek tamamen isteğe bağlıdır. Ödeme, Buy Me a Coffee üzerinden güvenli şekilde alınır; kart bilgilerin bu siteye ulaşmaz.</p>
+    <button type="button" class="support-close" id="support-close">Kapat</button>
+  </div>
+</div>
+
 <div id="toast" role="status" aria-live="polite"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -379,6 +404,10 @@ const SUPABASE_URL='https://siucplaufmjhqgdtorhf.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpdWNwbGF1Zm1qaHFnZHRvcmhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyMDU0MzksImV4cCI6MjEwNjc4MTQzOX0.dTo5uK-djOc3rkNrmJsahypGUw2-bHfwPFjcsx6-sso';
 
 const sb=/BURAYA/.test(SUPABASE_URL+SUPABASE_KEY)?null:supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+/* Destek (bağış) bağlantısı: Buy Me a Coffee sayfanın adresini yaz, örn. 'https://buymeacoffee.com/kullaniciadin'
+   Boş bırakırsan destek düğmesi hiç görünmez. */
+const DONATE_URL='https://buymeacoffee.com/thechurchatlas';
 
 const $=id=>document.getElementById(id);
 const toastEl=$('toast');let toastTimer;
@@ -1542,6 +1571,21 @@ async function moderate(id,status,photoUrl){
   await refreshPending();
   if(status==='approved')await loadChurches();
 }
+
+/* ---------------- Destek düğmesi ---------------- */
+(function initSupport(){
+  const url=safeImageUrl(DONATE_URL); // yalnızca https adresleri kabul edilir
+  if(!url)return;
+  const modal=$('support-modal');
+  $('support-link').href=url;
+  $('support-btn').hidden=false;
+  const open=()=>{modal.style.display='flex';$('support-link').focus()};
+  const close=()=>{modal.style.display='none';$('support-btn').focus()};
+  $('support-btn').addEventListener('click',open);
+  $('support-close').addEventListener('click',close);
+  modal.addEventListener('click',e=>{if(e.target===modal)close()});
+  addEventListener('keydown',e=>{if(e.key==='Escape'&&modal.style.display==='flex')close()});
+})();
 
 loadChurches();
 </script>
