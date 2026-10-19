@@ -277,6 +277,8 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
         </div>
         <div id="city-results"></div>
         <button type="button" class="btn-secondary wide" id="fix-denom-btn">🪄 Mezhepleri otomatik düzelt</button>
+        <button type="button" class="btn-secondary wide" id="fill-geo-btn">🌍 Eksik şehir/ülke bilgisini tamamla</button>
+        <p id="geo-progress" class="muted small" hidden></p>
         <div class="church-filters">
           <input type="search" id="church-filter" class="contrib-input" placeholder="Listede ara..." aria-label="Kilise listesinde ara">
           <select id="church-filter-denom" class="contrib-input" aria-label="Mezhebe göre filtrele">
@@ -512,8 +514,12 @@ function renderMarkers(data,fit){
 }
 
 function applyFilter(fit){
-  const q=$('search-input').value.trim().toLowerCase();
-  const list=!q?churchesData:churchesData.filter(c=>[c.name,c.city,c.denomination,c.description].some(v=>v.toLowerCase().includes(q)));
+  // "İzmir", "izmir", "İZMİR", "IZMIR" hepsi aynı sonucu verir; birden çok sözcük yazılırsa hepsi aranır
+  const tokens=foldText($('search-input').value).split(/\s+/).filter(Boolean);
+  const list=!tokens.length?churchesData:churchesData.filter(c=>{
+    const hay=foldText([c.name,c.city,c.country,c.denomination,c.description].join(' '));
+    return tokens.every(t=>hay.includes(t));
+  });
   renderMarkers(list,fit);
 }
 $('search-input').addEventListener('input',()=>applyFilter(true));
@@ -813,6 +819,7 @@ let churchAdminLimit=30;
 function renderChurchAdmin(){
   const list=$('church-admin-list');list.replaceChildren();
   $('church-more').hidden=true;$('church-count').textContent='';
+  updateGeoBtn();
   if(!churchesData.length){list.textContent='Henüz kilise yok.';list.className='muted';return}
   list.className='';
   const q=foldText($('church-filter').value).trim();
@@ -859,8 +866,8 @@ function openChurchForm(c){
   editingChurchId=c?c.id:null;
   $('cf-title').textContent=c?'Kiliseyi düzenle':'Yeni kilise ekle';
   $('cf-name').value=c?c.name:'';
-  $('cf-city').value=c?c.city:'İzmir';
-  $('cf-country').value=c?c.country:'Türkiye';
+  $('cf-city').value=c?c.city:'';
+  $('cf-country').value=c?c.country:'';
   $('cf-denom').value=c?(DENOMS.includes(c.denomination)?c.denomination:'Diğer'):'Diğer';
   $('cf-desc').value=c?c.description:'';
   $('cf-lat').value=c?c.lat:'';
@@ -898,10 +905,17 @@ $('cf-save').addEventListener('click',async()=>{
   const tr=$('cf-wtr').value.trim(),en=$('cf-wen').value.trim();
   if(tr)titles.tr=tr;
   if(en)titles.en=en;
+  // Şehir/ülke boşsa konumdan otomatik bul (olmazsa boş kalır)
+  let city=$('cf-city').value.trim(),country=$('cf-country').value.trim();
+  if(!city||!country){
+    $('cf-save').disabled=true;
+    try{const g=await reverseGeocode(lat,lng);city=city||g.city;country=country||g.country}catch(e){}
+    $('cf-save').disabled=false;
+  }
   const row={
     name,
-    city:$('cf-city').value.trim(),
-    country:$('cf-country').value.trim(),
+    city,
+    country,
     denomination:$('cf-denom').value,
     description:$('cf-desc').value.trim(),
     lat,lng,
@@ -1112,9 +1126,9 @@ function toCandidate(el){
 
 const importCache={}; // aynı aramayı 10 dakika içinde tekrar sorma
 
-let lastImportBbox=null;
-async function startImport(bbox,label,extra){
-  lastImportBbox=bbox;
+let lastImportBbox=null,importPlace=null;
+async function startImport(bbox,label,extra,place){
+  lastImportBbox=bbox;importPlace=place||null;
   $('admin-panel').hidden=true;$('church-form').hidden=true;$('import-view').hidden=false;
   $('import-msg').textContent='';$('import-list').replaceChildren();
   const setMsg=t=>{$('import-summary').textContent=t};
@@ -1222,7 +1236,7 @@ function updateImportCount(){
   $('import-save').disabled=n===0;
 }
 
-$('import-city-btn').addEventListener('click',()=>startImport(IZMIR_BBOX,'İzmir'));
+$('import-city-btn').addEventListener('click',()=>startImport(IZMIR_BBOX,'İzmir','',{city:'İzmir',country:'Türkiye'}));
 $('import-view-btn').addEventListener('click',()=>{
   const b=map.getBounds();
   const bbox=[b.getSouth(),b.getWest(),b.getNorth(),b.getEast()];
@@ -1248,8 +1262,8 @@ $('import-save').addEventListener('click',async()=>{
     const local=inBbox(c.lat,c.lng,IZMIR_BBOX);
     return{
       name:c.name,
-      city:c.city||(local?'İzmir':''),
-      country:local?'Türkiye':'',
+      city:c.city||(importPlace&&importPlace.city)||(local?'İzmir':''),
+      country:(importPlace&&importPlace.country)||(local?'Türkiye':''),
       denomination:c.denomination,
       description:c.description,
       lat:Math.round(c.lat*1e6)/1e6,
@@ -1296,9 +1310,12 @@ function placeArea(p){
 }
 
 function startPlaceImport(p,area){
-  const name=String(p.display_name).split(', ')[0];
+  const parts=String(p.display_name).split(', ');
+  const name=parts[0];
   $('city-results').replaceChildren();
-  startImport(area.bbox,name,area.clamped?'Şehir büyük olduğu için merkezinin çevresindeki alan tarandı; başka bir bölgeyi haritadan seçerek de arayabilirsin.':'');
+  startImport(area.bbox,name,
+    area.clamped?'Şehir büyük olduğu için merkezinin çevresindeki alan tarandı; başka bir bölgeyi haritadan seçerek de arayabilirsin.':'',
+    {city:name,country:parts.length>1?parts[parts.length-1]:''});
 }
 
 async function runCitySearch(){
@@ -1343,6 +1360,62 @@ async function runCitySearch(){
 }
 $('city-go').addEventListener('click',runCitySearch);
 $('city-input').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();runCitySearch()}});
+
+/* ---------------- Konumdan şehir/ülke bulma (OpenStreetMap Nominatim) ---------------- */
+async function reverseGeocode(lat,lng){
+  const url='https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=10&accept-language=tr&lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lng);
+  const ctrl=new AbortController();const timer=setTimeout(()=>ctrl.abort(),10000);
+  try{
+    const r=await fetch(url,{signal:ctrl.signal});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const j=await r.json();
+    const a=j.address||{};
+    // Türkiye'de il adı (Samsun, İzmir...), diğer ülkelerde şehir/kasaba adı
+    const inTr=String(a.country_code||'').toLowerCase()==='tr';
+    const city=(inTr?(a.province||a.city||a.town||a.municipality||a.county)
+                    :(a.city||a.town||a.municipality||a.village||a.county||a.province))||a.state||'';
+    return{city,country:a.country||''};
+  }finally{clearTimeout(timer)}
+}
+
+let geoRunning=false,geoStop=false;
+function missingGeoCount(){return churchesData.filter(c=>!c.city||!c.country).length}
+function updateGeoBtn(){
+  if(geoRunning)return;
+  $('fill-geo-btn').textContent='🌍 Eksik şehir/ülke bilgisini tamamla ('+missingGeoCount()+')';
+}
+
+$('fill-geo-btn').addEventListener('click',async()=>{
+  if(geoRunning){geoStop=true;return}
+  if(!sb)return;
+  const todo=churchesData.filter(c=>!c.city||!c.country);
+  if(!todo.length){toast('Eksik şehir/ülke bilgisi olan kilise yok.');return}
+  geoRunning=true;geoStop=false;
+  const btn=$('fill-geo-btn'),prog=$('geo-progress');
+  btn.textContent='⏹ Durdur';prog.hidden=false;
+  let done=0,failed=0;
+  for(let i=0;i<todo.length;i++){
+    if(geoStop)break;
+    const c=todo[i];
+    prog.textContent='Tamamlanıyor: '+(i+1)+' / '+todo.length+' ('+c.name+')';
+    try{
+      const g=await reverseGeocode(c.lat,c.lng);
+      const patch={};
+      if(!c.city&&g.city)patch.city=g.city;
+      if(!c.country&&g.country)patch.country=g.country;
+      if(Object.keys(patch).length){
+        const{data,error}=await sb.from('atlas_churches').update(patch).eq('id',c.id).select();
+        if(error||!data||!data.length)failed++;else{Object.assign(c,patch);done++}
+      }else failed++;
+    }catch(e){failed++}
+    await sleep(1100); // Nominatim kuralı: saniyede en fazla 1 istek
+  }
+  geoRunning=false;geoStop=false;
+  prog.hidden=true;
+  toast(done+' kilisenin bilgisi tamamlandı'+(failed?'; '+failed+' tanesi bulunamadı.':'.'));
+  await loadChurches();
+  renderChurchAdmin();
+});
 
 /* ---------------- Haritadan konum seçme ---------------- */
 let pickMarker=null,pickLatLng=null;
