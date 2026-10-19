@@ -133,6 +133,21 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
 .church-filters .contrib-input{margin-bottom:0}
 .church-filters input{flex:2;min-width:0}
 .church-filters select{flex:1;min-width:0}
+
+/* Fotoğraf yokken gösterilen yumuşak boş durum */
+.drawer-img-container.is-empty{background:linear-gradient(160deg,#f8f5f0 0%,#e9eef6 100%);min-height:200px;padding:22px 16px}
+.drawer-empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;color:#64748b;animation:emptyIn .5s ease both}
+.drawer-empty svg{width:132px;height:auto;color:#a9b5c7;margin-bottom:6px}
+.empty-title{font-size:.9rem;font-weight:600;color:#475569}
+.empty-sub{font-size:.78rem;color:#7b8798;max-width:260px;line-height:1.45}
+.empty-cta{margin-top:10px;background:rgba(255,255,255,.8);border:1px solid #d3dbe6;color:#334155;font-size:.78rem;font-weight:600;padding:7px 14px;border-radius:999px;cursor:pointer}
+.empty-cta:hover{background:#fff}
+.drawer-img-container.is-loading .drawer-empty svg{animation:emptyPulse 1.6s ease-in-out infinite}
+.contrib-section.pulse{animation:sectionPulse 1.4s ease-out}
+@keyframes emptyIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@keyframes emptyPulse{0%,100%{opacity:.5}50%{opacity:1}}
+@keyframes sectionPulse{0%{background:rgba(59,130,246,.12)}100%{background:transparent}}
+@media (prefers-reduced-motion:reduce){.drawer-empty,.drawer-empty svg,.contrib-section.pulse{animation:none!important}}
 </style>
 </head>
 <body>
@@ -160,7 +175,23 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
 <div id="info-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-name">
   <button class="drawer-close" id="drawer-close" aria-label="Kapat">✕</button>
   <div class="drawer-img-container" id="drawer-img-box">
-    <img id="drawer-img" class="drawer-img is-placeholder" alt="">
+    <img id="drawer-img" class="drawer-img" alt="" hidden>
+    <div class="drawer-empty" id="drawer-empty">
+      <svg viewBox="0 0 132 96" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M6 86H126"/>
+        <path d="M24 86V44l12-24 12 24v42"/>
+        <path d="M36 8v12M32.5 12.5h7"/>
+        <path d="M44 59l34-21 34 21"/>
+        <path d="M48 59v27M108 59v27"/>
+        <path d="M30 86V75a6 6 0 0 1 12 0v11"/>
+        <path d="M33 59v-4a3 3 0 0 1 6 0v4"/>
+        <path d="M58 78V68a4 4 0 0 1 8 0v10M86 78V68a4 4 0 0 1 8 0v10"/>
+        <circle cx="78" cy="52" r="3.5"/>
+      </svg>
+      <div class="empty-title" id="empty-title">Henüz fotoğraf yok</div>
+      <div class="empty-sub" id="empty-sub">Bu kiliseyi gördüysen ilk fotoğrafı sen paylaşabilirsin.</div>
+      <button type="button" class="empty-cta" id="empty-cta">📷 İlk fotoğrafı sen ekle</button>
+    </div>
     <span class="photo-hint" id="photo-hint" hidden></span>
   </div>
   <p id="drawer-credit" class="img-credit"></p>
@@ -335,7 +366,6 @@ setTimeout(()=>map.invalidateSize(),300);
 /* ==========================================================
    WİKİ GÖRSEL ÇÖZÜMLEME (Wikidata > Wikipedia başlığı > dikkatli arama)
    ========================================================== */
-const PLACEHOLDER="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='1.5'><rect width='18' height='18' x='3' y='3' rx='2' ry='2'/><circle cx='9' cy='9' r='2'/><path d='m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21'/></svg>";
 
 const UI_LANG=(navigator.language||'tr').slice(0,2).toLowerCase();
 const WIKI_LANGS=[...new Set(['tr',UI_LANG,'en'])];
@@ -456,20 +486,34 @@ $('search-input').addEventListener('input',()=>applyFilter(true));
 /* ---------------- Fotoğraf alanı (çekmece) ---------------- */
 let currentPhotos=[]; // [{url, credit}]
 
+let photoLoading=false;
+
+// Fotoğraf yokken (veya aranırken) yumuşak boş durumu gösterir
+function showEmptyState(loading){
+  const box=$('drawer-img-box');
+  box.classList.add('is-empty');
+  box.classList.toggle('is-loading',!!loading);
+  box.classList.remove('has-photos');
+  box.removeAttribute('role');box.removeAttribute('tabindex');box.removeAttribute('aria-label');
+  const img=$('drawer-img');img.hidden=true;img.removeAttribute('src');
+  $('drawer-empty').hidden=false;
+  $('empty-title').textContent=loading?'Fotoğraf aranıyor…':'Henüz fotoğraf yok';
+  $('empty-sub').textContent=loading?'':'Bu kiliseyi gördüysen ilk fotoğrafı sen paylaşabilirsin.';
+  $('empty-sub').hidden=!!loading;
+  $('empty-cta').hidden=!!loading;
+  $('photo-hint').hidden=true;
+  $('drawer-credit').textContent='';
+}
+
 function renderPhotoUI(){
   const box=$('drawer-img-box'),img=$('drawer-img'),first=currentPhotos[0];
 
-  img.onerror=()=>{
-    img.onerror=null;
-    img.classList.add('is-placeholder');
-    img.src=PLACEHOLDER;
-    $('drawer-credit').textContent='';
-    box.classList.remove('has-photos');
-    $('photo-hint').hidden=true;
-  };
+  img.onerror=()=>{img.onerror=null;showEmptyState(false)};
 
   if(first){
-    img.classList.remove('is-placeholder');
+    box.classList.remove('is-empty','is-loading');
+    $('drawer-empty').hidden=true;
+    img.hidden=false;
     if(img.getAttribute('src')!==first.url)img.src=first.url;
     $('drawer-credit').textContent=first.credit;
     box.classList.add('has-photos');
@@ -477,12 +521,7 @@ function renderPhotoUI(){
     const hint=$('photo-hint');hint.hidden=false;
     hint.textContent='🔍 Büyüt'+(currentPhotos.length>1?' · '+currentPhotos.length+' fotoğraf':'');
   }else{
-    img.classList.add('is-placeholder');
-    img.src=PLACEHOLDER;
-    $('drawer-credit').textContent='';
-    box.classList.remove('has-photos');
-    box.removeAttribute('role');box.removeAttribute('tabindex');box.removeAttribute('aria-label');
-    $('photo-hint').hidden=true;
+    showEmptyState(photoLoading);
   }
 
   const th=$('drawer-thumbs');th.replaceChildren();
@@ -507,12 +546,14 @@ function openChurch(c){
 
   const userPhotos=c.photos.map(p=>({url:p.url,credit:'Ziyaretçi katkısı · '+p.by}));
   currentPhotos=userPhotos.slice();
+  photoLoading=true;
   renderPhotoUI();
 
   // Wikipedia/Wikidata görseli, ziyaretçi fotoğraflarının ardına eklenir
-  getWikiImage(c).then(url=>{
-    if(activeChurchId!==c.id||!url)return;
-    currentPhotos=[...userPhotos,{url,credit:'Wikipedia / Wikimedia Commons'}];
+  getWikiImage(c).catch(()=>null).then(url=>{
+    if(activeChurchId!==c.id)return;
+    photoLoading=false;
+    if(url)currentPhotos=[...userPhotos,{url,credit:'Wikipedia / Wikimedia Commons'}];
     renderPhotoUI();
   });
 
@@ -537,6 +578,14 @@ $('drawer-close').addEventListener('click',()=>$('info-drawer').classList.remove
 map.on('click',e=>{
   if(pickMode){setPick(e.latlng);return}
   $('info-drawer').classList.remove('active');
+});
+
+$('empty-cta').addEventListener('click',e=>{
+  e.stopPropagation();
+  const btn=$('contrib-file-btn'),sec=document.querySelector('.contrib-section');
+  btn.scrollIntoView({behavior:'smooth',block:'center'});
+  sec.classList.remove('pulse');void sec.offsetWidth;sec.classList.add('pulse');
+  setTimeout(()=>btn.focus({preventScroll:true}),400);
 });
 
 const imgBox=$('drawer-img-box');
