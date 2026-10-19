@@ -157,6 +157,14 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
 .city-result{display:block;width:100%;text-align:left;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;margin-bottom:6px;cursor:pointer;font-size:.85rem;font-weight:600;color:#0f172a}
 .city-result small{display:block;font-weight:400;color:#64748b;font-size:.72rem;margin-top:2px}
 .check-row{display:flex;gap:8px;align-items:center;font-size:.8rem;color:#475569;margin:0 0 8px}
+
+/* Uzun listeler: daha geniş pencere, arama araçları, sabit alt çubuk */
+.modal-content{max-height:88vh}
+.import-tools{display:flex;gap:8px;margin:8px 0}
+.import-tools .contrib-input{margin-bottom:0}
+.import-tools input{flex:2;min-width:0}
+.import-tools select{flex:1;min-width:0}
+.import-footer{position:sticky;bottom:0;z-index:2;background:#fff;margin:10px -24px -24px;padding:12px 24px 24px;border-top:1px solid #e2e8f0}
 </style>
 </head>
 <body>
@@ -275,23 +283,33 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
             <option value="">Tüm mezhepler</option><option>Katolik</option><option>Ortodoks</option><option>Oryantal Ortodoks</option><option>Doğu Kilisesi</option><option>Protestan</option><option>Anglikan</option><option>Diğer</option>
           </select>
         </div>
+        <p id="church-count" class="muted small"></p>
         <div id="church-admin-list"></div>
+        <button type="button" class="btn-secondary wide" id="church-more" hidden>Daha fazla göster</button>
       </div>
       <button class="btn-reject" id="admin-logout" style="margin-top:8px">Çıkış yap</button>
     </div>
     <div id="import-view" hidden>
       <h4 style="margin:0 0 6px;font-size:1rem">Bulunan kiliseler</h4>
       <p id="import-summary" class="muted small"></p>
-      <label class="check-row"><input type="checkbox" id="import-notable"> Yalnızca bilinen kiliseler (Wikidata kaydı olanlar)</label>
-      <p id="import-shown" class="muted small"></p>
-      <div class="pending-actions" style="margin:0 0 8px">
-        <button type="button" class="btn-secondary" id="import-all">Tümünü seç</button>
-        <button type="button" class="btn-secondary" id="import-none">Hiçbirini seçme</button>
+      <div class="import-tools">
+        <input type="search" id="import-search" class="contrib-input" placeholder="Sonuçlarda ara..." aria-label="Sonuçlarda ara">
+        <select id="import-denom" class="contrib-input" aria-label="Mezhebe göre filtrele">
+          <option value="">Tüm mezhepler</option><option>Katolik</option><option>Ortodoks</option><option>Oryantal Ortodoks</option><option>Doğu Kilisesi</option><option>Protestan</option><option>Anglikan</option><option>Diğer</option>
+        </select>
       </div>
+      <label class="check-row"><input type="checkbox" id="import-notable"> Yalnızca bilinen kiliseler (Wikidata kaydı olanlar)</label>
+      <label class="check-row"><input type="checkbox" id="import-existing"> Zaten ekli olanları da göster</label>
+      <div class="pending-actions" style="margin:0 0 8px">
+        <button type="button" class="btn-secondary" id="import-all">Listelenenleri seç</button>
+        <button type="button" class="btn-secondary" id="import-none">Seçimi temizle</button>
+      </div>
+      <p id="import-shown" class="muted small"></p>
       <div id="import-list"></div>
+      <button type="button" class="btn-secondary wide" id="import-more" hidden>Daha fazla göster</button>
       <p class="legal">Veriler OpenStreetMap katkıcılarından (© ODbL) veya Wikidata'dan (CC0) gelir. Eklemeden önce adları ve konumları kontrol et; sonra "Kiliseler" listesinden düzenleyebilirsin.</p>
       <p id="import-msg" class="err"></p>
-      <div class="pending-actions">
+      <div class="pending-actions import-footer">
         <button type="button" class="btn-approve" id="import-save">Seçilenleri ekle</button>
         <button type="button" class="btn-secondary" id="import-cancel">Vazgeç</button>
       </div>
@@ -791,15 +809,17 @@ function parseCoord(v){
 }
 function validCoords(lat,lng){return Number.isFinite(lat)&&Number.isFinite(lng)&&lat>=-90&&lat<=90&&lng>=-180&&lng<=180}
 
+let churchAdminLimit=30;
 function renderChurchAdmin(){
   const list=$('church-admin-list');list.replaceChildren();
+  $('church-more').hidden=true;$('church-count').textContent='';
   if(!churchesData.length){list.textContent='Henüz kilise yok.';list.className='muted';return}
   list.className='';
   const q=foldText($('church-filter').value).trim();
   const dFilter=$('church-filter-denom').value;
   const shown=churchesData.filter(c=>(!dFilter||c.denomination===dFilter)&&(!q||foldText(c.name).includes(q)));
   if(!shown.length){list.textContent='Eşleşen kilise yok.';list.className='muted';return}
-  shown.forEach(c=>{
+  shown.slice(0,churchAdminLimit).forEach(c=>{
     const row=document.createElement('div');row.className='church-row';
     const info=document.createElement('div');
     const n=document.createElement('div');n.className='church-row-name';n.textContent=c.name;
@@ -825,9 +845,15 @@ function renderChurchAdmin(){
     actions.append(sel,b);
     row.append(info,actions);list.append(row);
   });
+  const rest=shown.length-churchAdminLimit;
+  $('church-count').textContent=churchesData.length+' kilise'+(shown.length!==churchesData.length?' · '+shown.length+' tanesi süzgece uyuyor':'')+(rest>0?' · ilk '+churchAdminLimit+' tanesi görünüyor':'');
+  const more=$('church-more');
+  more.hidden=rest<=0;
+  if(rest>0)more.textContent='Daha fazla göster ('+rest+' kilise daha)';
 }
-$('church-filter').addEventListener('input',renderChurchAdmin);
-$('church-filter-denom').addEventListener('change',renderChurchAdmin);
+$('church-more').addEventListener('click',()=>{churchAdminLimit+=30;renderChurchAdmin()});
+$('church-filter').addEventListener('input',()=>{churchAdminLimit=30;renderChurchAdmin()});
+$('church-filter-denom').addEventListener('change',()=>{churchAdminLimit=30;renderChurchAdmin()});
 
 function openChurchForm(c){
   editingChurchId=c?c.id:null;
@@ -1134,39 +1160,62 @@ async function startImport(bbox,label,extra){
     +list.length+' kilise bulundu: '+fresh+' yeni, '+(list.length-fresh)+' zaten ekli.'
     +(unnamed?' '+unnamed+' adsız kayıt atlandı.':'')+(dupes?' '+dupes+' tekrar eden kayıt birleştirildi.':'')
     +(extra?' '+extra:''));
-  // Çok fazla sonuç varsa önce yalnızca bilinen (Wikidata kaydı olan) kiliseleri göster
-  $('import-notable').checked=list.length>150;
+  // Süzgeçleri sıfırla; çok sonuç varsa önce yalnızca bilinen (Wikidata kaydı olan) kiliseleri öne al
+  $('import-search').value='';$('import-denom').value='';$('import-existing').checked=false;
+  const notable=list.length>150;
+  $('import-notable').checked=notable;
+  list.forEach(c=>{c.selected=!c.exists&&(!notable||!!c.wikidata)});
   renderImportList();
 }
 
-const IMPORT_MAX_ROWS=300;
-function renderImportList(){
-  const box=$('import-list');box.replaceChildren();
+const IMPORT_PAGE=30;
+let importShown=IMPORT_PAGE;
+
+// Arama kutusu ve süzgeçlere uyan adaylar
+function importFiltered(){
+  const q=foldText($('import-search').value).trim();
+  const den=$('import-denom').value;
   const onlyNotable=$('import-notable').checked;
-  let shown=0,byNotable=0,byLimit=0;
-  importCandidates.forEach((c,i)=>{
-    if(onlyNotable&&!c.wikidata){byNotable++;return}
-    if(shown>=IMPORT_MAX_ROWS){byLimit++;return}
-    shown++;
+  const withExisting=$('import-existing').checked;
+  return importCandidates.filter(c=>
+    (withExisting||!c.exists)&&
+    (!onlyNotable||c.wikidata)&&
+    (!den||c.denomination===den)&&
+    (!q||foldText(c.name).includes(q)));
+}
+
+function renderImportList(resetPage){
+  if(resetPage!==false)importShown=IMPORT_PAGE;
+  const list=importFiltered();
+  const box=$('import-list');box.replaceChildren();
+  list.slice(0,importShown).forEach(c=>{
     const row=document.createElement('label');row.className='import-row'+(c.exists?' exists':'');
-    const cb=document.createElement('input');cb.type='checkbox';cb.dataset.i=i;cb.checked=!c.exists;cb.disabled=c.exists;
-    cb.addEventListener('change',updateImportCount);
+    const cb=document.createElement('input');cb.type='checkbox';cb.checked=!!c.selected&&!c.exists;cb.disabled=c.exists;
+    cb.addEventListener('change',()=>{c.selected=cb.checked;updateImportCount()});
     const info=document.createElement('div');
     const n=document.createElement('div');n.className='import-row-name';n.textContent=c.name;
     const m=document.createElement('div');m.className='import-row-meta';
     m.textContent=[c.denomination,c.lat.toFixed(5)+', '+c.lng.toFixed(5),c.wikidata?'Wikidata '+c.wikidata:'',c.exists?'zaten ekli':''].filter(Boolean).join(' · ');
     info.append(n,m);row.append(cb,info);box.append(row);
   });
-  const notes=[shown+' kilise gösteriliyor.'];
-  if(byNotable)notes.push(byNotable+' kayıt gizli (Wikidata kaydı yok); kutuyu kaldırırsan hepsi görünür.');
-  if(byLimit)notes.push('İlk '+IMPORT_MAX_ROWS+' gösteriliyor; daha dar bir bölge ya da "bilinen kiliseler" süzgecini dene.');
-  $('import-shown').textContent=notes.join(' ');
+  const rest=list.length-importShown;
+  const more=$('import-more');
+  more.hidden=rest<=0;
+  if(rest>0)more.textContent='Daha fazla göster ('+rest+' kayıt daha)';
+  const hiddenExisting=$('import-existing').checked?0:importCandidates.filter(c=>c.exists).length;
+  $('import-shown').textContent=list.length+' kilise listeleniyor'
+    +(hiddenExisting?' ('+hiddenExisting+' zaten ekli olan gizli)':'')
+    +(list.length?'; ilk '+Math.min(importShown,list.length)+' tanesi görünüyor.':'.')
+    +' Alttaki düğmedeki sayı, süzgeçlerden bağımsız toplam seçili sayısıdır.';
   updateImportCount();
 }
-$('import-notable').addEventListener('change',renderImportList);
-function selectedImports(){
-  return [...document.querySelectorAll('#import-list input[type=checkbox]:checked')].map(cb=>importCandidates[Number(cb.dataset.i)]);
-}
+$('import-search').addEventListener('input',()=>renderImportList());
+$('import-denom').addEventListener('change',()=>renderImportList());
+$('import-notable').addEventListener('change',()=>renderImportList());
+$('import-existing').addEventListener('change',()=>renderImportList());
+$('import-more').addEventListener('click',()=>{importShown+=IMPORT_PAGE;renderImportList(false)});
+
+function selectedImports(){return importCandidates.filter(c=>c.selected&&!c.exists)}
 function updateImportCount(){
   const n=selectedImports().length;
   $('import-save').textContent='Seçilenleri ekle ('+n+')';
@@ -1184,10 +1233,12 @@ $('import-view-btn').addEventListener('click',()=>{
   startImport(bbox,'haritada görünen alan');
 });
 $('import-all').addEventListener('click',()=>{
-  document.querySelectorAll('#import-list input[type=checkbox]:not(:disabled)').forEach(cb=>cb.checked=true);updateImportCount();
+  importFiltered().forEach(c=>{if(!c.exists)c.selected=true});
+  renderImportList(false);
 });
 $('import-none').addEventListener('click',()=>{
-  document.querySelectorAll('#import-list input[type=checkbox]').forEach(cb=>cb.checked=false);updateImportCount();
+  importCandidates.forEach(c=>{c.selected=false});
+  renderImportList(false);
 });
 $('import-cancel').addEventListener('click',()=>{adminTab='churches';showPanel()});
 $('import-save').addEventListener('click',async()=>{
@@ -1356,6 +1407,7 @@ async function refreshPending(){
     .select('id,name,comment,photo_url,created_at,atlas_churches(name)')
     .eq('status','pending').order('created_at');
   if(error){list.textContent='Hata: '+error.message;list.className='err';return}
+  $('tab-pending').textContent='Onay bekleyenler'+(data.length?' ('+data.length+')':'');
   if(!data.length){list.textContent='Onay bekleyen katkı bulunmuyor.';return}
   list.className='';list.replaceChildren();
   data.forEach(item=>{
