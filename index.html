@@ -167,7 +167,7 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
 .import-footer{position:sticky;bottom:0;z-index:2;background:#fff;margin:10px -24px -24px;padding:12px 24px 24px;border-top:1px solid #e2e8f0}
 
 /* Destek düğmesi ve penceresi (yumuşak, dikkat dağıtmayan) */
-.support-fab{position:fixed;right:12px;bottom:34px;z-index:1000;display:flex;align-items:center;gap:6px;background:#ffdd00;color:#1f2937;border:1px solid rgba(15,23,42,.12);border-radius:999px;padding:9px 14px;font-size:.82rem;font-weight:700;box-shadow:0 4px 14px rgba(15,23,42,.18);cursor:pointer}
+.support-fab{position:fixed;right:12px;bottom:36px;z-index:1000;display:flex;align-items:center;gap:9px;max-width:calc(100vw - 24px);white-space:nowrap;background:#ffdd00;color:#1f2937;border:1px solid rgba(15,23,42,.12);border-radius:999px;padding:13px 21px;font-size:1.23rem;font-weight:700;box-shadow:0 6px 20px rgba(15,23,42,.2);cursor:pointer}
 .support-fab:hover{background:#ffe433}
 .support-fab.nudge{animation:fabNudge 1.2s ease-in-out 2}
 @keyframes fabNudge{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
@@ -1576,11 +1576,56 @@ async function moderate(id,status,photoUrl){
   if(status==='approved')await loadChurches();
 }
 
-/* ---------------- Destek düğmesi ---------------- */
+/* ---------------- Destek düğmesi (ziyaretçinin diline göre) ---------------- */
+const SUPPORT_I18N={
+  tr:{btn:'Destek ol',title:'Projeye destek ol',text:'The Church Atlas, dünyadaki kilise mirasını belgelemek için herkesin katkı verebildiği bağımsız bir proje. Sunucu, depolama ve alan adı giderlerini karşılamak için gönüllü desteğin projenin ayakta kalmasına yardım eder.',cta:'☕ Bir kahve ısmarla',note:'Destek tamamen isteğe bağlıdır. Ödeme, Buy Me a Coffee üzerinden güvenli şekilde alınır; kart bilgilerin bu siteye ulaşmaz.',close:'Kapat'},
+  en:{btn:'Support us',title:'Support the project',text:"The Church Atlas is an independent, community-built project documenting the world's church heritage. Voluntary support helps cover hosting, storage and domain costs so it can stay free and keep growing.",cta:'☕ Buy me a coffee',note:'Support is entirely optional. Payment is handled securely by Buy Me a Coffee; your card details never reach this site.',close:'Close'},
+  es:{btn:'Apóyanos',title:'Apoya el proyecto',text:'The Church Atlas es un proyecto independiente, creado por la comunidad, que documenta el patrimonio de las iglesias del mundo. El apoyo voluntario ayuda a cubrir los gastos de alojamiento, almacenamiento y dominio para que siga siendo gratuito y pueda crecer.',cta:'☕ Invítame a un café',note:'El apoyo es totalmente opcional. El pago lo gestiona Buy Me a Coffee de forma segura; los datos de tu tarjeta nunca llegan a este sitio.',close:'Cerrar'},
+  fr:{btn:'Soutenez-nous',title:'Soutenir le projet',text:"The Church Atlas est un projet indépendant, porté par la communauté, qui documente le patrimoine des églises du monde. Un soutien volontaire aide à couvrir l'hébergement, le stockage et le nom de domaine, pour que le projet reste gratuit et continue de grandir.",cta:'☕ Offrir un café',note:"Le soutien est entièrement facultatif. Le paiement est géré en toute sécurité par Buy Me a Coffee ; vos données de carte n'arrivent jamais sur ce site.",close:'Fermer'},
+  de:{btn:'Unterstützen',title:'Das Projekt unterstützen',text:'The Church Atlas ist ein unabhängiges, von der Community getragenes Projekt, das das Kirchenerbe der Welt dokumentiert. Freiwillige Unterstützung hilft, Hosting, Speicher und Domain zu bezahlen, damit das Projekt kostenlos bleibt und weiterwachsen kann.',cta:'☕ Spendiere mir einen Kaffee',note:'Die Unterstützung ist völlig freiwillig. Die Zahlung wird sicher über Buy Me a Coffee abgewickelt; deine Kartendaten gelangen nie auf diese Seite.',close:'Schließen'},
+  it:{btn:'Sostienici',title:'Sostieni il progetto',text:'The Church Atlas è un progetto indipendente, creato dalla comunità, che documenta il patrimonio delle chiese del mondo. Il sostegno volontario aiuta a coprire hosting, archiviazione e dominio, così il progetto resta gratuito e può continuare a crescere.',cta:'☕ Offrimi un caffè',note:'Il sostegno è del tutto facoltativo. Il pagamento è gestito in modo sicuro da Buy Me a Coffee; i dati della tua carta non arrivano mai a questo sito.',close:'Chiudi'},
+  pt:{btn:'Apoie',title:'Apoie o projeto',text:'O The Church Atlas é um projeto independente, feito pela comunidade, que documenta o patrimônio das igrejas do mundo. O apoio voluntário ajuda a cobrir os custos de hospedagem, armazenamento e domínio, para que continue gratuito e possa crescer.',cta:'☕ Me pague um café',note:'O apoio é totalmente opcional. O pagamento é processado com segurança pelo Buy Me a Coffee; os dados do seu cartão nunca chegam a este site.',close:'Fechar'},
+  nl:{btn:'Steun ons',title:'Steun het project',text:'The Church Atlas is een onafhankelijk, door de gemeenschap gedragen project dat het kerkelijk erfgoed van de wereld documenteert. Vrijwillige steun helpt bij het betalen van hosting, opslag en domeinnaam, zodat het project gratis blijft en kan blijven groeien.',cta:'☕ Trakteer me op een koffie',note:'Steun is volledig vrijwillig. De betaling wordt veilig afgehandeld door Buy Me a Coffee; je kaartgegevens bereiken deze site nooit.',close:'Sluiten'},
+  pl:{btn:'Wesprzyj',title:'Wesprzyj projekt',text:'The Church Atlas to niezależny projekt tworzony przez społeczność, dokumentujący dziedzictwo kościołów na całym świecie. Dobrowolne wsparcie pomaga pokryć koszty hostingu, przechowywania danych i domeny, aby projekt pozostał darmowy i mógł się rozwijać.',cta:'☕ Postaw mi kawę',note:'Wsparcie jest całkowicie dobrowolne. Płatność bezpiecznie obsługuje Buy Me a Coffee; dane Twojej karty nigdy nie trafiają na tę stronę.',close:'Zamknij'},
+  ro:{btn:'Susține',title:'Susține proiectul',text:'The Church Atlas este un proiect independent, creat de comunitate, care documentează patrimoniul bisericilor din lume. Sprijinul voluntar ajută la acoperirea costurilor de găzduire, stocare și domeniu, astfel încât proiectul să rămână gratuit și să poată crește.',cta:'☕ Cumpără-mi o cafea',note:'Sprijinul este complet opțional. Plata este procesată în siguranță de Buy Me a Coffee; datele cardului tău nu ajung niciodată pe acest site.',close:'Închide'},
+  ru:{btn:'Поддержать',title:'Поддержать проект',text:'The Church Atlas — независимый проект, созданный сообществом, который документирует церковное наследие мира. Добровольная поддержка помогает оплачивать хостинг, хранилище и домен, чтобы проект оставался бесплатным и развивался.',cta:'☕ Угостить кофе',note:'Поддержка полностью добровольна. Платёж безопасно обрабатывает Buy Me a Coffee; данные вашей карты никогда не попадают на этот сайт.',close:'Закрыть'},
+  uk:{btn:'Підтримати',title:'Підтримати проєкт',text:'The Church Atlas — незалежний проєкт, створений спільнотою, що документує церковну спадщину світу. Добровільна підтримка допомагає оплачувати хостинг, сховище та домен, щоб проєкт залишався безкоштовним і розвивався.',cta:'☕ Пригостити кавою',note:'Підтримка цілком добровільна. Платіж безпечно обробляє Buy Me a Coffee; дані вашої картки ніколи не потрапляють на цей сайт.',close:'Закрити'},
+  el:{btn:'Υποστήριξη',title:'Υποστηρίξτε το έργο',text:'Το The Church Atlas είναι ένα ανεξάρτητο έργο που δημιουργείται από την κοινότητα και καταγράφει την εκκλησιαστική κληρονομιά του κόσμου. Η εθελοντική υποστήριξη βοηθά να καλύπτονται τα έξοδα φιλοξενίας, αποθήκευσης και domain, ώστε το έργο να παραμένει δωρεάν και να μεγαλώνει.',cta:'☕ Κεράστε μου έναν καφέ',note:'Η υποστήριξη είναι εντελώς προαιρετική. Η πληρωμή γίνεται με ασφάλεια μέσω του Buy Me a Coffee· τα στοιχεία της κάρτας σας δεν φτάνουν ποτέ σε αυτόν τον ιστότοπο.',close:'Κλείσιμο'},
+  hy:{btn:'Աջակցել',title:'Աջակցեք նախագծին',text:'The Church Atlas-ը անկախ, համայնքի ստեղծած նախագիծ է, որը փաստագրում է աշխարհի եկեղեցական ժառանգությունը։ Կամավոր աջակցությունն օգնում է ծածկել հոսթինգի, պահոցի և դոմենի ծախսերը, որպեսզի նախագիծը մնա անվճար և շարունակի զարգանալ։',cta:'☕ Սուրճ հյուրասիրեք',note:'Աջակցությունը լիովին կամավոր է։ Վճարումը անվտանգ մշակում է Buy Me a Coffee-ն. ձեր քարտի տվյալները երբեք չեն հասնում այս կայքին։',close:'Փակել'},
+  ar:{btn:'ادعمنا',title:'ادعم المشروع',text:'The Church Atlas مشروع مستقل يقوده المجتمع لتوثيق التراث الكنسي في العالم. يساعد الدعم الطوعي في تغطية تكاليف الاستضافة والتخزين واسم النطاق ليبقى المشروع مجانيًا ويواصل النمو.',cta:'☕ اشترِ لي فنجان قهوة',note:'الدعم اختياري تمامًا. تتم معالجة الدفع بأمان عبر Buy Me a Coffee، ولا تصل بيانات بطاقتك إلى هذا الموقع أبدًا.',close:'إغلاق'},
+  ja:{btn:'応援する',title:'プロジェクトを応援する',text:'The Church Atlas は、世界の教会の遺産を記録する、コミュニティによる独立したプロジェクトです。ホスティング、ストレージ、ドメインの費用をまかなうための任意の支援が、無料のまま成長を続ける力になります。',cta:'☕ コーヒーをごちそうする',note:'支援はあくまで任意です。お支払いは Buy Me a Coffee が安全に処理し、カード情報がこのサイトに届くことはありません。',close:'閉じる'},
+  ko:{btn:'후원하기',title:'프로젝트 후원하기',text:'The Church Atlas는 전 세계 교회 유산을 기록하는 커뮤니티 기반의 독립 프로젝트입니다. 자발적인 후원은 호스팅, 저장 공간, 도메인 비용을 충당해 프로젝트를 무료로 유지하고 계속 성장시키는 데 도움이 됩니다.',cta:'☕ 커피 한 잔 사주기',note:'후원은 전적으로 선택 사항입니다. 결제는 Buy Me a Coffee가 안전하게 처리하며, 카드 정보는 이 사이트에 전달되지 않습니다.',close:'닫기'},
+  zh:{btn:'支持我们',title:'支持这个项目',text:'The Church Atlas 是一个由社区共建的独立项目，致力于记录世界各地的教堂遗产。自愿的支持有助于支付托管、存储和域名费用，让项目保持免费并持续成长。',cta:'☕ 请我喝杯咖啡',note:'支持完全自愿。付款由 Buy Me a Coffee 安全处理，您的银行卡信息不会传到本网站。',close:'关闭'}
+};
+
+// Ziyaretçinin tarayıcı dili(ler)inden desteklenen ilkini seçer; yoksa İngilizce.
+// Test için adrese ?lang=de gibi bir ek yapılabilir.
+function pickSupportLang(){
+  const q=new URLSearchParams(location.search).get('lang');
+  const list=[q,...(navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language])].filter(Boolean);
+  for(const l of list){
+    const code=String(l).toLowerCase().split('-')[0];
+    if(SUPPORT_I18N[code])return code;
+  }
+  return 'en';
+}
+
 (function initSupport(){
   const url=safeImageUrl(DONATE_URL); // yalnızca https adresleri kabul edilir
   if(!url)return;
+  const code=pickSupportLang(),t=SUPPORT_I18N[code];
   const modal=$('support-modal');
+
+  // Metinleri ziyaretçinin diline çevir
+  $('support-btn').textContent='☕ '+t.btn;
+  $('support-btn').setAttribute('aria-label',t.title);
+  $('support-title').textContent=t.title;
+  document.querySelector('.support-text').textContent=t.text;
+  $('support-link').textContent=t.cta;
+  document.querySelector('.support-note').textContent=t.note;
+  $('support-close').textContent=t.close;
+  modal.lang=code;modal.dir=code==='ar'?'rtl':'ltr';
+
   $('support-link').href=url;
   $('support-btn').hidden=false;
   const open=()=>{modal.style.display='flex';$('support-link').focus()};
