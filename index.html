@@ -279,6 +279,7 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
         <button type="button" class="btn-secondary wide" id="fix-denom-btn">🪄 Mezhepleri otomatik düzelt</button>
         <button type="button" class="btn-secondary wide" id="fill-geo-btn">🌍 Eksik şehir/ülke bilgisini tamamla</button>
         <p id="geo-progress" class="muted small" hidden></p>
+        <p id="region-hint" class="err small" hidden>İl/eyalet bilgisiyle aramak için Supabase'de SQL Editor'ü açıp şunu bir kez çalıştır: <b>alter table atlas_churches add column if not exists region text;</b> Sonra siteyi yenile.</p>
         <div class="church-filters">
           <input type="search" id="church-filter" class="contrib-input" placeholder="Listede ara..." aria-label="Kilise listesinde ara">
           <select id="church-filter-denom" class="contrib-input" aria-label="Mezhebe göre filtrele">
@@ -324,6 +325,7 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
         <div><label class="field-label" for="cf-city">Şehir</label><input id="cf-city" class="contrib-input" maxlength="80"></div>
         <div><label class="field-label" for="cf-country">Ülke</label><input id="cf-country" class="contrib-input" maxlength="80"></div>
       </div>
+      <div id="cf-region-box"><label class="field-label" for="cf-region">İl / eyalet (aramada kullanılır)</label><input id="cf-region" class="contrib-input" maxlength="80" placeholder="örn. Samsun, Lazio"></div>
       <label class="field-label" for="cf-denom">Mezhep</label>
       <select id="cf-denom" class="contrib-input">
         <option>Katolik</option><option>Ortodoks</option><option>Oryantal Ortodoks</option><option>Doğu Kilisesi</option><option>Protestan</option><option>Anglikan</option><option>Diğer</option>
@@ -473,7 +475,7 @@ async function getWikiImage(c){
 let churchesData=[],markers=[],activeChurchId=null;
 const DENOM={Katolik:'badge-katolik',Ortodoks:'badge-ortodoks','Oryantal Ortodoks':'badge-oryantal','Doğu Kilisesi':'badge-dogu',Protestan:'badge-protestan',Anglikan:'badge-anglikan'};
 
-let firstLoad=true;
+let firstLoad=true,regionSupported=false;
 async function loadChurches(){
   if(!sb){setStatus('Supabase ayarları eksik (SUPABASE_URL / SUPABASE_KEY)','error');$('church-count-badge').textContent='0 Kilise';return}
   setStatus('Kiliseler yükleniyor...','loading');
@@ -483,10 +485,12 @@ async function loadChurches(){
   ]);
   if(cr.error){setStatus('Veri alınamadı: '+cr.error.message,'error');return}
   const approved=kr.data||[];
+  // 'region' sütunu veritabanında varsa select * onu da getirir
+  regionSupported=cr.data.length>0?('region' in cr.data[0]):regionSupported;
   churchesData=cr.data.map(c=>{
     const mine=approved.filter(x=>x.church_id===c.id);
     return{
-      id:c.id,name:c.name,city:c.city||'',country:c.country||'',
+      id:c.id,name:c.name,city:c.city||'',region:c.region||'',country:c.country||'',
       denomination:c.denomination,badgeClass:DENOM[c.denomination]||'badge-diger',
       description:c.description||'',lat:c.lat,lng:c.lng,
       wikidata:c.wikidata||'',wikiTitles:c.wiki_titles||{},
@@ -517,7 +521,7 @@ function applyFilter(fit){
   // "İzmir", "izmir", "İZMİR", "IZMIR" hepsi aynı sonucu verir; birden çok sözcük yazılırsa hepsi aranır
   const tokens=foldText($('search-input').value).split(/\s+/).filter(Boolean);
   const list=!tokens.length?churchesData:churchesData.filter(c=>{
-    const hay=foldText([c.name,c.city,c.country,c.denomination,c.description].join(' '));
+    const hay=foldText([c.name,c.city,c.region,c.country,c.denomination,c.description].join(' '));
     return tokens.every(t=>hay.includes(t));
   });
   renderMarkers(list,fit);
@@ -600,7 +604,7 @@ function openChurch(c){
 
   $('drawer-name').textContent=c.name;
   const badge=$('drawer-badge');badge.textContent=c.denomination;badge.className='denomination-badge '+c.badgeClass;
-  $('drawer-loc').textContent=[c.city,c.country].filter(Boolean).join(', ');
+  $('drawer-loc').textContent=[c.city,c.region&&c.region!==c.city?c.region:'',c.country].filter(Boolean).join(', ');
   const desc=$('drawer-description');desc.textContent=c.description;
   if(c.comments.length){
     const h=document.createElement('strong');h.textContent='Ziyaretçi Yorumları:';
@@ -868,6 +872,8 @@ function openChurchForm(c){
   $('cf-name').value=c?c.name:'';
   $('cf-city').value=c?c.city:'';
   $('cf-country').value=c?c.country:'';
+  $('cf-region').value=c?(c.region||''):'';
+  $('cf-region-box').hidden=!regionSupported;
   $('cf-denom').value=c?(DENOMS.includes(c.denomination)?c.denomination:'Diğer'):'Diğer';
   $('cf-desc').value=c?c.description:'';
   $('cf-lat').value=c?c.lat:'';
@@ -906,10 +912,10 @@ $('cf-save').addEventListener('click',async()=>{
   if(tr)titles.tr=tr;
   if(en)titles.en=en;
   // Şehir/ülke boşsa konumdan otomatik bul (olmazsa boş kalır)
-  let city=$('cf-city').value.trim(),country=$('cf-country').value.trim();
-  if(!city||!country){
+  let city=$('cf-city').value.trim(),country=$('cf-country').value.trim(),region=$('cf-region').value.trim();
+  if(!city||!country||(regionSupported&&!region)){
     $('cf-save').disabled=true;
-    try{const g=await reverseGeocode(lat,lng);city=city||g.city;country=country||g.country}catch(e){}
+    try{const g=await reverseGeocode(lat,lng);city=city||g.city;country=country||g.country;region=region||g.region}catch(e){}
     $('cf-save').disabled=false;
   }
   const row={
@@ -922,6 +928,7 @@ $('cf-save').addEventListener('click',async()=>{
     wikidata:wd||null,
     wiki_titles:titles
   };
+  if(regionSupported)row.region=region;
   const btn=$('cf-save');btn.disabled=true;
   const q=editingChurchId
     ?sb.from('atlas_churches').update(row).eq('id',editingChurchId).select()
@@ -1272,6 +1279,7 @@ $('import-save').addEventListener('click',async()=>{
       wiki_titles:c.wiki_titles
     };
   });
+  if(regionSupported)rows.forEach(r=>{r.region=''});
   const btn=$('import-save');btn.disabled=true;$('import-msg').textContent='';
   const{data,error}=await sb.from('atlas_churches').insert(rows).select();
   if(error){btn.disabled=false;$('import-msg').textContent='Eklenemedi: '+error.message;return}
@@ -1370,26 +1378,28 @@ async function reverseGeocode(lat,lng){
     if(!r.ok)throw new Error('HTTP '+r.status);
     const j=await r.json();
     const a=j.address||{};
-    // Türkiye'de il adı (Samsun, İzmir...), diğer ülkelerde şehir/kasaba adı
     const inTr=String(a.country_code||'').toLowerCase()==='tr';
-    const city=(inTr?(a.province||a.city||a.town||a.municipality||a.county)
-                    :(a.city||a.town||a.municipality||a.village||a.county||a.province))||a.state||'';
-    return{city,country:a.country||''};
+    // Türkiye'de il adı (Samsun, İzmir...), diğer ülkelerde eyalet/bölge adı
+    const region=(inTr?(a.province||a.state):(a.state||a.province||a.county))||'';
+    const city=(a.city||a.town||a.municipality||a.village||a.county||a.province)||a.state||'';
+    return{city,region,country:a.country||''};
   }finally{clearTimeout(timer)}
 }
 
 let geoRunning=false,geoStop=false;
-function missingGeoCount(){return churchesData.filter(c=>!c.city||!c.country).length}
+const needsGeo=c=>!c.city||!c.country||(regionSupported&&!c.region);
+function missingGeoCount(){return churchesData.filter(needsGeo).length}
 function updateGeoBtn(){
   if(geoRunning)return;
-  $('fill-geo-btn').textContent='🌍 Eksik şehir/ülke bilgisini tamamla ('+missingGeoCount()+')';
+  $('fill-geo-btn').textContent='🌍 Eksik şehir/il/ülke bilgisini tamamla ('+missingGeoCount()+')';
+  $('region-hint').hidden=regionSupported||!churchesData.length;
 }
 
 $('fill-geo-btn').addEventListener('click',async()=>{
   if(geoRunning){geoStop=true;return}
   if(!sb)return;
-  const todo=churchesData.filter(c=>!c.city||!c.country);
-  if(!todo.length){toast('Eksik şehir/ülke bilgisi olan kilise yok.');return}
+  const todo=churchesData.filter(needsGeo);
+  if(!todo.length){toast('Eksik şehir/il/ülke bilgisi olan kilise yok.');return}
   geoRunning=true;geoStop=false;
   const btn=$('fill-geo-btn'),prog=$('geo-progress');
   btn.textContent='⏹ Durdur';prog.hidden=false;
@@ -1403,6 +1413,7 @@ $('fill-geo-btn').addEventListener('click',async()=>{
       const patch={};
       if(!c.city&&g.city)patch.city=g.city;
       if(!c.country&&g.country)patch.country=g.country;
+      if(regionSupported&&!c.region&&g.region)patch.region=g.region;
       if(Object.keys(patch).length){
         const{data,error}=await sb.from('atlas_churches').update(patch).eq('id',c.id).select();
         if(error||!data||!data.length)failed++;else{Object.assign(c,patch);done++}
