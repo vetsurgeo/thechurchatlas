@@ -181,6 +181,19 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
 .support-cta:hover{background:#1e293b}
 .support-note{margin:12px 0 0;font-size:.72rem;color:#94a3b8;line-height:1.4}
 .support-close{display:block;margin:14px auto 0;background:none;border:none;color:#64748b;font-size:.8rem;cursor:pointer;text-decoration:underline}
+
+/* Dil seçici, açıklama çevirisi, Wikipedia kutusu */
+.search-row{display:flex;gap:8px}
+.search-row #search-input{flex:1;min-width:0;width:auto}
+.lang-select{flex:none;width:auto;max-width:118px;cursor:pointer;padding:10px 8px;font-size:.85rem}
+.drawer-name-local{font-size:.85rem;color:#64748b;margin:-2px 0 6px}
+.desc-text{margin:0}
+.desc-meta{font-size:.72rem;color:#94a3b8;margin-top:6px}
+.desc-meta button{background:none;border:none;color:#64748b;text-decoration:underline;font-size:inherit;cursor:pointer;padding:0}
+.wiki-block{margin-top:12px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;font-size:.85rem;line-height:1.55;color:#334155}
+.wiki-src{display:block;margin-top:6px;font-size:.72rem;color:#94a3b8}
+.wiki-src a{color:#64748b}
+.comments-block{margin-top:14px}
 </style>
 </head>
 <body>
@@ -195,10 +208,13 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
       <button class="admin-btn" id="admin-btn" hidden>Yönetici</button>
     </div>
   </div>
-  <input type="search" id="search-input" class="search-box" placeholder="Kilise, bölge veya mezhep ara..." aria-label="Kilise ara">
+  <div class="search-row">
+    <input type="search" id="search-input" class="search-box" data-i18n-ph="searchPh" data-i18n-aria="searchAria" placeholder="Kilise, bölge veya mezhep ara..." aria-label="Kilise ara">
+    <select id="lang-select" class="search-box lang-select" data-i18n-aria="langLabel" aria-label="Dil"></select>
+  </div>
 </div>
 
-<div id="map" aria-label="Kilise haritası"></div>
+<div id="map" data-i18n-aria="mapAria" aria-label="Kilise haritası"></div>
 
 <div id="status-box">
   <span class="status-dot" id="status-dot"></span>
@@ -206,7 +222,7 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
 </div>
 
 <div id="info-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-name">
-  <button class="drawer-close" id="drawer-close" aria-label="Kapat">✕</button>
+  <button class="drawer-close" id="drawer-close" data-i18n-aria="close" aria-label="Kapat">✕</button>
   <div class="drawer-img-container" id="drawer-img-box">
     <img id="drawer-img" class="drawer-img" alt="" hidden>
     <div class="drawer-empty" id="drawer-empty">
@@ -233,35 +249,41 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
     <h2 id="drawer-name" class="drawer-title"></h2>
     <span id="drawer-badge" class="denomination-badge"></span>
   </div>
+  <div id="drawer-name-local" class="drawer-name-local" hidden></div>
   <p id="drawer-loc" class="drawer-location"></p>
-  <div id="drawer-description" class="drawer-desc"></div>
+  <div id="drawer-description" class="drawer-desc">
+    <p id="desc-text" class="desc-text"></p>
+    <div id="desc-meta" class="desc-meta" hidden></div>
+    <div id="wiki-block" class="wiki-block" hidden></div>
+    <div id="comments-block" class="comments-block"></div>
+  </div>
   <div class="contrib-section">
-    <div class="contrib-title">💬 Fotoğraf / Yorum Ekle</div>
-    <input type="text" id="contrib-name" class="contrib-input" placeholder="Adınız Soyadınız" autocomplete="name" maxlength="80">
+    <div class="contrib-title" data-i18n="contribTitle">💬 Fotoğraf / Yorum Ekle</div>
+    <input type="text" id="contrib-name" class="contrib-input" data-i18n-ph="namePh" placeholder="Adınız Soyadınız" autocomplete="name" maxlength="80">
     <input type="file" id="contrib-file" accept="image/*" hidden>
-    <button type="button" class="btn-secondary wide" id="contrib-file-btn">📷 Fotoğraf seç / çek</button>
+    <button type="button" class="btn-secondary wide" id="contrib-file-btn" data-i18n="photoBtn">📷 Fotoğraf seç / çek</button>
     <div class="file-preview" id="contrib-file-preview" hidden>
-      <img id="contrib-file-img" alt="Seçilen fotoğraf önizlemesi">
-      <button type="button" id="contrib-file-clear" aria-label="Fotoğrafı kaldır">✕</button>
+      <img id="contrib-file-img" data-i18n-alt="previewAlt" alt="Seçilen fotoğraf önizlemesi">
+      <button type="button" id="contrib-file-clear" data-i18n-aria="clearPhoto" aria-label="Fotoğrafı kaldır">✕</button>
     </div>
     <details class="link-alt">
-      <summary>veya fotoğraf bağlantısı yapıştır</summary>
+      <summary data-i18n="linkSummary">veya fotoğraf bağlantısı yapıştır</summary>
       <input type="url" id="contrib-photo" class="contrib-input" placeholder="https://..." inputmode="url">
     </details>
-    <textarea id="contrib-comment" class="contrib-input" placeholder="Yorumunuz veya ek bilgi (fotoğraf eklediyseniz isteğe bağlı)" rows="2" maxlength="1000" style="resize:none"></textarea>
-    <p class="legal">Fotoğraf göndererek görselin size ait olduğunu ve adınızla birlikte yayınlanmasına izin verdiğinizi onaylarsınız. Katkılar yönetici onayından sonra görünür.</p>
-    <button class="contrib-submit" id="contrib-submit">Onaya Gönder</button>
+    <textarea id="contrib-comment" class="contrib-input" data-i18n-ph="commentPh" placeholder="Yorumunuz veya ek bilgi (fotoğraf eklediyseniz isteğe bağlı)" rows="2" maxlength="1000" style="resize:none"></textarea>
+    <p class="legal" data-i18n="legal">Fotoğraf göndererek görselin size ait olduğunu ve adınızla birlikte yayınlanmasına izin verdiğinizi onaylarsınız. Katkılar yönetici onayından sonra görünür.</p>
+    <button class="contrib-submit" id="contrib-submit" data-i18n="submit">Onaya Gönder</button>
   </div>
 </div>
 
-<div id="lightbox" role="dialog" aria-modal="true" aria-label="Fotoğraf görüntüleyici" hidden>
-  <button class="lb-btn lb-close" id="lb-close" aria-label="Kapat">✕</button>
-  <button class="lb-btn lb-nav lb-prev" id="lb-prev" aria-label="Önceki fotoğraf">‹</button>
+<div id="lightbox" role="dialog" aria-modal="true" data-i18n-aria="lbDialog" aria-label="Fotoğraf görüntüleyici" hidden>
+  <button class="lb-btn lb-close" id="lb-close" data-i18n-aria="close" aria-label="Kapat">✕</button>
+  <button class="lb-btn lb-nav lb-prev" id="lb-prev" data-i18n-aria="lbPrev" aria-label="Önceki fotoğraf">‹</button>
   <div class="lb-stage" id="lb-stage">
     <img id="lb-img" alt="">
-    <p id="lb-msg" hidden>Görsel yüklenemedi.</p>
+    <p id="lb-msg" data-i18n="lbError" hidden>Görsel yüklenemedi.</p>
   </div>
-  <button class="lb-btn lb-nav lb-next" id="lb-next" aria-label="Sonraki fotoğraf">›</button>
+  <button class="lb-btn lb-nav lb-next" id="lb-next" data-i18n-aria="lbNext" aria-label="Sonraki fotoğraf">›</button>
   <div class="lb-footer"><span id="lb-count"></span><span id="lb-caption"></span></div>
 </div>
 
@@ -425,12 +447,91 @@ function safeImageUrl(v){try{const u=new URL(v);return u.protocol==='https:'?u.h
 
 if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(console.error))}
 
+/* ---------------- Çok dilli arayüz (i18n) ---------------- */
+const LANGS=[['tr','Türkçe'],['en','English'],['es','Español'],['fr','Français'],['de','Deutsch'],['it','Italiano'],['pt','Português'],['nl','Nederlands'],['pl','Polski'],['ro','Română'],['ru','Русский'],['uk','Українська'],['el','Ελληνικά'],['hy','Հայերեն'],['ar','العربية'],['ja','日本語'],['ko','한국어'],['zh','中文']];
+
+const I18N={
+en:{searchPh:"Search church, place or denomination...",searchAria:"Search churches",mapAria:"Church map",count:"Churches: {n}",loading:"Loading...",loadingChurches:"Loading churches...",ready:"Ready",loadError:"Could not load data: {msg}",close:"Close",photoHint:"🔍 Enlarge",photoHintN:"🔍 Enlarge · 📷 {n}",openPhotoAria:"Open photo full screen",openPhotoNAria:"Open photo {n}",creditWiki:"Photo: Wikipedia / Wikimedia Commons",creditUserBy:"Photo: visitor contribution · {name}",emptySearching:"Searching for a photo…",emptyTitle:"No photo yet",emptySub:"If you have visited this church, you can share the first photo.",emptyCta:"📷 Add the first photo",commentsTitle:"Visitor comments:",contribTitle:"💬 Add a photo / comment",namePh:"Your name",photoBtn:"📷 Choose / take a photo",linkSummary:"or paste a photo link",commentPh:"Your comment or extra information (optional if you add a photo)",legal:"By submitting a photo you confirm it is yours and may be published with your name. Contributions appear after moderator approval.",submit:"Send for approval",uploading:"Uploading photo...",clearPhoto:"Remove photo",previewAlt:"Selected photo preview",tName:"Please enter your name.",tNeedContent:"Write a comment or add a photo.",tLink:"The photo link must start with https://",tPickChurch:"Select a church on the map first.",tSent:"Your contribution was sent for approval. Thank you!",tFail:"Could not send: {msg}",tReadFail:"This photo could not be read. Try another one.",lbDialog:"Photo viewer",lbPrev:"Previous photo",lbNext:"Next photo",lbError:"The image could not be loaded.",layerMap:"Map",layerSat:"Satellite",langLabel:"Language","den.Katolik":"Catholic","den.Ortodoks":"Orthodox","den.Oryantal Ortodoks":"Oriental Orthodox","den.Doğu Kilisesi":"Church of the East","den.Protestan":"Protestant","den.Anglikan":"Anglican","den.Diğer":"Other",translating:"Translating…",autoTranslated:"🌐 Automatic translation",showOriginal:"Show original",showTranslation:"Show translation",translateFail:"Automatic translation is unavailable right now. Showing the original text.",wikiSource:"From Wikipedia · CC BY-SA 4.0",wikiRead:"Read on Wikipedia"},
+tr:{searchPh:"Kilise, bölge veya mezhep ara...",searchAria:"Kilise ara",mapAria:"Kilise haritası",count:"Kilise: {n}",loading:"Yükleniyor...",loadingChurches:"Kiliseler yükleniyor...",ready:"Hazır",loadError:"Veri alınamadı: {msg}",close:"Kapat",photoHint:"🔍 Büyüt",photoHintN:"🔍 Büyüt · 📷 {n}",openPhotoAria:"Fotoğrafı tam ekran aç",openPhotoNAria:"{n}. fotoğrafı aç",creditWiki:"Fotoğraf: Wikipedia / Wikimedia Commons",creditUserBy:"Fotoğraf: ziyaretçi katkısı · {name}",emptySearching:"Fotoğraf aranıyor…",emptyTitle:"Henüz fotoğraf yok",emptySub:"Bu kiliseyi gördüysen ilk fotoğrafı sen paylaşabilirsin.",emptyCta:"📷 İlk fotoğrafı sen ekle",commentsTitle:"Ziyaretçi yorumları:",contribTitle:"💬 Fotoğraf / yorum ekle",namePh:"Adınız Soyadınız",photoBtn:"📷 Fotoğraf seç / çek",linkSummary:"veya fotoğraf bağlantısı yapıştır",commentPh:"Yorumunuz veya ek bilgi (fotoğraf eklediyseniz isteğe bağlı)",legal:"Fotoğraf göndererek görselin size ait olduğunu ve adınızla birlikte yayınlanmasına izin verdiğinizi onaylarsınız. Katkılar yönetici onayından sonra görünür.",submit:"Onaya gönder",uploading:"Fotoğraf yükleniyor...",clearPhoto:"Fotoğrafı kaldır",previewAlt:"Seçilen fotoğraf önizlemesi",tName:"Lütfen adınızı yazın.",tNeedContent:"Bir yorum yazın veya fotoğraf ekleyin.",tLink:"Fotoğraf bağlantısı https:// ile başlamalı.",tPickChurch:"Önce haritadan bir kilise seçin.",tSent:"Katkınız yönetici onayına gönderildi. Teşekkürler!",tFail:"Gönderilemedi: {msg}",tReadFail:"Bu fotoğraf okunamadı. Başka bir fotoğraf deneyin.",lbDialog:"Fotoğraf görüntüleyici",lbPrev:"Önceki fotoğraf",lbNext:"Sonraki fotoğraf",lbError:"Görsel yüklenemedi.",layerMap:"Harita",layerSat:"Uydu",langLabel:"Dil","den.Katolik":"Katolik","den.Ortodoks":"Ortodoks","den.Oryantal Ortodoks":"Oryantal Ortodoks","den.Doğu Kilisesi":"Doğu Kilisesi","den.Protestan":"Protestan","den.Anglikan":"Anglikan","den.Diğer":"Diğer",translating:"Çevriliyor…",autoTranslated:"🌐 Otomatik çeviri",showOriginal:"Orijinali göster",showTranslation:"Çeviriyi göster",translateFail:"Otomatik çeviri şu an kullanılamıyor. Özgün metin gösteriliyor.",wikiSource:"Wikipedia'dan · CC BY-SA 4.0",wikiRead:"Wikipedia'da oku"},
+es:{searchPh:"Busca iglesia, lugar o confesión...",searchAria:"Buscar iglesias",mapAria:"Mapa de iglesias",count:"Iglesias: {n}",loading:"Cargando...",loadingChurches:"Cargando iglesias...",ready:"Listo",loadError:"No se pudieron cargar los datos: {msg}",close:"Cerrar",photoHint:"🔍 Ampliar",photoHintN:"🔍 Ampliar · 📷 {n}",openPhotoAria:"Abrir la foto a pantalla completa",openPhotoNAria:"Abrir la foto {n}",creditWiki:"Foto: Wikipedia / Wikimedia Commons",creditUserBy:"Foto: aportación de un visitante · {name}",emptySearching:"Buscando una foto…",emptyTitle:"Aún no hay fotos",emptySub:"Si has visitado esta iglesia, puedes compartir la primera foto.",emptyCta:"📷 Añadir la primera foto",commentsTitle:"Comentarios de visitantes:",contribTitle:"💬 Añadir foto / comentario",namePh:"Tu nombre",photoBtn:"📷 Elegir / tomar una foto",linkSummary:"o pega un enlace a una foto",commentPh:"Tu comentario o información adicional (opcional si añades una foto)",legal:"Al enviar una foto confirmas que es tuya y que puede publicarse con tu nombre. Las aportaciones aparecen tras la aprobación de un moderador.",submit:"Enviar para aprobación",uploading:"Subiendo la foto...",clearPhoto:"Quitar la foto",previewAlt:"Vista previa de la foto seleccionada",tName:"Escribe tu nombre.",tNeedContent:"Escribe un comentario o añade una foto.",tLink:"El enlace de la foto debe empezar por https://",tPickChurch:"Primero selecciona una iglesia en el mapa.",tSent:"Tu aportación se envió para su aprobación. ¡Gracias!",tFail:"No se pudo enviar: {msg}",tReadFail:"No se pudo leer esta foto. Prueba con otra.",lbDialog:"Visor de fotos",lbPrev:"Foto anterior",lbNext:"Foto siguiente",lbError:"No se pudo cargar la imagen.",layerMap:"Mapa",layerSat:"Satélite",langLabel:"Idioma","den.Katolik":"Católica","den.Ortodoks":"Ortodoxa","den.Oryantal Ortodoks":"Ortodoxa oriental","den.Doğu Kilisesi":"Iglesia del Oriente","den.Protestan":"Protestante","den.Anglikan":"Anglicana","den.Diğer":"Otra",translating:"Traduciendo…",autoTranslated:"🌐 Traducción automática",showOriginal:"Ver original",showTranslation:"Ver traducción",translateFail:"La traducción automática no está disponible ahora. Se muestra el texto original.",wikiSource:"De Wikipedia · CC BY-SA 4.0",wikiRead:"Leer en Wikipedia"},
+fr:{searchPh:"Rechercher une église, un lieu ou une confession...",searchAria:"Rechercher des églises",mapAria:"Carte des églises",count:"Églises : {n}",loading:"Chargement...",loadingChurches:"Chargement des églises...",ready:"Prêt",loadError:"Impossible de charger les données : {msg}",close:"Fermer",photoHint:"🔍 Agrandir",photoHintN:"🔍 Agrandir · 📷 {n}",openPhotoAria:"Ouvrir la photo en plein écran",openPhotoNAria:"Ouvrir la photo {n}",creditWiki:"Photo : Wikipédia / Wikimedia Commons",creditUserBy:"Photo : contribution d'un visiteur · {name}",emptySearching:"Recherche d'une photo…",emptyTitle:"Pas encore de photo",emptySub:"Si vous avez visité cette église, vous pouvez partager la première photo.",emptyCta:"📷 Ajouter la première photo",commentsTitle:"Commentaires des visiteurs :",contribTitle:"💬 Ajouter une photo / un commentaire",namePh:"Votre nom",photoBtn:"📷 Choisir / prendre une photo",linkSummary:"ou collez un lien vers une photo",commentPh:"Votre commentaire ou information complémentaire (facultatif si vous ajoutez une photo)",legal:"En envoyant une photo, vous confirmez qu'elle vous appartient et qu'elle peut être publiée avec votre nom. Les contributions apparaissent après validation par un modérateur.",submit:"Envoyer pour validation",uploading:"Envoi de la photo...",clearPhoto:"Retirer la photo",previewAlt:"Aperçu de la photo sélectionnée",tName:"Veuillez saisir votre nom.",tNeedContent:"Écrivez un commentaire ou ajoutez une photo.",tLink:"Le lien de la photo doit commencer par https://",tPickChurch:"Sélectionnez d'abord une église sur la carte.",tSent:"Votre contribution a été envoyée pour validation. Merci !",tFail:"Envoi impossible : {msg}",tReadFail:"Cette photo n'a pas pu être lue. Essayez-en une autre.",lbDialog:"Visionneuse de photos",lbPrev:"Photo précédente",lbNext:"Photo suivante",lbError:"L'image n'a pas pu être chargée.",layerMap:"Plan",layerSat:"Satellite",langLabel:"Langue","den.Katolik":"Catholique","den.Ortodoks":"Orthodoxe","den.Oryantal Ortodoks":"Orthodoxe orientale","den.Doğu Kilisesi":"Église de l'Orient","den.Protestan":"Protestante","den.Anglikan":"Anglicane","den.Diğer":"Autre",translating:"Traduction en cours…",autoTranslated:"🌐 Traduction automatique",showOriginal:"Voir l'original",showTranslation:"Voir la traduction",translateFail:"La traduction automatique est indisponible pour le moment. Le texte original est affiché.",wikiSource:"Depuis Wikipédia · CC BY-SA 4.0",wikiRead:"Lire sur Wikipédia"},
+de:{searchPh:"Kirche, Ort oder Konfession suchen...",searchAria:"Kirchen suchen",mapAria:"Kirchenkarte",count:"Kirchen: {n}",loading:"Wird geladen...",loadingChurches:"Kirchen werden geladen...",ready:"Bereit",loadError:"Daten konnten nicht geladen werden: {msg}",close:"Schließen",photoHint:"🔍 Vergrößern",photoHintN:"🔍 Vergrößern · 📷 {n}",openPhotoAria:"Foto im Vollbild öffnen",openPhotoNAria:"Foto {n} öffnen",creditWiki:"Foto: Wikipedia / Wikimedia Commons",creditUserBy:"Foto: Beitrag eines Besuchers · {name}",emptySearching:"Foto wird gesucht…",emptyTitle:"Noch kein Foto",emptySub:"Wenn du diese Kirche besucht hast, kannst du das erste Foto teilen.",emptyCta:"📷 Erstes Foto hinzufügen",commentsTitle:"Kommentare von Besuchern:",contribTitle:"💬 Foto / Kommentar hinzufügen",namePh:"Dein Name",photoBtn:"📷 Foto auswählen / aufnehmen",linkSummary:"oder einen Foto-Link einfügen",commentPh:"Dein Kommentar oder weitere Informationen (optional, wenn du ein Foto hinzufügst)",legal:"Mit dem Absenden eines Fotos bestätigst du, dass es von dir stammt und mit deinem Namen veröffentlicht werden darf. Beiträge erscheinen nach Freigabe durch einen Moderator.",submit:"Zur Freigabe senden",uploading:"Foto wird hochgeladen...",clearPhoto:"Foto entfernen",previewAlt:"Vorschau des ausgewählten Fotos",tName:"Bitte gib deinen Namen ein.",tNeedContent:"Schreibe einen Kommentar oder füge ein Foto hinzu.",tLink:"Der Foto-Link muss mit https:// beginnen.",tPickChurch:"Wähle zuerst eine Kirche auf der Karte aus.",tSent:"Dein Beitrag wurde zur Freigabe gesendet. Danke!",tFail:"Senden fehlgeschlagen: {msg}",tReadFail:"Dieses Foto konnte nicht gelesen werden. Versuche ein anderes.",lbDialog:"Fotobetrachter",lbPrev:"Vorheriges Foto",lbNext:"Nächstes Foto",lbError:"Das Bild konnte nicht geladen werden.",layerMap:"Karte",layerSat:"Satellit",langLabel:"Sprache","den.Katolik":"Katholisch","den.Ortodoks":"Orthodox","den.Oryantal Ortodoks":"Orientalisch-orthodox","den.Doğu Kilisesi":"Kirche des Ostens","den.Protestan":"Protestantisch","den.Anglikan":"Anglikanisch","den.Diğer":"Andere",translating:"Wird übersetzt…",autoTranslated:"🌐 Automatische Übersetzung",showOriginal:"Original anzeigen",showTranslation:"Übersetzung anzeigen",translateFail:"Die automatische Übersetzung ist gerade nicht verfügbar. Der Originaltext wird angezeigt.",wikiSource:"Aus Wikipedia · CC BY-SA 4.0",wikiRead:"Auf Wikipedia lesen"},
+it:{searchPh:"Cerca chiesa, luogo o confessione...",searchAria:"Cerca chiese",mapAria:"Mappa delle chiese",count:"Chiese: {n}",loading:"Caricamento...",loadingChurches:"Caricamento delle chiese...",ready:"Pronto",loadError:"Impossibile caricare i dati: {msg}",close:"Chiudi",photoHint:"🔍 Ingrandisci",photoHintN:"🔍 Ingrandisci · 📷 {n}",openPhotoAria:"Apri la foto a schermo intero",openPhotoNAria:"Apri la foto {n}",creditWiki:"Foto: Wikipedia / Wikimedia Commons",creditUserBy:"Foto: contributo di un visitatore · {name}",emptySearching:"Ricerca di una foto…",emptyTitle:"Ancora nessuna foto",emptySub:"Se hai visitato questa chiesa, puoi condividere la prima foto.",emptyCta:"📷 Aggiungi la prima foto",commentsTitle:"Commenti dei visitatori:",contribTitle:"💬 Aggiungi foto / commento",namePh:"Il tuo nome",photoBtn:"📷 Scegli / scatta una foto",linkSummary:"oppure incolla il link di una foto",commentPh:"Il tuo commento o informazioni aggiuntive (facoltativo se aggiungi una foto)",legal:"Inviando una foto confermi che è tua e che può essere pubblicata con il tuo nome. I contributi compaiono dopo l'approvazione di un moderatore.",submit:"Invia per approvazione",uploading:"Caricamento della foto...",clearPhoto:"Rimuovi la foto",previewAlt:"Anteprima della foto selezionata",tName:"Inserisci il tuo nome.",tNeedContent:"Scrivi un commento o aggiungi una foto.",tLink:"Il link della foto deve iniziare con https://",tPickChurch:"Seleziona prima una chiesa sulla mappa.",tSent:"Il tuo contributo è stato inviato per approvazione. Grazie!",tFail:"Invio non riuscito: {msg}",tReadFail:"Impossibile leggere questa foto. Provane un'altra.",lbDialog:"Visualizzatore di foto",lbPrev:"Foto precedente",lbNext:"Foto successiva",lbError:"Impossibile caricare l'immagine.",layerMap:"Mappa",layerSat:"Satellite",langLabel:"Lingua","den.Katolik":"Cattolica","den.Ortodoks":"Ortodossa","den.Oryantal Ortodoks":"Ortodossa orientale","den.Doğu Kilisesi":"Chiesa d'Oriente","den.Protestan":"Protestante","den.Anglikan":"Anglicana","den.Diğer":"Altra",translating:"Traduzione in corso…",autoTranslated:"🌐 Traduzione automatica",showOriginal:"Mostra originale",showTranslation:"Mostra traduzione",translateFail:"La traduzione automatica non è disponibile al momento. Viene mostrato il testo originale.",wikiSource:"Da Wikipedia · CC BY-SA 4.0",wikiRead:"Leggi su Wikipedia"},
+pt:{searchPh:"Busque igreja, local ou denominação...",searchAria:"Buscar igrejas",mapAria:"Mapa de igrejas",count:"Igrejas: {n}",loading:"Carregando...",loadingChurches:"Carregando igrejas...",ready:"Pronto",loadError:"Não foi possível carregar os dados: {msg}",close:"Fechar",photoHint:"🔍 Ampliar",photoHintN:"🔍 Ampliar · 📷 {n}",openPhotoAria:"Abrir a foto em tela cheia",openPhotoNAria:"Abrir a foto {n}",creditWiki:"Foto: Wikipédia / Wikimedia Commons",creditUserBy:"Foto: contribuição de um visitante · {name}",emptySearching:"Procurando uma foto…",emptyTitle:"Ainda não há fotos",emptySub:"Se você visitou esta igreja, pode compartilhar a primeira foto.",emptyCta:"📷 Adicionar a primeira foto",commentsTitle:"Comentários de visitantes:",contribTitle:"💬 Adicionar foto / comentário",namePh:"Seu nome",photoBtn:"📷 Escolher / tirar uma foto",linkSummary:"ou cole um link de foto",commentPh:"Seu comentário ou informação adicional (opcional se você adicionar uma foto)",legal:"Ao enviar uma foto, você confirma que ela é sua e que pode ser publicada com o seu nome. As contribuições aparecem após a aprovação de um moderador.",submit:"Enviar para aprovação",uploading:"Enviando a foto...",clearPhoto:"Remover a foto",previewAlt:"Pré-visualização da foto selecionada",tName:"Informe seu nome.",tNeedContent:"Escreva um comentário ou adicione uma foto.",tLink:"O link da foto deve começar com https://",tPickChurch:"Primeiro selecione uma igreja no mapa.",tSent:"Sua contribuição foi enviada para aprovação. Obrigado!",tFail:"Não foi possível enviar: {msg}",tReadFail:"Não foi possível ler esta foto. Tente outra.",lbDialog:"Visualizador de fotos",lbPrev:"Foto anterior",lbNext:"Próxima foto",lbError:"Não foi possível carregar a imagem.",layerMap:"Mapa",layerSat:"Satélite",langLabel:"Idioma","den.Katolik":"Católica","den.Ortodoks":"Ortodoxa","den.Oryantal Ortodoks":"Ortodoxa oriental","den.Doğu Kilisesi":"Igreja do Oriente","den.Protestan":"Protestante","den.Anglikan":"Anglicana","den.Diğer":"Outra",translating:"Traduzindo…",autoTranslated:"🌐 Tradução automática",showOriginal:"Mostrar original",showTranslation:"Mostrar tradução",translateFail:"A tradução automática está indisponível no momento. Exibindo o texto original.",wikiSource:"Da Wikipédia · CC BY-SA 4.0",wikiRead:"Ler na Wikipédia"},
+nl:{searchPh:"Zoek kerk, plaats of denominatie...",searchAria:"Kerken zoeken",mapAria:"Kerkenkaart",count:"Kerken: {n}",loading:"Laden...",loadingChurches:"Kerken laden...",ready:"Klaar",loadError:"Gegevens konden niet worden geladen: {msg}",close:"Sluiten",photoHint:"🔍 Vergroten",photoHintN:"🔍 Vergroten · 📷 {n}",openPhotoAria:"Foto op volledig scherm openen",openPhotoNAria:"Foto {n} openen",creditWiki:"Foto: Wikipedia / Wikimedia Commons",creditUserBy:"Foto: bijdrage van een bezoeker · {name}",emptySearching:"Foto zoeken…",emptyTitle:"Nog geen foto",emptySub:"Als je deze kerk hebt bezocht, kun je de eerste foto delen.",emptyCta:"📷 Eerste foto toevoegen",commentsTitle:"Reacties van bezoekers:",contribTitle:"💬 Foto / reactie toevoegen",namePh:"Je naam",photoBtn:"📷 Foto kiezen / maken",linkSummary:"of plak een fotolink",commentPh:"Je reactie of extra informatie (optioneel als je een foto toevoegt)",legal:"Door een foto te versturen bevestig je dat deze van jou is en met je naam gepubliceerd mag worden. Bijdragen verschijnen na goedkeuring door een moderator.",submit:"Ter goedkeuring versturen",uploading:"Foto uploaden...",clearPhoto:"Foto verwijderen",previewAlt:"Voorbeeld van de gekozen foto",tName:"Vul je naam in.",tNeedContent:"Schrijf een reactie of voeg een foto toe.",tLink:"De fotolink moet beginnen met https://",tPickChurch:"Selecteer eerst een kerk op de kaart.",tSent:"Je bijdrage is ter goedkeuring verstuurd. Bedankt!",tFail:"Versturen mislukt: {msg}",tReadFail:"Deze foto kon niet worden gelezen. Probeer een andere.",lbDialog:"Fotoviewer",lbPrev:"Vorige foto",lbNext:"Volgende foto",lbError:"De afbeelding kon niet worden geladen.",layerMap:"Kaart",layerSat:"Satelliet",langLabel:"Taal","den.Katolik":"Katholiek","den.Ortodoks":"Orthodox","den.Oryantal Ortodoks":"Oriëntaals-orthodox","den.Doğu Kilisesi":"Kerk van het Oosten","den.Protestan":"Protestants","den.Anglikan":"Anglicaans","den.Diğer":"Overig",translating:"Vertalen…",autoTranslated:"🌐 Automatische vertaling",showOriginal:"Origineel tonen",showTranslation:"Vertaling tonen",translateFail:"Automatische vertaling is momenteel niet beschikbaar. De originele tekst wordt getoond.",wikiSource:"Van Wikipedia · CC BY-SA 4.0",wikiRead:"Lees op Wikipedia"},
+pl:{searchPh:"Szukaj kościoła, miejsca lub wyznania...",searchAria:"Szukaj kościołów",mapAria:"Mapa kościołów",count:"Kościoły: {n}",loading:"Ładowanie...",loadingChurches:"Ładowanie kościołów...",ready:"Gotowe",loadError:"Nie udało się wczytać danych: {msg}",close:"Zamknij",photoHint:"🔍 Powiększ",photoHintN:"🔍 Powiększ · 📷 {n}",openPhotoAria:"Otwórz zdjęcie na pełnym ekranie",openPhotoNAria:"Otwórz zdjęcie {n}",creditWiki:"Zdjęcie: Wikipedia / Wikimedia Commons",creditUserBy:"Zdjęcie: wkład odwiedzającego · {name}",emptySearching:"Szukanie zdjęcia…",emptyTitle:"Brak zdjęć",emptySub:"Jeśli odwiedziłeś ten kościół, możesz dodać pierwsze zdjęcie.",emptyCta:"📷 Dodaj pierwsze zdjęcie",commentsTitle:"Komentarze odwiedzających:",contribTitle:"💬 Dodaj zdjęcie / komentarz",namePh:"Twoje imię",photoBtn:"📷 Wybierz / zrób zdjęcie",linkSummary:"lub wklej link do zdjęcia",commentPh:"Twój komentarz lub dodatkowe informacje (opcjonalnie, jeśli dodajesz zdjęcie)",legal:"Wysyłając zdjęcie, potwierdzasz, że jest Twoje i może zostać opublikowane z Twoim imieniem. Wkłady pojawiają się po zatwierdzeniu przez moderatora.",submit:"Wyślij do zatwierdzenia",uploading:"Przesyłanie zdjęcia...",clearPhoto:"Usuń zdjęcie",previewAlt:"Podgląd wybranego zdjęcia",tName:"Wpisz swoje imię.",tNeedContent:"Napisz komentarz lub dodaj zdjęcie.",tLink:"Link do zdjęcia musi zaczynać się od https://",tPickChurch:"Najpierw wybierz kościół na mapie.",tSent:"Twój wkład został wysłany do zatwierdzenia. Dziękujemy!",tFail:"Nie udało się wysłać: {msg}",tReadFail:"Nie udało się odczytać tego zdjęcia. Spróbuj innego.",lbDialog:"Przeglądarka zdjęć",lbPrev:"Poprzednie zdjęcie",lbNext:"Następne zdjęcie",lbError:"Nie udało się wczytać obrazu.",layerMap:"Mapa",layerSat:"Satelita",langLabel:"Język","den.Katolik":"Katolicki","den.Ortodoks":"Prawosławny","den.Oryantal Ortodoks":"Orientalny prawosławny","den.Doğu Kilisesi":"Kościół Wschodu","den.Protestan":"Protestancki","den.Anglikan":"Anglikański","den.Diğer":"Inne",translating:"Tłumaczenie…",autoTranslated:"🌐 Tłumaczenie automatyczne",showOriginal:"Pokaż oryginał",showTranslation:"Pokaż tłumaczenie",translateFail:"Tłumaczenie automatyczne jest teraz niedostępne. Wyświetlany jest tekst oryginalny.",wikiSource:"Z Wikipedii · CC BY-SA 4.0",wikiRead:"Czytaj w Wikipedii"},
+ro:{searchPh:"Caută biserică, loc sau confesiune...",searchAria:"Caută biserici",mapAria:"Harta bisericilor",count:"Biserici: {n}",loading:"Se încarcă...",loadingChurches:"Se încarcă bisericile...",ready:"Gata",loadError:"Datele nu au putut fi încărcate: {msg}",close:"Închide",photoHint:"🔍 Mărește",photoHintN:"🔍 Mărește · 📷 {n}",openPhotoAria:"Deschide fotografia pe tot ecranul",openPhotoNAria:"Deschide fotografia {n}",creditWiki:"Fotografie: Wikipedia / Wikimedia Commons",creditUserBy:"Fotografie: contribuția unui vizitator · {name}",emptySearching:"Se caută o fotografie…",emptyTitle:"Încă nu există fotografii",emptySub:"Dacă ai vizitat această biserică, poți distribui prima fotografie.",emptyCta:"📷 Adaugă prima fotografie",commentsTitle:"Comentariile vizitatorilor:",contribTitle:"💬 Adaugă fotografie / comentariu",namePh:"Numele tău",photoBtn:"📷 Alege / fă o fotografie",linkSummary:"sau lipește un link către o fotografie",commentPh:"Comentariul tău sau informații suplimentare (opțional dacă adaugi o fotografie)",legal:"Trimițând o fotografie confirmi că îți aparține și că poate fi publicată cu numele tău. Contribuțiile apar după aprobarea unui moderator.",submit:"Trimite spre aprobare",uploading:"Se încarcă fotografia...",clearPhoto:"Elimină fotografia",previewAlt:"Previzualizarea fotografiei selectate",tName:"Te rugăm să introduci numele tău.",tNeedContent:"Scrie un comentariu sau adaugă o fotografie.",tLink:"Linkul fotografiei trebuie să înceapă cu https://",tPickChurch:"Selectează mai întâi o biserică pe hartă.",tSent:"Contribuția ta a fost trimisă spre aprobare. Mulțumim!",tFail:"Trimiterea a eșuat: {msg}",tReadFail:"Această fotografie nu a putut fi citită. Încearcă alta.",lbDialog:"Vizualizator de fotografii",lbPrev:"Fotografia anterioară",lbNext:"Fotografia următoare",lbError:"Imaginea nu a putut fi încărcată.",layerMap:"Hartă",layerSat:"Satelit",langLabel:"Limba","den.Katolik":"Catolică","den.Ortodoks":"Ortodoxă","den.Oryantal Ortodoks":"Ortodoxă orientală","den.Doğu Kilisesi":"Biserica Răsăritului","den.Protestan":"Protestantă","den.Anglikan":"Anglicană","den.Diğer":"Altele",translating:"Se traduce…",autoTranslated:"🌐 Traducere automată",showOriginal:"Arată originalul",showTranslation:"Arată traducerea",translateFail:"Traducerea automată nu este disponibilă acum. Se afișează textul original.",wikiSource:"De pe Wikipedia · CC BY-SA 4.0",wikiRead:"Citește pe Wikipedia"},
+ru:{searchPh:"Поиск церкви, места или конфессии...",searchAria:"Поиск церквей",mapAria:"Карта церквей",count:"Церкви: {n}",loading:"Загрузка...",loadingChurches:"Загрузка церквей...",ready:"Готово",loadError:"Не удалось загрузить данные: {msg}",close:"Закрыть",photoHint:"🔍 Увеличить",photoHintN:"🔍 Увеличить · 📷 {n}",openPhotoAria:"Открыть фото на весь экран",openPhotoNAria:"Открыть фото {n}",creditWiki:"Фото: Википедия / Wikimedia Commons",creditUserBy:"Фото: вклад посетителя · {name}",emptySearching:"Поиск фото…",emptyTitle:"Фотографий пока нет",emptySub:"Если вы были в этой церкви, поделитесь первой фотографией.",emptyCta:"📷 Добавить первое фото",commentsTitle:"Комментарии посетителей:",contribTitle:"💬 Добавить фото / комментарий",namePh:"Ваше имя",photoBtn:"📷 Выбрать / сделать фото",linkSummary:"или вставьте ссылку на фото",commentPh:"Ваш комментарий или дополнительная информация (необязательно, если вы добавляете фото)",legal:"Отправляя фото, вы подтверждаете, что оно ваше и может быть опубликовано с вашим именем. Материалы появляются после одобрения модератором.",submit:"Отправить на проверку",uploading:"Загрузка фото...",clearPhoto:"Убрать фото",previewAlt:"Предпросмотр выбранного фото",tName:"Пожалуйста, введите своё имя.",tNeedContent:"Напишите комментарий или добавьте фото.",tLink:"Ссылка на фото должна начинаться с https://",tPickChurch:"Сначала выберите церковь на карте.",tSent:"Ваш вклад отправлен на проверку. Спасибо!",tFail:"Не удалось отправить: {msg}",tReadFail:"Не удалось прочитать это фото. Попробуйте другое.",lbDialog:"Просмотр фотографий",lbPrev:"Предыдущее фото",lbNext:"Следующее фото",lbError:"Не удалось загрузить изображение.",layerMap:"Карта",layerSat:"Спутник",langLabel:"Язык","den.Katolik":"Католическая","den.Ortodoks":"Православная","den.Oryantal Ortodoks":"Древневосточная","den.Doğu Kilisesi":"Церковь Востока","den.Protestan":"Протестантская","den.Anglikan":"Англиканская","den.Diğer":"Другая",translating:"Перевод…",autoTranslated:"🌐 Автоматический перевод",showOriginal:"Показать оригинал",showTranslation:"Показать перевод",translateFail:"Автоматический перевод сейчас недоступен. Показан исходный текст.",wikiSource:"Из Википедии · CC BY-SA 4.0",wikiRead:"Читать в Википедии"},
+uk:{searchPh:"Пошук церкви, місця або конфесії...",searchAria:"Пошук церков",mapAria:"Мапа церков",count:"Церкви: {n}",loading:"Завантаження...",loadingChurches:"Завантаження церков...",ready:"Готово",loadError:"Не вдалося завантажити дані: {msg}",close:"Закрити",photoHint:"🔍 Збільшити",photoHintN:"🔍 Збільшити · 📷 {n}",openPhotoAria:"Відкрити фото на весь екран",openPhotoNAria:"Відкрити фото {n}",creditWiki:"Фото: Вікіпедія / Wikimedia Commons",creditUserBy:"Фото: внесок відвідувача · {name}",emptySearching:"Пошук фото…",emptyTitle:"Фотографій ще немає",emptySub:"Якщо ви були в цій церкві, поділіться першим фото.",emptyCta:"📷 Додати перше фото",commentsTitle:"Коментарі відвідувачів:",contribTitle:"💬 Додати фото / коментар",namePh:"Ваше ім'я",photoBtn:"📷 Обрати / зробити фото",linkSummary:"або вставте посилання на фото",commentPh:"Ваш коментар або додаткова інформація (необов'язково, якщо додаєте фото)",legal:"Надсилаючи фото, ви підтверджуєте, що воно ваше і може бути опубліковане з вашим іменем. Матеріали з'являються після схвалення модератором.",submit:"Надіслати на перевірку",uploading:"Завантаження фото...",clearPhoto:"Прибрати фото",previewAlt:"Попередній перегляд вибраного фото",tName:"Будь ласка, введіть своє ім'я.",tNeedContent:"Напишіть коментар або додайте фото.",tLink:"Посилання на фото має починатися з https://",tPickChurch:"Спочатку виберіть церкву на мапі.",tSent:"Ваш внесок надіслано на перевірку. Дякуємо!",tFail:"Не вдалося надіслати: {msg}",tReadFail:"Не вдалося прочитати це фото. Спробуйте інше.",lbDialog:"Перегляд фотографій",lbPrev:"Попереднє фото",lbNext:"Наступне фото",lbError:"Не вдалося завантажити зображення.",layerMap:"Мапа",layerSat:"Супутник",langLabel:"Мова","den.Katolik":"Католицька","den.Ortodoks":"Православна","den.Oryantal Ortodoks":"Давньосхідна","den.Doğu Kilisesi":"Церква Сходу","den.Protestan":"Протестантська","den.Anglikan":"Англіканська","den.Diğer":"Інша",translating:"Переклад…",autoTranslated:"🌐 Автоматичний переклад",showOriginal:"Показати оригінал",showTranslation:"Показати переклад",translateFail:"Автоматичний переклад зараз недоступний. Показано оригінальний текст.",wikiSource:"З Вікіпедії · CC BY-SA 4.0",wikiRead:"Читати у Вікіпедії"},
+el:{searchPh:"Αναζήτηση εκκλησίας, τόπου ή δόγματος...",searchAria:"Αναζήτηση εκκλησιών",mapAria:"Χάρτης εκκλησιών",count:"Εκκλησίες: {n}",loading:"Φόρτωση...",loadingChurches:"Φόρτωση εκκλησιών...",ready:"Έτοιμο",loadError:"Δεν ήταν δυνατή η φόρτωση των δεδομένων: {msg}",close:"Κλείσιμο",photoHint:"🔍 Μεγέθυνση",photoHintN:"🔍 Μεγέθυνση · 📷 {n}",openPhotoAria:"Άνοιγμα φωτογραφίας σε πλήρη οθόνη",openPhotoNAria:"Άνοιγμα φωτογραφίας {n}",creditWiki:"Φωτογραφία: Βικιπαίδεια / Wikimedia Commons",creditUserBy:"Φωτογραφία: συνεισφορά επισκέπτη · {name}",emptySearching:"Αναζήτηση φωτογραφίας…",emptyTitle:"Δεν υπάρχει ακόμη φωτογραφία",emptySub:"Αν έχετε επισκεφθεί αυτή την εκκλησία, μπορείτε να μοιραστείτε την πρώτη φωτογραφία.",emptyCta:"📷 Προσθέστε την πρώτη φωτογραφία",commentsTitle:"Σχόλια επισκεπτών:",contribTitle:"💬 Προσθήκη φωτογραφίας / σχολίου",namePh:"Το όνομά σας",photoBtn:"📷 Επιλογή / λήψη φωτογραφίας",linkSummary:"ή επικολλήστε σύνδεσμο φωτογραφίας",commentPh:"Το σχόλιό σας ή επιπλέον πληροφορίες (προαιρετικό αν προσθέσετε φωτογραφία)",legal:"Υποβάλλοντας μια φωτογραφία επιβεβαιώνετε ότι είναι δική σας και ότι μπορεί να δημοσιευτεί με το όνομά σας. Οι συνεισφορές εμφανίζονται μετά την έγκριση από διαχειριστή.",submit:"Αποστολή για έγκριση",uploading:"Μεταφόρτωση φωτογραφίας...",clearPhoto:"Αφαίρεση φωτογραφίας",previewAlt:"Προεπισκόπηση επιλεγμένης φωτογραφίας",tName:"Παρακαλώ εισαγάγετε το όνομά σας.",tNeedContent:"Γράψτε ένα σχόλιο ή προσθέστε φωτογραφία.",tLink:"Ο σύνδεσμος της φωτογραφίας πρέπει να ξεκινά με https://",tPickChurch:"Επιλέξτε πρώτα μια εκκλησία στον χάρτη.",tSent:"Η συνεισφορά σας στάλθηκε για έγκριση. Ευχαριστούμε!",tFail:"Η αποστολή απέτυχε: {msg}",tReadFail:"Δεν ήταν δυνατή η ανάγνωση αυτής της φωτογραφίας. Δοκιμάστε άλλη.",lbDialog:"Προβολή φωτογραφιών",lbPrev:"Προηγούμενη φωτογραφία",lbNext:"Επόμενη φωτογραφία",lbError:"Δεν ήταν δυνατή η φόρτωση της εικόνας.",layerMap:"Χάρτης",layerSat:"Δορυφόρος",langLabel:"Γλώσσα","den.Katolik":"Καθολική","den.Ortodoks":"Ορθόδοξη","den.Oryantal Ortodoks":"Προχαλκηδόνια","den.Doğu Kilisesi":"Εκκλησία της Ανατολής","den.Protestan":"Προτεσταντική","den.Anglikan":"Αγγλικανική","den.Diğer":"Άλλη",translating:"Μετάφραση…",autoTranslated:"🌐 Αυτόματη μετάφραση",showOriginal:"Εμφάνιση πρωτοτύπου",showTranslation:"Εμφάνιση μετάφρασης",translateFail:"Η αυτόματη μετάφραση δεν είναι διαθέσιμη αυτή τη στιγμή. Εμφανίζεται το αρχικό κείμενο.",wikiSource:"Από τη Βικιπαίδεια · CC BY-SA 4.0",wikiRead:"Διαβάστε στη Βικιπαίδεια"},
+hy:{searchPh:"Որոնեք եկեղեցի, վայր կամ դավանանք...",searchAria:"Որոնել եկեղեցիներ",mapAria:"Եկեղեցիների քարտեզ",count:"Եկեղեցիներ՝ {n}",loading:"Բեռնվում է...",loadingChurches:"Եկեղեցիները բեռնվում են...",ready:"Պատրաստ է",loadError:"Չհաջողվեց բեռնել տվյալները՝ {msg}",close:"Փակել",photoHint:"🔍 Մեծացնել",photoHintN:"🔍 Մեծացնել · 📷 {n}",openPhotoAria:"Բացել լուսանկարը ամբողջ էկրանով",openPhotoNAria:"Բացել {n}-րդ լուսանկարը",creditWiki:"Լուսանկար՝ Վիքիպեդիա / Wikimedia Commons",creditUserBy:"Լուսանկար՝ այցելուի ներդրում · {name}",emptySearching:"Լուսանկար է որոնվում…",emptyTitle:"Լուսանկար դեռ չկա",emptySub:"Եթե այցելել եք այս եկեղեցին, կարող եք կիսվել առաջին լուսանկարով։",emptyCta:"📷 Ավելացնել առաջին լուսանկարը",commentsTitle:"Այցելուների մեկնաբանություններ՝",contribTitle:"💬 Ավելացնել լուսանկար / մեկնաբանություն",namePh:"Ձեր անունը",photoBtn:"📷 Ընտրել / լուսանկարել",linkSummary:"կամ տեղադրեք լուսանկարի հղում",commentPh:"Ձեր մեկնաբանությունը կամ լրացուցիչ տեղեկություն (ըստ ցանկության, եթե լուսանկար եք ավելացնում)",legal:"Լուսանկար ուղարկելով՝ հաստատում եք, որ այն ձերն է և կարող է հրապարակվել ձեր անունով։ Ներդրումները հայտնվում են մոդերատորի հաստատումից հետո։",submit:"Ուղարկել հաստատման",uploading:"Լուսանկարը վերբեռնվում է...",clearPhoto:"Հեռացնել լուսանկարը",previewAlt:"Ընտրված լուսանկարի նախադիտում",tName:"Խնդրում ենք մուտքագրել ձեր անունը։",tNeedContent:"Գրեք մեկնաբանություն կամ ավելացրեք լուսանկար։",tLink:"Լուսանկարի հղումը պետք է սկսվի https://-ով։",tPickChurch:"Նախ քարտեզի վրա ընտրեք եկեղեցի։",tSent:"Ձեր ներդրումն ուղարկվել է հաստատման։ Շնորհակալություն։",tFail:"Չհաջողվեց ուղարկել՝ {msg}",tReadFail:"Չհաջողվեց կարդալ այս լուսանկարը։ Փորձեք մեկ այլ լուսանկար։",lbDialog:"Լուսանկարների դիտարկիչ",lbPrev:"Նախորդ լուսանկար",lbNext:"Հաջորդ լուսանկար",lbError:"Չհաջողվեց բեռնել պատկերը։",layerMap:"Քարտեզ",layerSat:"Արբանյակ",langLabel:"Լեզու","den.Katolik":"Կաթոլիկ","den.Ortodoks":"Ուղղափառ","den.Oryantal Ortodoks":"Արևելյան ուղղափառ","den.Doğu Kilisesi":"Արևելքի եկեղեցի","den.Protestan":"Բողոքական","den.Anglikan":"Անգլիկան","den.Diğer":"Այլ",translating:"Թարգմանվում է…",autoTranslated:"🌐 Ավտոմատ թարգմանություն",showOriginal:"Ցույց տալ բնօրինակը",showTranslation:"Ցույց տալ թարգմանությունը",translateFail:"Ավտոմատ թարգմանությունը ներկայումս հասանելի չէ։ Ցուցադրվում է բնօրինակ տեքստը։",wikiSource:"Վիքիպեդիայից · CC BY-SA 4.0",wikiRead:"Կարդալ Վիքիպեդիայում"},
+ar:{searchPh:"ابحث عن كنيسة أو مكان أو طائفة...",searchAria:"البحث عن كنائس",mapAria:"خريطة الكنائس",count:"الكنائس: {n}",loading:"جارٍ التحميل...",loadingChurches:"جارٍ تحميل الكنائس...",ready:"جاهز",loadError:"تعذّر تحميل البيانات: {msg}",close:"إغلاق",photoHint:"🔍 تكبير",photoHintN:"🔍 تكبير · 📷 {n}",openPhotoAria:"فتح الصورة بملء الشاشة",openPhotoNAria:"فتح الصورة {n}",creditWiki:"الصورة: ويكيبيديا / ويكيميديا كومنز",creditUserBy:"الصورة: مساهمة زائر · {name}",emptySearching:"جارٍ البحث عن صورة…",emptyTitle:"لا توجد صورة بعد",emptySub:"إذا زرت هذه الكنيسة، يمكنك مشاركة أول صورة.",emptyCta:"📷 أضف أول صورة",commentsTitle:"تعليقات الزوار:",contribTitle:"💬 أضف صورة / تعليقًا",namePh:"اسمك",photoBtn:"📷 اختر / التقط صورة",linkSummary:"أو الصق رابط صورة",commentPh:"تعليقك أو معلومات إضافية (اختياري إذا أضفت صورة)",legal:"بإرسال صورة فإنك تؤكد أنها ملكك وأنه يجوز نشرها باسمك. تظهر المساهمات بعد موافقة المشرف.",submit:"إرسال للموافقة",uploading:"جارٍ رفع الصورة...",clearPhoto:"إزالة الصورة",previewAlt:"معاينة الصورة المختارة",tName:"يرجى إدخال اسمك.",tNeedContent:"اكتب تعليقًا أو أضف صورة.",tLink:"يجب أن يبدأ رابط الصورة بـ https://",tPickChurch:"اختر كنيسة على الخريطة أولًا.",tSent:"تم إرسال مساهمتك للموافقة. شكرًا لك!",tFail:"تعذّر الإرسال: {msg}",tReadFail:"تعذّرت قراءة هذه الصورة. جرّب صورة أخرى.",lbDialog:"عارض الصور",lbPrev:"الصورة السابقة",lbNext:"الصورة التالية",lbError:"تعذّر تحميل الصورة.",layerMap:"خريطة",layerSat:"قمر صناعي",langLabel:"اللغة","den.Katolik":"كاثوليكية","den.Ortodoks":"أرثوذكسية","den.Oryantal Ortodoks":"أرثوذكسية شرقية","den.Doğu Kilisesi":"كنيسة المشرق","den.Protestan":"بروتستانتية","den.Anglikan":"أنجليكانية","den.Diğer":"أخرى",translating:"جارٍ الترجمة…",autoTranslated:"🌐 ترجمة تلقائية",showOriginal:"عرض الأصل",showTranslation:"عرض الترجمة",translateFail:"الترجمة التلقائية غير متاحة الآن. يتم عرض النص الأصلي.",wikiSource:"من ويكيبيديا · CC BY-SA 4.0",wikiRead:"اقرأ في ويكيبيديا"},
+ja:{searchPh:"教会・場所・教派を検索...",searchAria:"教会を検索",mapAria:"教会マップ",count:"教会：{n}",loading:"読み込み中...",loadingChurches:"教会を読み込み中...",ready:"準備完了",loadError:"データを読み込めませんでした：{msg}",close:"閉じる",photoHint:"🔍 拡大",photoHintN:"🔍 拡大 · 📷 {n}",openPhotoAria:"写真を全画面で開く",openPhotoNAria:"写真 {n} を開く",creditWiki:"写真：Wikipedia / Wikimedia Commons",creditUserBy:"写真：訪問者の投稿 · {name}",emptySearching:"写真を探しています…",emptyTitle:"まだ写真がありません",emptySub:"この教会を訪れたことがあれば、最初の写真を共有できます。",emptyCta:"📷 最初の写真を追加",commentsTitle:"訪問者のコメント：",contribTitle:"💬 写真・コメントを追加",namePh:"お名前",photoBtn:"📷 写真を選ぶ／撮影する",linkSummary:"または写真のリンクを貼り付け",commentPh:"コメントや補足情報（写真を追加する場合は任意）",legal:"写真を送信すると、ご自身の写真であり、お名前とともに公開されることに同意したものとみなされます。投稿は管理者の承認後に表示されます。",submit:"承認のために送信",uploading:"写真をアップロード中...",clearPhoto:"写真を削除",previewAlt:"選択した写真のプレビュー",tName:"お名前を入力してください。",tNeedContent:"コメントを書くか、写真を追加してください。",tLink:"写真のリンクは https:// で始まる必要があります。",tPickChurch:"先に地図で教会を選んでください。",tSent:"投稿を承認待ちとして送信しました。ありがとうございます！",tFail:"送信できませんでした：{msg}",tReadFail:"この写真を読み込めませんでした。別の写真をお試しください。",lbDialog:"写真ビューアー",lbPrev:"前の写真",lbNext:"次の写真",lbError:"画像を読み込めませんでした。",layerMap:"地図",layerSat:"衛星",langLabel:"言語","den.Katolik":"カトリック","den.Ortodoks":"正教会","den.Oryantal Ortodoks":"東方諸教会","den.Doğu Kilisesi":"東方教会","den.Protestan":"プロテスタント","den.Anglikan":"聖公会","den.Diğer":"その他",translating:"翻訳中…",autoTranslated:"🌐 自動翻訳",showOriginal:"原文を表示",showTranslation:"翻訳を表示",translateFail:"現在、自動翻訳をご利用いただけません。原文を表示しています。",wikiSource:"Wikipedia より · CC BY-SA 4.0",wikiRead:"Wikipedia で読む"},
+ko:{searchPh:"교회, 장소 또는 교파 검색...",searchAria:"교회 검색",mapAria:"교회 지도",count:"교회: {n}",loading:"불러오는 중...",loadingChurches:"교회를 불러오는 중...",ready:"준비됨",loadError:"데이터를 불러오지 못했습니다: {msg}",close:"닫기",photoHint:"🔍 확대",photoHintN:"🔍 확대 · 📷 {n}",openPhotoAria:"사진을 전체 화면으로 열기",openPhotoNAria:"사진 {n} 열기",creditWiki:"사진: Wikipedia / Wikimedia Commons",creditUserBy:"사진: 방문자 기여 · {name}",emptySearching:"사진을 찾는 중…",emptyTitle:"아직 사진이 없습니다",emptySub:"이 교회를 방문한 적이 있다면 첫 사진을 공유해 주세요.",emptyCta:"📷 첫 사진 추가",commentsTitle:"방문자 댓글:",contribTitle:"💬 사진 / 댓글 추가",namePh:"이름",photoBtn:"📷 사진 선택 / 촬영",linkSummary:"또는 사진 링크 붙여넣기",commentPh:"댓글 또는 추가 정보 (사진을 추가하면 선택 사항)",legal:"사진을 제출하면 본인의 사진이며 이름과 함께 게시될 수 있음에 동의하는 것으로 간주됩니다. 기여는 관리자 승인 후 표시됩니다.",submit:"승인 요청 보내기",uploading:"사진 업로드 중...",clearPhoto:"사진 삭제",previewAlt:"선택한 사진 미리보기",tName:"이름을 입력해 주세요.",tNeedContent:"댓글을 작성하거나 사진을 추가해 주세요.",tLink:"사진 링크는 https://로 시작해야 합니다.",tPickChurch:"먼저 지도에서 교회를 선택해 주세요.",tSent:"기여가 승인 대기 상태로 전송되었습니다. 감사합니다!",tFail:"전송하지 못했습니다: {msg}",tReadFail:"이 사진을 읽을 수 없습니다. 다른 사진을 시도해 주세요.",lbDialog:"사진 뷰어",lbPrev:"이전 사진",lbNext:"다음 사진",lbError:"이미지를 불러오지 못했습니다.",layerMap:"지도",layerSat:"위성",langLabel:"언어","den.Katolik":"가톨릭","den.Ortodoks":"정교회","den.Oryantal Ortodoks":"오리엔트 정교회","den.Doğu Kilisesi":"동방 교회","den.Protestan":"개신교","den.Anglikan":"성공회","den.Diğer":"기타",translating:"번역 중…",autoTranslated:"🌐 자동 번역",showOriginal:"원문 보기",showTranslation:"번역 보기",translateFail:"자동 번역을 현재 사용할 수 없습니다. 원문을 표시합니다.",wikiSource:"위키백과 · CC BY-SA 4.0",wikiRead:"위키백과에서 읽기"},
+zh:{searchPh:"搜索教堂、地点或教派...",searchAria:"搜索教堂",mapAria:"教堂地图",count:"教堂：{n}",loading:"加载中...",loadingChurches:"正在加载教堂...",ready:"就绪",loadError:"无法加载数据：{msg}",close:"关闭",photoHint:"🔍 放大",photoHintN:"🔍 放大 · 📷 {n}",openPhotoAria:"全屏打开照片",openPhotoNAria:"打开第 {n} 张照片",creditWiki:"照片：维基百科 / Wikimedia Commons",creditUserBy:"照片：访客投稿 · {name}",emptySearching:"正在查找照片…",emptyTitle:"暂无照片",emptySub:"如果你去过这座教堂，欢迎分享第一张照片。",emptyCta:"📷 添加第一张照片",commentsTitle:"访客评论：",contribTitle:"💬 添加照片 / 评论",namePh:"你的名字",photoBtn:"📷 选择 / 拍摄照片",linkSummary:"或粘贴照片链接",commentPh:"你的评论或补充信息（添加照片时可不填）",legal:"提交照片即表示你确认该照片为你所有，并同意以你的名字发布。投稿经管理员审核后才会显示。",submit:"提交审核",uploading:"正在上传照片...",clearPhoto:"移除照片",previewAlt:"所选照片预览",tName:"请输入你的名字。",tNeedContent:"请写评论或添加照片。",tLink:"照片链接必须以 https:// 开头。",tPickChurch:"请先在地图上选择一座教堂。",tSent:"你的投稿已提交审核，谢谢！",tFail:"发送失败：{msg}",tReadFail:"无法读取这张照片，请换一张试试。",lbDialog:"照片查看器",lbPrev:"上一张照片",lbNext:"下一张照片",lbError:"无法加载图片。",layerMap:"地图",layerSat:"卫星",langLabel:"语言","den.Katolik":"天主教","den.Ortodoks":"东正教","den.Oryantal Ortodoks":"东方正统教会","den.Doğu Kilisesi":"东方教会","den.Protestan":"新教","den.Anglikan":"圣公会","den.Diğer":"其他",translating:"正在翻译…",autoTranslated:"🌐 自动翻译",showOriginal:"显示原文",showTranslation:"显示译文",translateFail:"自动翻译暂时不可用，正在显示原文。",wikiSource:"来自维基百科 · CC BY-SA 4.0",wikiRead:"在维基百科阅读"}
+};
+
+let currentLang='en',lastCount=null,statusI18n=null,activeChurch=null;
+
+// Çeviri: seçili dilde yoksa İngilizceye, o da yoksa anahtarın kendisine düşer
+function t(key,params){
+  const d=I18N[currentLang]||{};
+  let s=d[key]!==undefined?d[key]:(I18N.en[key]!==undefined?I18N.en[key]:key);
+  if(params)s=s.replace(/\{(\w+)\}/g,(m,k)=>params[k]!==undefined?params[k]:m);
+  return s;
+}
+function denLabel(d){return I18N.en['den.'+d]!==undefined?t('den.'+d):d}
+
+// Dil seçimi: adresteki ?lang=  >  kayıtlı seçim  >  tarayıcı dilleri  >  İngilizce
+function pickLang(){
+  const q=new URLSearchParams(location.search).get('lang');
+  let saved=null;try{saved=localStorage.getItem('lang')}catch(e){}
+  const list=[q,saved,...(navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language])].filter(Boolean);
+  for(const l of list){const c=String(l).toLowerCase().split('-')[0];if(I18N[c])return c}
+  return 'en';
+}
+
+function setStatusT(key,state,params){
+  statusI18n={key,state,params};
+  setStatus(t(key,params),state);
+}
+
+function applyI18n(){
+  document.documentElement.lang=currentLang;
+  const rtl=currentLang==='ar';
+  ['.header-container','#info-drawer','#support-modal'].forEach(sel=>{const el=document.querySelector(sel);if(el)el.dir=rtl?'rtl':'ltr'});
+  document.querySelectorAll('[data-i18n]').forEach(el=>{el.textContent=t(el.dataset.i18n)});
+  document.querySelectorAll('[data-i18n-ph]').forEach(el=>{el.placeholder=t(el.dataset.i18nPh)});
+  document.querySelectorAll('[data-i18n-aria]').forEach(el=>{el.setAttribute('aria-label',t(el.dataset.i18nAria))});
+  document.querySelectorAll('[data-i18n-alt]').forEach(el=>{el.alt=t(el.dataset.i18nAlt)});
+  if(typeof lastCount==='number')$('church-count-badge').textContent=t('count',{n:lastCount});
+  if(statusI18n)setStatus(t(statusI18n.key,statusI18n.params),statusI18n.state);
+  if(typeof buildLayersControl==='function')buildLayersControl();
+  if(typeof applySupportText==='function')applySupportText();
+  const sel=$('lang-select');if(sel)sel.value=currentLang;
+}
+
+function setLang(code,opts){
+  if(!I18N[code])code='en';
+  currentLang=code;
+  if(opts&&opts.persist){try{localStorage.setItem('lang',code)}catch(e){}}
+  applyI18n();
+  // Çekmece açıksa içeriğini yeni dilde yeniden çiz (haritayı oynatmadan)
+  if(activeChurch&&$('info-drawer').classList.contains('active'))openChurch(activeChurch,{keepView:true});
+}
+
+
 /* ---------------- Harita ---------------- */
 const map=L.map('map',{zoomControl:false}).setView([38.4192,27.1428],13);
 L.control.zoom({position:'topright'}).addTo(map);
 const osmLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
 const satLayer=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Tiles &copy; Esri'});
-L.control.layers({'Harita':osmLayer,'Uydu':satLayer},null,{position:'topright'}).addTo(map);
+let layersCtl=null;
+function buildLayersControl(){
+  if(layersCtl)layersCtl.remove();
+  layersCtl=L.control.layers({[t('layerMap')]:osmLayer,[t('layerSat')]:satLayer},null,{position:'topright'}).addTo(map);
+}
+buildLayersControl();
 let pickMode=false;
 setTimeout(()=>map.invalidateSize(),300);
 
@@ -510,13 +611,13 @@ const DENOM={Katolik:'badge-katolik',Ortodoks:'badge-ortodoks','Oryantal Ortodok
 
 let firstLoad=true,regionSupported=false;
 async function loadChurches(){
-  if(!sb){setStatus('Supabase ayarları eksik (SUPABASE_URL / SUPABASE_KEY)','error');$('church-count-badge').textContent='0 Kilise';return}
-  setStatus('Kiliseler yükleniyor...','loading');
+  if(!sb){setStatus('Supabase ayarları eksik (SUPABASE_URL / SUPABASE_KEY)','error');lastCount=0;$('church-count-badge').textContent=t('count',{n:0});return}
+  setStatusT('loadingChurches','loading');
   const [cr,kr]=await Promise.all([
     sb.from('atlas_churches').select('*').order('id'),
     sb.from('atlas_contributions').select('church_id,name,comment,photo_url,created_at').eq('status','approved').order('created_at')
   ]);
-  if(cr.error){setStatus('Veri alınamadı: '+cr.error.message,'error');return}
+  if(cr.error){setStatusT('loadError','error',{msg:cr.error.message});return}
   const approved=kr.data||[];
   // 'region' sütunu veritabanında varsa select * onu da getirir
   regionSupported=cr.data.length>0?('region' in cr.data[0]):regionSupported;
@@ -533,7 +634,7 @@ async function loadChurches(){
     };
   });
   applyFilter(firstLoad);firstLoad=false;
-  setStatus('Wikipedia / Wikidata görsel entegrasyonu aktif','ok');
+  setStatusT('ready','ok');
 }
 
 /* ==========================================================
@@ -546,7 +647,8 @@ function renderMarkers(data,fit){
     m.on('click',()=>{if(pickMode)return;openChurch(c)});
     markers.push(m);
   });
-  $('church-count-badge').textContent=data.length+' Kilise';
+  lastCount=data.length;
+  $('church-count-badge').textContent=t('count',{n:lastCount});
   if(fit&&data.length)map.fitBounds(L.featureGroup(markers).getBounds(),{padding:[40,40],maxZoom:15});
 }
 
@@ -575,8 +677,9 @@ function showEmptyState(loading){
   box.removeAttribute('role');box.removeAttribute('tabindex');box.removeAttribute('aria-label');
   const img=$('drawer-img');img.hidden=true;img.removeAttribute('src');
   $('drawer-empty').hidden=false;
-  $('empty-title').textContent=loading?'Fotoğraf aranıyor…':'Henüz fotoğraf yok';
-  $('empty-sub').textContent=loading?'':'Bu kiliseyi gördüysen ilk fotoğrafı sen paylaşabilirsin.';
+  $('empty-title').textContent=loading?t('emptySearching'):t('emptyTitle');
+  $('empty-sub').textContent=loading?'':t('emptySub');
+  $('empty-cta').textContent=t('emptyCta');
   $('empty-sub').hidden=!!loading;
   $('empty-cta').hidden=!!loading;
   $('photo-hint').hidden=true;
@@ -593,11 +696,11 @@ function renderPhotoUI(){
     $('drawer-empty').hidden=true;
     img.hidden=false;
     if(img.getAttribute('src')!==first.url)img.src=first.url;
-    $('drawer-credit').textContent=first.credit;
+    $('drawer-credit').textContent=photoCredit(first);
     box.classList.add('has-photos');
-    box.setAttribute('role','button');box.tabIndex=0;box.setAttribute('aria-label','Fotoğrafı tam ekran aç');
+    box.setAttribute('role','button');box.tabIndex=0;box.setAttribute('aria-label',t('openPhotoAria'));
     const hint=$('photo-hint');hint.hidden=false;
-    hint.textContent='🔍 Büyüt'+(currentPhotos.length>1?' · '+currentPhotos.length+' fotoğraf':'');
+    hint.textContent=currentPhotos.length>1?t('photoHintN',{n:currentPhotos.length}):t('photoHint');
   }else{
     showEmptyState(photoLoading);
   }
@@ -605,10 +708,10 @@ function renderPhotoUI(){
   const th=$('drawer-thumbs');th.replaceChildren();
   if(currentPhotos.length>1){
     currentPhotos.forEach((p,i)=>{
-      const b=document.createElement('button');b.type='button';b.setAttribute('aria-label',(i+1)+'. fotoğrafı aç');
-      const t=document.createElement('img');t.src=p.url;t.alt='';t.loading='lazy';
-      t.onerror=()=>b.remove();
-      b.append(t);
+      const b=document.createElement('button');b.type='button';b.setAttribute('aria-label',t('openPhotoNAria',{n:i+1}));
+      const im=document.createElement('img');im.src=p.url;im.alt='';im.loading='lazy';
+      im.onerror=()=>b.remove();
+      b.append(im);
       b.addEventListener('click',()=>openLightbox(i));
       th.append(b);
     });
@@ -618,11 +721,168 @@ function renderPhotoUI(){
   if(!$('lightbox').hidden)updateLbMeta();
 }
 
-function openChurch(c){
-  activeChurchId=c.id;
-  $('drawer-img').alt=c.name+' görseli';
+/* ---------------- Açıklamaların çevirisi ve Wikipedia (ziyaretçinin dilinde) ---------------- */
+// Ücretsiz otomatik çeviri servisi (MyMemory). Çeviriler tarayıcıda önbelleğe alınır.
+const MT_ENDPOINT='https://api.mymemory.translated.net/get';
+const MT_CODES={tr:'tr-TR',en:'en-GB',es:'es-ES',fr:'fr-FR',de:'de-DE',it:'it-IT',pt:'pt-BR',nl:'nl-NL',pl:'pl-PL',ro:'ro-RO',ru:'ru-RU',uk:'uk-UA',el:'el-GR',hy:'hy-AM',ar:'ar-SA',ja:'ja-JP',ko:'ko-KR',zh:'zh-CN'};
+const MT_CACHE='mtCache_v1';
+let mtCache=safeParse(localStorage.getItem(MT_CACHE),{});
+function saveMt(){
+  try{
+    const keys=Object.keys(mtCache);
+    if(keys.length>300)keys.slice(0,keys.length-300).forEach(k=>delete mtCache[k]);
+    localStorage.setItem(MT_CACHE,JSON.stringify(mtCache));
+  }catch(e){}
+}
+function hashText(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(36)}
+function decodeEntities(s){const ta=document.createElement('textarea');ta.innerHTML=s;return ta.value}
 
-  const userPhotos=c.photos.map(p=>({url:p.url,credit:'Ziyaretçi katkısı · '+p.by}));
+// Metnin kaynak dilini kabaca tahmin eder (açıklamalar çoğunlukla Türkçe)
+function guessSourceLang(text){
+  if(/[çğıöşüÇĞİÖŞÜ]/.test(text))return 'tr';
+  if(/\b(the|of|and|church|built|was|is)\b/i.test(text))return 'en';
+  return 'tr';
+}
+
+// Servisin istek başına sınırı olduğu için cümle cümle bölünür
+function splitForMt(text,max){
+  const sentences=text.match(/[^.!?…。]+[.!?…。]*\s*/g)||[text];
+  const chunks=[];let cur='';
+  for(const s of sentences){
+    if((cur+s).length>max&&cur){chunks.push(cur.trim());cur=''}
+    cur+=s;
+  }
+  if(cur.trim())chunks.push(cur.trim());
+  return chunks;
+}
+
+async function machineTranslate(text,from,to){
+  const key=to+':'+from+':'+hashText(text);
+  if(mtCache[key])return mtCache[key];
+  const out=[];
+  for(const chunk of splitForMt(text,450)){
+    const url=MT_ENDPOINT+'?q='+encodeURIComponent(chunk)+'&langpair='+encodeURIComponent((MT_CODES[from]||from)+'|'+(MT_CODES[to]||to));
+    const j=await fetchJSON(url);
+    const tx=j&&j.responseData&&j.responseData.translatedText;
+    if(!j||Number(j.responseStatus)!==200||!tx||/MYMEMORY WARNING/i.test(tx))throw new Error('mt');
+    out.push(decodeEntities(tx));
+  }
+  const res=out.join(' ');
+  mtCache[key]=res;saveMt();
+  return res;
+}
+
+let descToken=0;
+async function renderDescription(c){
+  const token=++descToken;
+  const txt=$('desc-text'),meta=$('desc-meta');
+  txt.textContent=c.description||'';
+  meta.hidden=true;meta.replaceChildren();
+  if(!c.description)return;
+  const from=guessSourceLang(c.description);
+  if(from===currentLang)return;
+  meta.hidden=false;meta.textContent=t('translating');
+  let tr;
+  try{tr=await machineTranslate(c.description,from,currentLang)}
+  catch(e){
+    if(token!==descToken)return;
+    meta.textContent=t('translateFail');
+    return;
+  }
+  if(token!==descToken)return;
+  let showingTranslation=true;
+  txt.textContent=tr;
+  const btn=document.createElement('button');btn.type='button';btn.textContent=t('showOriginal');
+  btn.addEventListener('click',()=>{
+    showingTranslation=!showingTranslation;
+    txt.textContent=showingTranslation?tr:c.description;
+    btn.textContent=showingTranslation?t('showOriginal'):t('showTranslation');
+  });
+  meta.replaceChildren(document.createTextNode(t('autoTranslated')+' · '),btn);
+}
+
+// Wikidata / Wikipedia: kilisenin ziyaretçi dilindeki adı ve özeti
+const wikiMem={};
+async function wikiLocal(c,lang){
+  const key=c.id+':'+lang;
+  if(key in wikiMem)return wikiMem[key];
+  let title=null,label=null;
+  if(c.wikidata){
+    const d=await fetchJSON('https://www.wikidata.org/w/api.php?action=wbgetentities&props=labels|sitelinks&languages='+lang+'&sitefilter='+lang+'wiki&format=json&origin=*&ids='+encodeURIComponent(c.wikidata));
+    const e=d&&d.entities&&d.entities[c.wikidata];
+    label=(e&&e.labels&&e.labels[lang]&&e.labels[lang].value)||null;
+    title=(e&&e.sitelinks&&e.sitelinks[lang+'wiki']&&e.sitelinks[lang+'wiki'].title)||null;
+  }
+  if(!title){
+    const titles=c.wikiTitles||{};
+    if(titles[lang])title=titles[lang];
+    else{
+      const src=['en','tr'].find(l=>titles[l]);
+      if(src){
+        const d=await fetchJSON('https://'+src+'.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang='+lang+'&titles='+encodeURIComponent(titles[src])+'&redirects=1&format=json&origin=*');
+        const pg=Object.values((d&&d.query&&d.query.pages)||{})[0];
+        const ll=pg&&pg.langlinks&&pg.langlinks[0];
+        title=ll?(ll['*']||ll.title||null):null;
+      }
+    }
+  }
+  let result=label?{label}:null;
+  if(title){
+    const s=await fetchJSON('https://'+lang+'.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(title.replace(/ /g,'_')));
+    if(s&&s.extract){
+      result={label,extract:s.extract,url:(s.content_urls&&s.content_urls.desktop&&s.content_urls.desktop.page)||('https://'+lang+'.wikipedia.org/wiki/'+encodeURIComponent(title))};
+    }
+  }
+  wikiMem[key]=result;
+  return result;
+}
+
+function trimExtract(s,max){
+  if(s.length<=max)return s;
+  const cut=s.slice(0,max);
+  const i=Math.max(cut.lastIndexOf('. '),cut.lastIndexOf('! '),cut.lastIndexOf('? '),cut.lastIndexOf('。'));
+  return i>200?cut.slice(0,i+1):cut.trimEnd()+'…';
+}
+
+let wikiToken=0;
+async function renderWiki(c){
+  const token=++wikiToken;
+  const box=$('wiki-block'),local=$('drawer-name-local');
+  box.hidden=true;box.replaceChildren();local.hidden=true;
+  if(!c.wikidata&&!Object.keys(c.wikiTitles||{}).length)return;
+  let r=null;
+  try{r=await wikiLocal(c,currentLang)}catch(e){r=null}
+  if(token!==wikiToken||!r)return;
+  if(r.label&&foldText(r.label)!==foldText(c.name)){local.textContent=r.label;local.hidden=false}
+  if(r.extract){
+    const p=document.createElement('div');p.textContent=trimExtract(r.extract,700);
+    const src=document.createElement('a');src.href=r.url;src.target='_blank';src.rel='noopener noreferrer';
+    src.textContent=t('wikiRead')+' ↗';
+    const note=document.createElement('span');note.className='wiki-src';
+    note.append(t('wikiSource')+' · ',src);
+    box.append(p,note);box.hidden=false;
+  }
+}
+
+function renderComments(c){
+  const box=$('comments-block');box.replaceChildren();
+  if(!c.comments.length)return;
+  const h=document.createElement('strong');h.textContent=t('commentsTitle');
+  box.append(h);
+  c.comments.forEach(cm=>{
+    const d=document.createElement('div');d.className='comment';
+    const a=document.createElement('strong');a.textContent=cm.name;
+    d.append('💬 ',a,': ',cm.text);box.append(d);
+  });
+}
+
+function photoCredit(p){return p.kind==='wiki'?t('creditWiki'):p.kind==='user'?t('creditUserBy',{name:p.by}):''}
+
+function openChurch(c,opts){
+  activeChurch=c;activeChurchId=c.id;
+  $('drawer-img').alt=c.name;
+
+  const userPhotos=c.photos.map(p=>({url:p.url,kind:'user',by:p.by}));
   currentPhotos=userPhotos.slice();
   photoLoading=true;
   renderPhotoUI();
@@ -631,25 +891,18 @@ function openChurch(c){
   getWikiImage(c).catch(()=>null).then(url=>{
     if(activeChurchId!==c.id)return;
     photoLoading=false;
-    if(url)currentPhotos=[...userPhotos,{url,credit:'Wikipedia / Wikimedia Commons'}];
+    if(url)currentPhotos=[...userPhotos,{url,kind:'wiki'}];
     renderPhotoUI();
   });
 
   $('drawer-name').textContent=c.name;
-  const badge=$('drawer-badge');badge.textContent=c.denomination;badge.className='denomination-badge '+c.badgeClass;
+  const badge=$('drawer-badge');badge.textContent=denLabel(c.denomination);badge.className='denomination-badge '+c.badgeClass;
   $('drawer-loc').textContent=[c.city,c.region&&c.region!==c.city?c.region:'',c.country].filter(Boolean).join(', ');
-  const desc=$('drawer-description');desc.textContent=c.description;
-  if(c.comments.length){
-    const h=document.createElement('strong');h.textContent='Ziyaretçi Yorumları:';
-    desc.append(document.createElement('br'),document.createElement('br'),h);
-    c.comments.forEach(cm=>{
-      const d=document.createElement('div');d.className='comment';
-      const a=document.createElement('strong');a.textContent=cm.name;
-      d.append('💬 ',a,': ',cm.text);desc.append(d);
-    });
-  }
+  renderDescription(c);   // ziyaretçinin diline otomatik çevrilir
+  renderWiki(c);          // varsa o dildeki Wikipedia özeti ve yerel ad
+  renderComments(c);
   $('info-drawer').classList.add('active');
-  map.setView([c.lat,c.lng],15,{animate:true});
+  if(!(opts&&opts.keepView))map.setView([c.lat,c.lng],15,{animate:true});
 }
 
 $('drawer-close').addEventListener('click',()=>$('info-drawer').classList.remove('active'));
@@ -689,7 +942,7 @@ function showLb(){
   lbImg.onerror=()=>{lbImg.hidden=true;$('lb-msg').hidden=false};
   lbImg.alt=$('drawer-name').textContent;
   lbImg.src=p.url;
-  $('lb-caption').textContent=p.credit;
+  $('lb-caption').textContent=photoCredit(p);
   updateLbMeta();
 }
 function openLightbox(i){
@@ -776,23 +1029,23 @@ fileInput.addEventListener('change',async()=>{
     $('contrib-file-preview').hidden=false;
   }catch(e){
     clearPicked();
-    toast('Bu fotoğraf okunamadı. Başka bir fotoğraf deneyin.');
+    toast(t('tReadFail'));
   }
 });
 
 $('contrib-submit').addEventListener('click',async()=>{
   const name=$('contrib-name').value.trim(),link=$('contrib-photo').value.trim(),comment=$('contrib-comment').value.trim();
   if(!sb)return toast('Supabase ayarları eksik.');
-  if(!activeChurchId)return toast('Önce haritadan bir kilise seçin.');
-  if(!name)return toast('Lütfen adınızı yazın.');
-  if(!comment&&!pickedBlob&&!link)return toast('Bir yorum yazın veya fotoğraf ekleyin.');
-  if(link&&!safeImageUrl(link))return toast('Fotoğraf bağlantısı https:// ile başlamalı.');
+  if(!activeChurchId)return toast(t('tPickChurch'));
+  if(!name)return toast(t('tName'));
+  if(!comment&&!pickedBlob&&!link)return toast(t('tNeedContent'));
+  if(link&&!safeImageUrl(link))return toast(t('tLink'));
 
   const btn=$('contrib-submit');btn.disabled=true;
   let photoUrl=link||null;
   try{
     if(pickedBlob){
-      btn.textContent='Fotoğraf yükleniyor...';
+      btn.textContent=t('uploading');
       const path='uploads/'+uid()+'.jpg';
       const{error:upErr}=await sb.storage.from(PHOTO_BUCKET).upload(path,pickedBlob,{contentType:'image/jpeg',upsert:false});
       if(upErr)throw upErr;
@@ -801,14 +1054,14 @@ $('contrib-submit').addEventListener('click',async()=>{
     const{error}=await sb.from('atlas_contributions').insert({church_id:activeChurchId,name,comment,photo_url:photoUrl});
     if(error)throw error;
   }catch(err){
-    btn.disabled=false;btn.textContent='Onaya Gönder';
-    return toast('Gönderilemedi: '+(err.message||err));
+    btn.disabled=false;btn.textContent=t('submit');
+    return toast(t('tFail',{msg:err.message||err}));
   }
-  btn.disabled=false;btn.textContent='Onaya Gönder';
+  btn.disabled=false;btn.textContent=t('submit');
   ['contrib-name','contrib-photo','contrib-comment'].forEach(i=>$(i).value='');
   clearPicked();
   $('info-drawer').classList.remove('active');
-  toast('Katkınız yönetici onayına gönderildi. Teşekkürler!');
+  toast(t('tSent'));
 });
 
 /* ---------------- Yönetici (Supabase Auth) ---------------- */
@@ -1598,34 +1851,23 @@ const SUPPORT_I18N={
   zh:{btn:'支持我们',title:'支持这个项目',text:'The Church Atlas 是一个由社区共建的独立项目，致力于记录世界各地的教堂遗产。自愿的支持有助于支付托管、存储和域名费用，让项目保持免费并持续成长。',cta:'☕ 请我喝杯咖啡',note:'支持完全自愿。付款由 Buy Me a Coffee 安全处理，您的银行卡信息不会传到本网站。',close:'关闭'}
 };
 
-// Ziyaretçinin tarayıcı dili(ler)inden desteklenen ilkini seçer; yoksa İngilizce.
-// Test için adrese ?lang=de gibi bir ek yapılabilir.
-function pickSupportLang(){
-  const q=new URLSearchParams(location.search).get('lang');
-  const list=[q,...(navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language])].filter(Boolean);
-  for(const l of list){
-    const code=String(l).toLowerCase().split('-')[0];
-    if(SUPPORT_I18N[code])return code;
-  }
-  return 'en';
+// Destek penceresinin metinleri sitenin seçili diline göre yazılır (yoksa İngilizce)
+function applySupportText(){
+  const st=SUPPORT_I18N[currentLang]||SUPPORT_I18N.en;
+  $('support-btn').textContent='☕ '+st.btn;
+  $('support-btn').setAttribute('aria-label',st.title);
+  $('support-title').textContent=st.title;
+  document.querySelector('.support-text').textContent=st.text;
+  $('support-link').textContent=st.cta;
+  document.querySelector('.support-note').textContent=st.note;
+  $('support-close').textContent=st.close;
+  $('support-modal').lang=currentLang;
 }
 
 (function initSupport(){
   const url=safeImageUrl(DONATE_URL); // yalnızca https adresleri kabul edilir
   if(!url)return;
-  const code=pickSupportLang(),t=SUPPORT_I18N[code];
   const modal=$('support-modal');
-
-  // Metinleri ziyaretçinin diline çevir
-  $('support-btn').textContent='☕ '+t.btn;
-  $('support-btn').setAttribute('aria-label',t.title);
-  $('support-title').textContent=t.title;
-  document.querySelector('.support-text').textContent=t.text;
-  $('support-link').textContent=t.cta;
-  document.querySelector('.support-note').textContent=t.note;
-  $('support-close').textContent=t.close;
-  modal.lang=code;modal.dir=code==='ar'?'rtl':'ltr';
-
   $('support-link').href=url;
   $('support-btn').hidden=false;
   const open=()=>{modal.style.display='flex';$('support-link').focus()};
@@ -1646,6 +1888,14 @@ function pickSupportLang(){
   modal.addEventListener('click',e=>{if(e.target===modal)close()});
   addEventListener('keydown',e=>{if(e.key==='Escape'&&modal.style.display==='flex')close()});
 })();
+
+/* ---------------- Dil seçici ve başlangıç ---------------- */
+(function initLangSelect(){
+  const sel=$('lang-select');
+  LANGS.forEach(([code,name])=>{const o=document.createElement('option');o.value=code;o.textContent=name;sel.append(o)});
+  sel.addEventListener('change',()=>setLang(sel.value,{persist:true}));
+})();
+setLang(pickLang());
 
 loadChurches();
 </script>
