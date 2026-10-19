@@ -124,6 +124,15 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
 .import-row input{margin-top:3px;flex:none}
 .import-row-name{font-weight:600;color:#0f172a}
 .import-row-meta{font-size:.72rem;color:#64748b;word-break:break-word}
+
+/* Kilise listesi: hızlı mezhep seçimi */
+.church-row{flex-direction:column;align-items:stretch;gap:6px}
+.church-actions{display:flex;gap:6px}
+.church-actions select{flex:1;min-width:0;padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:.8rem;background:#fff}
+.church-filters{display:flex;gap:8px;margin:10px 0 8px}
+.church-filters .contrib-input{margin-bottom:0}
+.church-filters input{flex:2;min-width:0}
+.church-filters select{flex:1;min-width:0}
 </style>
 </head>
 <body>
@@ -214,7 +223,14 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
         <button type="button" class="contrib-submit" id="church-add-btn">+ Yeni kilise ekle</button>
         <button type="button" class="btn-secondary wide" id="import-city-btn" style="margin-top:8px">🔍 İzmir'de kiliseleri otomatik bul</button>
         <button type="button" class="btn-secondary wide" id="import-view-btn">🔍 Haritada görünen alanda otomatik bul</button>
-        <div id="church-admin-list" style="margin-top:12px"></div>
+        <button type="button" class="btn-secondary wide" id="fix-denom-btn">🪄 Mezhebi "Diğer" olanları otomatik düzelt</button>
+        <div class="church-filters">
+          <input type="search" id="church-filter" class="contrib-input" placeholder="Listede ara..." aria-label="Kilise listesinde ara">
+          <select id="church-filter-denom" class="contrib-input" aria-label="Mezhebe göre filtrele">
+            <option value="">Tüm mezhepler</option><option>Katolik</option><option>Anglikan</option><option>Protestan</option><option>Ortodoks</option><option>Diğer</option>
+          </select>
+        </div>
+        <div id="church-admin-list"></div>
       </div>
       <button class="btn-reject" id="admin-logout" style="margin-top:8px">Çıkış yap</button>
     </div>
@@ -226,7 +242,7 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
         <button type="button" class="btn-secondary" id="import-none">Hiçbirini seçme</button>
       </div>
       <div id="import-list"></div>
-      <p class="legal">Veriler © OpenStreetMap katkıcıları (ODbL). Eklemeden önce adları ve konumları kontrol et; sonra "Kiliseler" listesinden düzenleyebilirsin.</p>
+      <p class="legal">Veriler OpenStreetMap katkıcılarından (© ODbL) veya Wikidata'dan (CC0) gelir. Eklemeden önce adları ve konumları kontrol et; sonra "Kiliseler" listesinden düzenleyebilirsin.</p>
       <p id="import-msg" class="err"></p>
       <div class="pending-actions">
         <button type="button" class="btn-approve" id="import-save">Seçilenleri ekle</button>
@@ -713,18 +729,39 @@ function renderChurchAdmin(){
   const list=$('church-admin-list');list.replaceChildren();
   if(!churchesData.length){list.textContent='Henüz kilise yok.';list.className='muted';return}
   list.className='';
-  churchesData.forEach(c=>{
+  const q=foldText($('church-filter').value).trim();
+  const dFilter=$('church-filter-denom').value;
+  const shown=churchesData.filter(c=>(!dFilter||c.denomination===dFilter)&&(!q||foldText(c.name).includes(q)));
+  if(!shown.length){list.textContent='Eşleşen kilise yok.';list.className='muted';return}
+  shown.forEach(c=>{
     const row=document.createElement('div');row.className='church-row';
     const info=document.createElement('div');
     const n=document.createElement('div');n.className='church-row-name';n.textContent=c.name;
     const m=document.createElement('div');m.className='church-row-meta';
-    m.textContent=c.denomination+' · '+Number(c.lat).toFixed(5)+', '+Number(c.lng).toFixed(5);
+    m.textContent=Number(c.lat).toFixed(5)+', '+Number(c.lng).toFixed(5);
     info.append(n,m);
+
+    const actions=document.createElement('div');actions.className='church-actions';
+    const sel=document.createElement('select');sel.setAttribute('aria-label',c.name+' mezhebi');
+    const opts=DENOMS.includes(c.denomination)?DENOMS:[...DENOMS,c.denomination];
+    opts.forEach(d=>{const o=document.createElement('option');o.value=d;o.textContent=d;sel.append(o)});
+    sel.value=c.denomination;
+    sel.addEventListener('change',async()=>{
+      const prev=c.denomination,v=sel.value;sel.disabled=true;
+      const{data,error}=await sb.from('atlas_churches').update({denomination:v}).eq('id',c.id).select();
+      sel.disabled=false;
+      if(error||!data||!data.length){sel.value=prev;toast('Güncellenemedi. Yönetici hesabıyla giriş yaptığından emin ol.');return}
+      c.denomination=v;c.badgeClass=DENOM[v]||'badge-diger';
+      toast('Mezhep güncellendi: '+v);
+    });
     const b=document.createElement('button');b.type='button';b.className='btn-secondary';b.textContent='Düzenle';
     b.addEventListener('click',()=>openChurchForm(c));
-    row.append(info,b);list.append(row);
+    actions.append(sel,b);
+    row.append(info,actions);list.append(row);
   });
 }
+$('church-filter').addEventListener('input',renderChurchAdmin);
+$('church-filter-denom').addEventListener('change',renderChurchAdmin);
 
 function openChurchForm(c){
   editingChurchId=c?c.id:null;
@@ -732,7 +769,7 @@ function openChurchForm(c){
   $('cf-name').value=c?c.name:'';
   $('cf-city').value=c?c.city:'İzmir';
   $('cf-country').value=c?c.country:'Türkiye';
-  $('cf-denom').value=c?(DENOMS.includes(c.denomination)?c.denomination:'Diğer'):'Katolik';
+  $('cf-denom').value=c?(DENOMS.includes(c.denomination)?c.denomination:'Diğer'):'Diğer';
   $('cf-desc').value=c?c.description:'';
   $('cf-lat').value=c?c.lat:'';
   $('cf-lng').value=c?c.lng:'';
@@ -803,6 +840,56 @@ $('cf-delete').addEventListener('click',async()=>{
   adminTab='churches';showPanel();
 });
 
+/* ---------------- Mezhep tahmini (ad ve etiketlerden) ---------------- */
+function foldText(t){
+  return String(t||'').toLocaleLowerCase('tr').replace(/ı/g,'i').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,' ');
+}
+function guessDenomination(...texts){
+  const toks=foldText(texts.filter(Boolean).join(' ')).split(/\s+/).filter(Boolean);
+  const has=(...stems)=>toks.some(t=>stems.some(x=>t.startsWith(x)));
+  const is=(...words)=>toks.some(t=>words.includes(t));
+  // Açık mezhep sözcükleri
+  if(has('anglik','anglic','episcop','ingiliz')||is('england','english'))return 'Anglikan';
+  if(has('katolik','catholic')||is('latin','vatikan'))return 'Katolik';
+  if(has('ortodoks','orthodox','ortodox','ermeni','armenian','surya','syriac','kopt','coptic')||is('rum','greek','rus','russian'))return 'Ortodoks';
+  if(has('protestan','protestant','baptist','evanjel','evangel','luter','lutheran','reform','presbiter','presbyter','pentekost','pentecost','metodist','methodist','adventist','advent','kardesler')||is('brethren','incil','gospel'))return 'Protestan';
+  // Zayıf ipuçları: aziz adlarının yazılış biçimi
+  if(is('santa','sant','santo','san','notre','dame','sainte','rosaire','rosario','rozario','rosary','lourdes')||has('fransisk','francisc','kapuci','capuc','cizvit','jesuit','dominik'))return 'Katolik';
+  if(is('aya','agia','agios','ayios','ayia','panagia','hagia','aghios'))return 'Ortodoks';
+  return 'Diğer';
+}
+
+// Yeni kilise formunda ad yazılırken mezhep "Diğer" ise tahmin et
+$('cf-name').addEventListener('input',()=>{
+  if($('cf-denom').value!=='Diğer')return;
+  const g=guessDenomination($('cf-name').value);
+  if(g!=='Diğer')$('cf-denom').value=g;
+});
+
+// "Diğer" olan tüm kiliseleri addan tahmin edip toplu güncelle
+$('fix-denom-btn').addEventListener('click',async()=>{
+  if(!sb)return;
+  const groups={};
+  churchesData.forEach(c=>{
+    if(c.denomination!=='Diğer')return;
+    const g=guessDenomination(c.name);
+    if(g!=='Diğer')(groups[g]=groups[g]||[]).push(c.id);
+  });
+  const total=Object.values(groups).reduce((n,a)=>n+a.length,0);
+  if(!total){toast('Addan tahmin edilebilen "Diğer" kilise yok. Kalanları listeden elle seçebilirsin.');return}
+  const btn=$('fix-denom-btn');btn.disabled=true;
+  let done=0;
+  for(const [den,ids] of Object.entries(groups)){
+    const{data,error}=await sb.from('atlas_churches').update({denomination:den}).in('id',ids).select();
+    if(error){toast('Güncellenemedi: '+error.message);break}
+    done+=(data||[]).length;
+  }
+  btn.disabled=false;
+  toast(done+' kilisenin mezhebi güncellendi.');
+  await loadChurches();
+  renderChurchAdmin();
+});
+
 /* ---------------- Otomatik kilise bulma (OpenStreetMap / Overpass) ---------------- */
 const OVERPASS=[
   'https://overpass-api.de/api/interpreter',
@@ -815,7 +902,7 @@ let importCandidates=[];
 
 function mapDenomination(tags){
   const d=String(tags.denomination||'').toLowerCase();
-  if(/anglican|episcopal/.test(d))return 'Anglikan';
+  if(/anglican|episcopal|church of england/.test(d))return 'Anglikan';
   if(/catholic|latin/.test(d)&&!/orthodox/.test(d))return 'Katolik';
   if(/orthodox|armenian|coptic|syriac/.test(d))return 'Ortodoks';
   if(/protestant|evangelical|baptist|lutheran|presbyterian|pentecostal|methodist|reformed|adventist|charismatic|free_church/.test(d))return 'Protestan';
@@ -830,23 +917,72 @@ function distM(a,b,c,d){
 function inBbox(lat,lng,[s,w,n,e]){return lat>=s&&lat<=n&&lng>=w&&lng<=e}
 function normName(t){return String(t||'').toLocaleLowerCase('tr').replace(/ı/g,'i').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'')}
 
-async function runOverpass([s,w,n,e]){
+const RETRY_WAIT_MS=[4000,10000]; // sunucular meşgulse: 4 sn, sonra 10 sn bekleyip yeniden dene
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+async function runOverpass([s,w,n,e],onStatus){
   const q='[out:json][timeout:25];nwr["amenity"="place_of_worship"]["religion"="christian"]('+s+','+w+','+n+','+e+');out center tags;';
-  const errs=[];
-  for(const url of OVERPASS){
-    const host=new URL(url).host;
-    const ctrl=new AbortController();const timer=setTimeout(()=>ctrl.abort(),20000);
-    try{
-      const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(q),signal:ctrl.signal});
-      if(!r.ok){errs.push(host+': HTTP '+r.status);continue}
-      const data=await r.json();
-      return data.elements||[];
-    }catch(err){
-      const why=err&&err.name==='AbortError'?'zaman aşımı':err&&err.name==='SyntaxError'?'geçersiz yanıt':'bağlantı kurulamadı veya engellendi';
-      errs.push(host+': '+why);
-    }finally{clearTimeout(timer)}
+  let errs=[];
+  for(let round=0;round<=RETRY_WAIT_MS.length;round++){
+    errs=[];let busy=false;
+    for(const url of OVERPASS){
+      const host=new URL(url).host;
+      const ctrl=new AbortController();const timer=setTimeout(()=>ctrl.abort(),15000);
+      try{
+        const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(q),signal:ctrl.signal});
+        if(!r.ok){
+          errs.push(host+': HTTP '+r.status);
+          if([429,502,503,504].includes(r.status))busy=true;
+          continue;
+        }
+        const data=await r.json();
+        return data.elements||[];
+      }catch(err){
+        const why=err&&err.name==='AbortError'?'zaman aşımı':err&&err.name==='SyntaxError'?'geçersiz yanıt':'bağlantı kurulamadı veya engellendi';
+        errs.push(host+': '+why);
+      }finally{clearTimeout(timer)}
+    }
+    if(!busy||round===RETRY_WAIT_MS.length)break;
+    const wait=RETRY_WAIT_MS[round];
+    if(onStatus)onStatus('Sunucular meşgul. '+Math.round(wait/1000)+' sn sonra yeniden denenecek ('+(round+2)+'/'+(RETRY_WAIT_MS.length+1)+')...');
+    await sleep(wait);
+    if(onStatus)onStatus('Yeniden aranıyor...');
   }
   throw new Error(errs.join(' | '));
+}
+
+// Yedek kaynak: Wikidata (CC0). Daha az sonuç verir ama OpenStreetMap yoğunken çalışır.
+async function runWikidata([s,w,n,e]){
+  const q='SELECT ?item ?itemLabel ?coord ?denLabel WHERE {'
+    +' SERVICE wikibase:box { ?item wdt:P625 ?coord .'
+    +' bd:serviceParam wikibase:cornerSouthWest "Point('+w+' '+s+')"^^geo:wktLiteral .'
+    +' bd:serviceParam wikibase:cornerNorthEast "Point('+e+' '+n+')"^^geo:wktLiteral . }'
+    +' ?item wdt:P31/wdt:P279* wd:Q16970 .'
+    +' OPTIONAL { ?item wdt:P140 ?den . }'
+    +' SERVICE wikibase:label { bd:serviceParam wikibase:language "tr,en". } }';
+  const ctrl=new AbortController();const timer=setTimeout(()=>ctrl.abort(),30000);
+  try{
+    const r=await fetch('https://query.wikidata.org/sparql?format=json&query='+encodeURIComponent(q),{signal:ctrl.signal});
+    if(!r.ok)throw new Error('query.wikidata.org: HTTP '+r.status);
+    const rows=((await r.json()).results||{}).bindings||[];
+    const byItem=new Map();
+    for(const b of rows){
+      const qid=String(b.item.value).split('/').pop();
+      const m=/Point\(([-\d.]+) ([-\d.]+)\)/.exec(b.coord.value);
+      const label=b.itemLabel?b.itemLabel.value:'';
+      if(!m||!label||/^Q\d+$/.test(label))continue;
+      let den=mapDenomination({denomination:(b.denLabel?b.denLabel.value:'').toLowerCase()});
+      if(den==='Diğer')den=guessDenomination(label);
+      const cur=byItem.get(qid);
+      if(!cur)byItem.set(qid,{name:label,lat:Number(m[2]),lng:Number(m[1]),denomination:den,wikidata:qid,wiki_titles:{},description:'',city:''});
+      else if(cur.denomination==='Diğer'&&den!=='Diğer')cur.denomination=den;
+    }
+    return [...byItem.values()];
+  }catch(err){
+    if(err&&err.name==='AbortError')throw new Error('query.wikidata.org: zaman aşımı');
+    if(err&&err.name==='TypeError')throw new Error('query.wikidata.org: bağlantı kurulamadı veya engellendi');
+    throw err;
+  }finally{clearTimeout(timer)}
 }
 
 function toCandidate(el){
@@ -861,27 +997,47 @@ function toCandidate(el){
   if(m)titles[m[1]]=m[2].trim();
   const addr=[t['addr:street'],t['addr:housenumber'],t['addr:suburb']||t['addr:district']].filter(Boolean).join(' ');
   const description=String(t['description:tr']||t.description||'').trim()||(addr?'Adres: '+addr:'');
-  return{name,lat,lng,denomination:mapDenomination(t),wikidata,wiki_titles:titles,description,city:t['addr:city']||''};
+  let den=mapDenomination(t);
+  if(den==='Diğer')den=guessDenomination(t['name:tr'],t.name,t['name:en'],t.operator);
+  return{name,lat,lng,denomination:den,wikidata,wiki_titles:titles,description,city:t['addr:city']||''};
 }
+
+const importCache={}; // aynı aramayı 10 dakika içinde tekrar sorma
 
 async function startImport(bbox,label){
   $('admin-panel').hidden=true;$('church-form').hidden=true;$('import-view').hidden=false;
   $('import-msg').textContent='';$('import-list').replaceChildren();
-  $('import-summary').textContent='OpenStreetMap\'te aranıyor ('+label+')...';
+  const setMsg=t=>{$('import-summary').textContent=t};
+  setMsg('OpenStreetMap\'te aranıyor ('+label+')...');
   $('import-save').disabled=true;
   importCandidates=[];
-  let elements;
-  try{elements=await runOverpass(bbox)}
-  catch(err){
-    $('import-summary').textContent='';
-    $('import-msg').textContent='Arama servisine ulaşılamadı. Birkaç dakika sonra tekrar dene. ('+err.message+')';
-    return;
+
+  const key=bbox.map(x=>x.toFixed(3)).join(',');
+  let cands,source='OpenStreetMap';
+  const hit=importCache[key];
+  if(hit&&Date.now()-hit.t<10*60*1000){
+    cands=hit.cands;source=hit.source;
+  }else{
+    try{
+      cands=(await runOverpass(bbox,setMsg)).map(toCandidate);
+    }catch(osmErr){
+      setMsg('OpenStreetMap yanıt vermedi, Wikidata\'dan aranıyor...');
+      try{
+        cands=await runWikidata(bbox);source='Wikidata';
+      }catch(wdErr){
+        setMsg('');
+        $('import-msg').textContent='Arama servislerine ulaşılamadı. Birkaç dakika sonra tekrar dene. ('+osmErr.message+' | '+wdErr.message+')';
+        return;
+      }
+    }
+    importCache[key]={t:Date.now(),cands,source};
   }
+
   let unnamed=0,dupes=0;
   const list=[];
-  for(const el of elements){
-    const c=toCandidate(el);
-    if(!c){unnamed++;continue}
+  for(const c0 of cands){
+    if(!c0){unnamed++;continue}
+    const c={...c0};
     // Aynı kilisenin hem nokta hem bina olarak kaydedilmiş kopyalarını ele
     if(list.some(x=>normName(x.name)===normName(c.name)&&distM(x.lat,x.lng,c.lat,c.lng)<150)){dupes++;continue}
     c.exists=churchesData.some(e=>(c.wikidata&&e.wikidata===c.wikidata)||distM(e.lat,e.lng,c.lat,c.lng)<80);
@@ -890,8 +1046,9 @@ async function startImport(bbox,label){
   list.sort((a,b)=>Number(a.exists)-Number(b.exists)||a.name.localeCompare(b.name,'tr'));
   importCandidates=list;
   const fresh=list.filter(c=>!c.exists).length;
-  $('import-summary').textContent=list.length+' kilise bulundu: '+fresh+' yeni, '+(list.length-fresh)+' zaten ekli.'
-    +(unnamed?' '+unnamed+' adsız kayıt atlandı.':'')+(dupes?' '+dupes+' tekrar eden kayıt birleştirildi.':'');
+  setMsg((source==='Wikidata'?'OpenStreetMap şu an yoğun, sonuçlar Wikidata\'dan geldi ve daha az olabilir; birkaç dakika sonra tekrar deneyebilirsin. ':'')
+    +list.length+' kilise bulundu: '+fresh+' yeni, '+(list.length-fresh)+' zaten ekli.'
+    +(unnamed?' '+unnamed+' adsız kayıt atlandı.':'')+(dupes?' '+dupes+' tekrar eden kayıt birleştirildi.':''));
   renderImportList();
 }
 
