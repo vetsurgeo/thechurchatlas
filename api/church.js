@@ -7,6 +7,7 @@ const SITE='https://thechurchatlas.com';
 const LANGS=[["tr", "Türkçe"], ["en", "English"], ["es", "Español"], ["fr", "Français"], ["de", "Deutsch"], ["it", "Italiano"], ["pt", "Português"], ["nl", "Nederlands"], ["pl", "Polski"], ["ro", "Română"], ["ru", "Русский"], ["uk", "Українська"], ["el", "Ελληνικά"], ["hy", "Հայերեն"], ["ar", "العربية"], ["ja", "日本語"], ["ko", "한국어"], ["zh", "中文"]];
 const DEN={"tr": {"Katolik": "Katolik", "Ortodoks": "Ortodoks", "Oryantal Ortodoks": "Oryantal Ortodoks", "Doğu Kilisesi": "Doğu Kilisesi", "Protestan": "Protestan", "Anglikan": "Anglikan", "Diğer": "Diğer"}, "en": {"Katolik": "Catholic", "Ortodoks": "Orthodox", "Oryantal Ortodoks": "Oriental Orthodox", "Doğu Kilisesi": "Church of the East", "Protestan": "Protestant", "Anglikan": "Anglican", "Diğer": "Other"}, "es": {"Katolik": "Católica", "Ortodoks": "Ortodoxa", "Oryantal Ortodoks": "Ortodoxa oriental", "Doğu Kilisesi": "Iglesia del Oriente", "Protestan": "Protestante", "Anglikan": "Anglicana", "Diğer": "Otra"}, "fr": {"Katolik": "Catholique", "Ortodoks": "Orthodoxe", "Oryantal Ortodoks": "Orthodoxe orientale", "Doğu Kilisesi": "Église de l'Orient", "Protestan": "Protestante", "Anglikan": "Anglicane", "Diğer": "Autre"}, "de": {"Katolik": "Katholisch", "Ortodoks": "Orthodox", "Oryantal Ortodoks": "Orientalisch-orthodox", "Doğu Kilisesi": "Kirche des Ostens", "Protestan": "Protestantisch", "Anglikan": "Anglikanisch", "Diğer": "Andere"}, "it": {"Katolik": "Cattolica", "Ortodoks": "Ortodossa", "Oryantal Ortodoks": "Ortodossa orientale", "Doğu Kilisesi": "Chiesa d'Oriente", "Protestan": "Protestante", "Anglikan": "Anglicana", "Diğer": "Altra"}, "pt": {"Katolik": "Católica", "Ortodoks": "Ortodoxa", "Oryantal Ortodoks": "Ortodoxa oriental", "Doğu Kilisesi": "Igreja do Oriente", "Protestan": "Protestante", "Anglikan": "Anglicana", "Diğer": "Outra"}, "nl": {"Katolik": "Katholiek", "Ortodoks": "Orthodox", "Oryantal Ortodoks": "Oriëntaals-orthodox", "Doğu Kilisesi": "Kerk van het Oosten", "Protestan": "Protestants", "Anglikan": "Anglicaans", "Diğer": "Overig"}, "pl": {"Katolik": "Katolicki", "Ortodoks": "Prawosławny", "Oryantal Ortodoks": "Orientalny prawosławny", "Doğu Kilisesi": "Kościół Wschodu", "Protestan": "Protestancki", "Anglikan": "Anglikański", "Diğer": "Inne"}, "ro": {"Katolik": "Catolică", "Ortodoks": "Ortodoxă", "Oryantal Ortodoks": "Ortodoxă orientală", "Doğu Kilisesi": "Biserica Răsăritului", "Protestan": "Protestantă", "Anglikan": "Anglicană", "Diğer": "Altele"}, "ru": {"Katolik": "Католическая", "Ortodoks": "Православная", "Oryantal Ortodoks": "Древневосточная", "Doğu Kilisesi": "Церковь Востока", "Protestan": "Протестантская", "Anglikan": "Англиканская", "Diğer": "Другая"}, "uk": {"Katolik": "Католицька", "Ortodoks": "Православна", "Oryantal Ortodoks": "Давньосхідна", "Doğu Kilisesi": "Церква Сходу", "Protestan": "Протестантська", "Anglikan": "Англіканська", "Diğer": "Інша"}, "el": {"Katolik": "Καθολική", "Ortodoks": "Ορθόδοξη", "Oryantal Ortodoks": "Προχαλκηδόνια", "Doğu Kilisesi": "Εκκλησία της Ανατολής", "Protestan": "Προτεσταντική", "Anglikan": "Αγγλικανική", "Diğer": "Άλλη"}, "hy": {"Katolik": "Կաթոլիկ", "Ortodoks": "Ուղղափառ", "Oryantal Ortodoks": "Արևելյան ուղղափառ", "Doğu Kilisesi": "Արևելքի եկեղեցի", "Protestan": "Բողոքական", "Anglikan": "Անգլիկան", "Diğer": "Այլ"}, "ar": {"Katolik": "كاثوليكية", "Ortodoks": "أرثوذكسية", "Oryantal Ortodoks": "أرثوذكسية شرقية", "Doğu Kilisesi": "كنيسة المشرق", "Protestan": "بروتستانتية", "Anglikan": "أنجليكانية", "Diğer": "أخرى"}, "ja": {"Katolik": "カトリック", "Ortodoks": "正教会", "Oryantal Ortodoks": "東方諸教会", "Doğu Kilisesi": "東方教会", "Protestan": "プロテスタント", "Anglikan": "聖公会", "Diğer": "その他"}, "ko": {"Katolik": "가톨릭", "Ortodoks": "정교회", "Oryantal Ortodoks": "오리엔트 정교회", "Doğu Kilisesi": "동방 교회", "Protestan": "개신교", "Anglikan": "성공회", "Diğer": "기타"}, "zh": {"Katolik": "天主教", "Ortodoks": "东正教", "Oryantal Ortodoks": "东方正统教会", "Doğu Kilisesi": "东方教会", "Protestan": "新教", "Anglikan": "圣公会", "Diğer": "其他"}};
 const COMMENTS={"tr": "Ziyaretçi yorumları:", "en": "Visitor comments:", "es": "Comentarios de visitantes:", "fr": "Commentaires des visiteurs :", "de": "Kommentare von Besuchern:", "it": "Commenti dei visitatori:", "pt": "Comentários de visitantes:", "nl": "Reacties van bezoekers:", "pl": "Komentarze odwiedzających:", "ro": "Comentariile vizitatorilor:", "ru": "Комментарии посетителей:", "uk": "Коментарі відвідувачів:", "el": "Σχόλια επισκεπτών:", "hy": "Այցելուների մեկնաբանություններ՝", "ar": "تعليقات الزوار:", "ja": "訪問者のコメント：", "ko": "방문자 댓글:", "zh": "访客评论："};
+const CREDIT={"tr": "Fotoğraf: Wikipedia / Wikimedia Commons", "en": "Photo: Wikipedia / Wikimedia Commons", "es": "Foto: Wikipedia / Wikimedia Commons", "fr": "Photo : Wikipédia / Wikimedia Commons", "de": "Foto: Wikipedia / Wikimedia Commons", "it": "Foto: Wikipedia / Wikimedia Commons", "pt": "Foto: Wikipédia / Wikimedia Commons", "nl": "Foto: Wikipedia / Wikimedia Commons", "pl": "Zdjęcie: Wikipedia / Wikimedia Commons", "ro": "Fotografie: Wikipedia / Wikimedia Commons", "ru": "Фото: Википедия / Wikimedia Commons", "uk": "Фото: Вікіпедія / Wikimedia Commons", "el": "Φωτογραφία: Βικιπαίδεια / Wikimedia Commons", "hy": "Լուսանկար՝ Վիքիպեդիա / Wikimedia Commons", "ar": "الصورة: ويكيبيديا / ويكيميديا كومنز", "ja": "写真：Wikipedia / Wikimedia Commons", "ko": "사진: Wikipedia / Wikimedia Commons", "zh": "照片：维基百科 / Wikimedia Commons"};
 const TAG={"en": "World Church Heritage Map", "tr": "Dünya Kilise Mirası Haritası", "es": "Mapa del patrimonio de las iglesias del mundo", "fr": "Carte du patrimoine des églises du monde", "de": "Weltkarte des Kirchenerbes", "it": "Mappa del patrimonio delle chiese del mondo", "pt": "Mapa do patrimônio das igrejas do mundo", "nl": "Wereldkaart van het kerkelijk erfgoed", "pl": "Mapa dziedzictwa kościołów świata", "ro": "Harta patrimoniului bisericilor din lume", "ru": "Карта церковного наследия мира", "uk": "Мапа церковної спадщини світу", "el": "Χάρτης της εκκλησιαστικής κληρονομιάς του κόσμου", "hy": "Աշխարհի եկեղեցական ժառանգության քարտեզ", "ar": "خريطة التراث الكنسي في العالم", "ja": "世界の教会遺産マップ", "ko": "세계 교회 유산 지도", "zh": "世界教堂遗产地图"};
 const UI={"en": {"openMap": "Open on the map", "photos": "Photos", "nearby": "More churches in {place}"}, "tr": {"openMap": "Haritada aç", "photos": "Fotoğraflar", "nearby": "{place} bölgesindeki diğer kiliseler"}, "es": {"openMap": "Abrir en el mapa", "photos": "Fotos", "nearby": "Más iglesias en {place}"}, "fr": {"openMap": "Ouvrir sur la carte", "photos": "Photos", "nearby": "Autres églises à {place}"}, "de": {"openMap": "Auf der Karte öffnen", "photos": "Fotos", "nearby": "Weitere Kirchen in {place}"}, "it": {"openMap": "Apri sulla mappa", "photos": "Foto", "nearby": "Altre chiese a {place}"}, "pt": {"openMap": "Abrir no mapa", "photos": "Fotos", "nearby": "Mais igrejas em {place}"}, "nl": {"openMap": "Openen op de kaart", "photos": "Foto's", "nearby": "Meer kerken in {place}"}, "pl": {"openMap": "Otwórz na mapie", "photos": "Zdjęcia", "nearby": "Więcej kościołów: {place}"}, "ro": {"openMap": "Deschide pe hartă", "photos": "Fotografii", "nearby": "Mai multe biserici în {place}"}, "ru": {"openMap": "Открыть на карте", "photos": "Фотографии", "nearby": "Другие церкви: {place}"}, "uk": {"openMap": "Відкрити на мапі", "photos": "Фотографії", "nearby": "Інші церкви: {place}"}, "el": {"openMap": "Άνοιγμα στον χάρτη", "photos": "Φωτογραφίες", "nearby": "Περισσότερες εκκλησίες: {place}"}, "hy": {"openMap": "Բացել քարտեզում", "photos": "Լուսանկարներ", "nearby": "Այլ եկեղեցիներ՝ {place}"}, "ar": {"openMap": "افتح على الخريطة", "photos": "الصور", "nearby": "كنائس أخرى في {place}"}, "ja": {"openMap": "地図で開く", "photos": "写真", "nearby": "{place}の他の教会"}, "ko": {"openMap": "지도에서 열기", "photos": "사진", "nearby": "{place}의 다른 교회"}, "zh": {"openMap": "在地图上打开", "photos": "照片", "nearby": "{place}的更多教堂"}};
 const LOCALE={"en": "en_US", "tr": "tr_TR", "es": "es_ES", "fr": "fr_FR", "de": "de_DE", "it": "it_IT", "pt": "pt_BR", "nl": "nl_NL", "pl": "pl_PL", "ro": "ro_RO", "ru": "ru_RU", "uk": "uk_UA", "el": "el_GR", "hy": "hy_AM", "ar": "ar_AR", "ja": "ja_JP", "ko": "ko_KR", "zh": "zh_CN"};
@@ -19,6 +20,18 @@ async function rest(path){
   const r=await fetch(SUPABASE_URL+'/rest/v1/'+path,{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY}});
   if(!r.ok)throw new Error('supabase '+r.status);
   return r.json();
+}
+
+async function wikidataImage(qid){
+  if(!/^Q\d+$/.test(String(qid||'')))return null;
+  const ctrl=new AbortController();const timer=setTimeout(()=>ctrl.abort(),4000);
+  try{
+    const r=await fetch('https://www.wikidata.org/w/api.php?action=wbgetentities&props=claims&format=json&ids='+qid,{signal:ctrl.signal});
+    if(!r.ok)return null;
+    const j=await r.json();
+    const f=j&&j.entities&&j.entities[qid]&&j.entities[qid].claims&&j.entities[qid].claims.P18&&j.entities[qid].claims.P18[0]&&j.entities[qid].claims.P18[0].mainsnak&&j.entities[qid].claims.P18[0].mainsnak.datavalue&&j.entities[qid].claims.P18[0].mainsnak.datavalue.value;
+    return f?'https://commons.wikimedia.org/wiki/Special:FilePath/'+encodeURIComponent(f)+'?width=1200':null;
+  }catch(e){return null}finally{clearTimeout(timer)}
 }
 
 function countryLabel(c,lang){
@@ -38,7 +51,7 @@ const CSS='body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,s
 +'.badge{display:inline-block;font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:12px;background:#e2e8f0;color:#334155;text-transform:uppercase}'
 +'.place{color:#64748b;margin:4px 0 14px}.cta{display:inline-block;margin:16px 0 4px;background:#0f172a;color:#fff;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:999px}'
 +'.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}.grid img{width:100%;height:120px;object-fit:cover;border-radius:10px;background:#e2e8f0}'
-+'.comment{background:#f1f5f9;border-radius:8px;padding:8px 10px;margin:6px 0;font-size:.9rem}'
++'.credit{font-size:.72rem;color:#94a3b8;margin:6px 0 0}.comment{background:#f1f5f9;border-radius:8px;padding:8px 10px;margin:6px 0;font-size:.9rem}'
 +'ul.links{padding-left:20px}ul.links li{margin:4px 0}footer{margin-top:40px;font-size:.8rem;color:#94a3b8}footer a{margin-right:10px;white-space:nowrap}';
 
 function page({title,desc,lang,canonical,robots,image,ld,body}){
@@ -65,18 +78,20 @@ function notFound(res,lang){
   res.status(404).send(page({title:'Not found — The Church Atlas',desc:'Not found',lang,canonical:'',robots:'noindex',image:SITE+'/og-image.png',ld:null,body}));
 }
 
-function buildChurchPage(c,contribs,nearby,lang){
+function buildChurchPage(c,contribs,nearby,lang,wikiImage){
   const ui=UI[lang],den=(DEN[lang]||DEN.en)[c.denomination]||c.denomination||'';
   const country=countryLabel(c,lang);
   const place=[c.city,c.region&&c.region!==c.city?c.region:'',country].filter(Boolean).join(', ');
   const url=SITE+'/church/'+c.id;
   const photos=contribs.map(x=>httpsUrl(x.photo_url)).filter(Boolean);
-  const image=photos[0]||SITE+'/og-image.png';
+  const heroUrl=photos[0]||wikiImage||null;           // ziyaretçi fotoğrafı yoksa Wikimedia görseli
+  const image=heroUrl||SITE+'/og-image.png';
   const title=c.name+(place?' · '+place:'')+' | The Church Atlas';
   const desc=clip(c.description,155)||clip([den,place].filter(Boolean).join(' · ')+' — '+(TAG[lang]||TAG.en),155);
 
   const ld={'@context':'https://schema.org','@type':'Church',name:c.name,url,description:clip(c.description,500)||undefined,
-    image:photos.length?photos.slice(0,6):undefined,
+    inLanguage:lang,
+    image:photos.length?photos.slice(0,6):(wikiImage?[wikiImage]:undefined),
     geo:(c.lat!=null&&c.lng!=null)?{'@type':'GeoCoordinates',latitude:c.lat,longitude:c.lng}:undefined,
     address:place?{'@type':'PostalAddress',addressLocality:c.city||undefined,addressRegion:c.region||undefined,addressCountry:c.country_code||country||undefined}:undefined,
     sameAs:c.wikidata?['https://www.wikidata.org/wiki/'+c.wikidata]:undefined,
@@ -85,8 +100,8 @@ function buildChurchPage(c,contribs,nearby,lang){
   const mapUrl='/?church='+c.id+'&lang='+lang;
   const paras=String(c.description||'').split(/\n+/).map(s=>s.trim()).filter(Boolean).map(s=>'<p>'+esc(s)+'</p>').join('');
   const comments=contribs.filter(x=>x.comment).slice(0,5).map(x=>'<div class="comment">💬 <strong>'+esc(x.name)+'</strong>: '+esc(x.comment)+'</div>').join('');
-  const body='<main>\n<nav><a href="/">The Church Atlas</a><a href="/'+(lang==='tr'?'hakkinda':'about')+'.html">ℹ</a></nav>\n'
-   +(photos[0]?'<img class="hero" src="'+esc(photos[0])+'" alt="'+esc(c.name)+'">\n':'')
+  const body='<main>\n<nav><a href="/">The Church Atlas</a><a href="/'+(lang==='tr'?'hakkinda':'about')+'.html">'+(lang==='tr'?'Hakkında':'About')+'</a></nav>\n'
+   +(heroUrl?'<img class="hero" src="'+esc(heroUrl)+'" alt="'+esc(c.name)+'">\n'+(!photos[0]?'<p class="credit">'+esc(CREDIT[lang]||CREDIT.en)+'</p>\n':''):'')
    +'<h1>'+esc(c.name)+'</h1>\n<span class="badge">'+esc(den)+'</span>\n'+(place?'<p class="place">'+esc(place)+'</p>\n':'')
    +paras+'\n<a class="cta" href="'+esc(mapUrl)+'">'+esc(ui.openMap)+' →</a>\n'
    +(photos.length>1?'<h2>'+esc(ui.photos)+'</h2>\n<div class="grid">'+photos.slice(1,13).map(p=>'<img loading="lazy" src="'+esc(p)+'" alt="'+esc(c.name)+'">').join('')+'</div>\n':'')
@@ -100,7 +115,8 @@ module.exports=async function handler(req,res){
   const q=req.query||{};
   let rawLang=q.lang;
   if(!rawLang){try{rawLang=new URL(req.url||'/',SITE).searchParams.get('lang')}catch(e){}}
-  const lang=pickLang(rawLang);
+  const explicit=!!rawLang;
+  let lang=pickLang(rawLang);
   const id=/^\d{1,9}$/.test(String(q.id||''))?Number(q.id):0;
   if(!id)return notFound(res,lang);
   try{
@@ -110,12 +126,16 @@ module.exports=async function handler(req,res){
     ]);
     const c=rows[0];
     if(!c)return notFound(res,lang);
+    // Dil belirtilmediyse: Türkiye'deki kiliseler Türkçe, diğerleri İngilizce açılır
+    if(!explicit&&String(c.country_code||'').toUpperCase()==='TR')lang='tr';
+    const hasUserPhoto=contribs.some(x=>httpsUrl(x.photo_url));
+    const wikiImage=(!hasUserPhoto&&c.wikidata)?await wikidataImage(c.wikidata):null;
     let nearby=[];
     if(c.city){try{nearby=await rest('atlas_churches?city=eq.'+encodeURIComponent(c.city)+'&id=neq.'+id+'&select=id,name&order=id.asc&limit=12')}catch(e){}}
     res.setHeader('Content-Type','text/html; charset=utf-8');
     res.setHeader('Content-Language',lang);
     res.setHeader('Cache-Control','public, max-age=0, s-maxage=3600, stale-while-revalidate=86400');
-    res.status(200).send(buildChurchPage(c,contribs,nearby,lang));
+    res.status(200).send(buildChurchPage(c,contribs,nearby,lang,wikiImage));
   }catch(e){
     res.setHeader('Cache-Control','no-store');
     res.setHeader('Content-Type','text/plain; charset=utf-8');
