@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/church/:id",
+      "destination": "/api/church?id=:id"
+    },
+    {
+      "source": "/sitemap-churches.xml",
+      "destination": "/api/sitemap"
+    }
+  ]
+}

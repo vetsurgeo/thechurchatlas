@@ -474,6 +474,7 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
       <div class="pending-actions">
         <button type="button" class="btn-approve" id="cf-save">Kaydet</button>
         <button type="button" class="btn-secondary" id="cf-cancel">Vazgeç</button>
+        <button type="button" class="btn-secondary" id="cf-qr" hidden>⬇ QR kodu</button>
         <button type="button" class="btn-reject" id="cf-delete" hidden>Sil</button>
       </div>
     </div>
@@ -532,9 +533,10 @@ const sb=/BURAYA/.test(SUPABASE_URL+SUPABASE_KEY)?null:supabase.createClient(SUP
 /* Destek (bağış) bağlantısı: Buy Me a Coffee sayfanın adresini yaz, örn. 'https://buymeacoffee.com/kullaniciadin'
    Boş bırakırsan destek düğmesi hiç görünmez. */
 const DONATE_URL='https://buymeacoffee.com/thechurchatlas';
+const SITE_URL='https://thechurchatlas.com';
 
 /* Sürüm damgası: yönetici penceresinin altında görünür; yeni dosyanın yayında olup olmadığını anlamak içindir */
-const APP_VERSION='2026.10.20-n';
+const APP_VERSION='2026.10.20-o';
 
 const $=id=>document.getElementById(id);
 const toastEl=$('toast');let toastTimer;
@@ -1227,7 +1229,7 @@ function openChurchFromUrl(){
 // Kilise başına paylaşım: telefonda paylaşım menüsü, olmazsa bağlantıyı kopyalar
 async function shareChurch(){
   const c=activeChurch;if(!c)return;
-  const url=location.origin+'/?church='+c.id;
+  const url=location.origin+'/church/'+c.id+'?lang='+currentLang;   // sunucuda üretilen kilise sayfası: kiliseye özel önizleme
   const text=[denLabel(c.denomination),$('drawer-loc').textContent].filter(Boolean).join(' · ');
   if(navigator.share){
     try{await navigator.share({title:c.name+' — The Church Atlas',text,url});return}
@@ -1533,6 +1535,7 @@ function openChurchForm(c){
   $('cf-wtr').value=c?(c.wikiTitles?.tr||''):'';
   $('cf-wen').value=c?(c.wikiTitles?.en||''):'';
   $('cf-delete').hidden=!c;
+  $('cf-qr').hidden=!c;
   $('cf-msg').textContent='';
   $('admin-panel').hidden=true;
   $('church-form').hidden=false;
@@ -2120,6 +2123,87 @@ $('fill-geo-btn').addEventListener('click',async()=>{
   if(!todo.length){toast('Bu kapsamda eksik şehir/il/ülke bilgisi olan kilise yok.');return}
   if(todo.length>60&&!confirm(todo.length+' kilise için bilgi aranacak. Servis saniyede yalnızca 1 istek kabul ettiği için yaklaşık '+geoMinutes(todo.length)+' dakika sürer; sayfayı kapatma. "Durdur"a basarsan o ana kadar yapılanlar kaydedilir. Devam edilsin mi?'))return;
   await runGeoFill(todo);
+});
+
+/* ---------------- Yönetici: kilise için QR kodu (indirilebilir PNG) ---------------- */
+const QR_SRC='https://unpkg.com/qrcode-generator@1.4.4/qrcode.js';
+const QR_SRI='sha384-8FWZA6BGMXhsfO+BLtrJK0We6gg5o1JyO8xQm6peWDEUs17ACA5ziE/NIAkl9z2k';
+
+// QR kütüphanesi yalnızca ihtiyaç olunca (bu düğmeye basılınca) yüklenir
+function loadQrLib(){
+  if(typeof window.qrcode==='function')return Promise.resolve();
+  return new Promise((res,rej)=>{
+    const sc=document.createElement('script');
+    sc.src=QR_SRC;sc.integrity=QR_SRI;sc.crossOrigin='anonymous';
+    sc.onload=()=>typeof window.qrcode==='function'?res():rej(new Error('qr'));
+    sc.onerror=()=>rej(new Error('qr'));
+    document.head.append(sc);
+  });
+}
+
+// QR'ın gösterdiği adres: kilisenin sunucuda üretilen sayfası (Türkiye'deki kiliselerde Türkçe açılır)
+function churchPageUrl(c){return SITE_URL+'/church/'+c.id+(c.countryCode==='TR'?'?lang=tr':'')}
+
+function qrMatrix(text){
+  const qr=window.qrcode(0,'M');          // 'M': yaklaşık %15 hata düzeltme (basılı yüzeylerde yeterli)
+  qr.addData(text);qr.make();
+  const n=qr.getModuleCount(),m=[];
+  for(let r=0;r<n;r++){m.push([]);for(let c=0;c<n;c++)m[r].push(qr.isDark(r,c))}
+  return m;
+}
+
+function wrapLines(ctx,text,maxW,maxLines){
+  const words=String(text).split(/\s+/),lines=[];let cur='';
+  for(const w of words){
+    const test=cur?cur+' '+w:w;
+    if(ctx.measureText(test).width<=maxW||!cur)cur=test;
+    else{lines.push(cur);cur=w}
+  }
+  if(cur)lines.push(cur);
+  if(lines.length>maxLines){
+    const rest=lines.slice(maxLines-1).join(' ');
+    lines.length=maxLines-1;
+    let last=rest;
+    while(last.length>1&&ctx.measureText(last+'…').width>maxW)last=last.slice(0,-1);
+    lines.push(last+'…');
+  }
+  return lines;
+}
+
+// Beyaz zemin, kenar boşluklu QR ve altında kilise adı: yazdırmaya hazır kart
+function drawQrCard(canvas,matrix,title){
+  const n=matrix.length,quiet=4,scale=Math.max(4,Math.floor(880/(n+quiet*2)));
+  const qrPx=(n+quiet*2)*scale,W=qrPx,H=qrPx+190;
+  canvas.width=W;canvas.height=H;
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#000000';
+  for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(matrix[r][c])ctx.fillRect((c+quiet)*scale,(r+quiet)*scale,scale,scale);
+  ctx.textAlign='center';ctx.textBaseline='alphabetic';
+  ctx.fillStyle='#0f172a';ctx.font='700 40px system-ui,-apple-system,"Segoe UI",sans-serif';
+  wrapLines(ctx,title,W-80,2).forEach((ln,i)=>ctx.fillText(ln,W/2,qrPx+12+(i+1)*46));
+  ctx.fillStyle='#64748b';ctx.font='500 28px system-ui,-apple-system,"Segoe UI",sans-serif';
+  ctx.fillText('thechurchatlas.com',W/2,H-26);
+}
+
+$('cf-qr').addEventListener('click',async()=>{
+  const c=churchesData.find(x=>x.id===editingChurchId);
+  if(!c)return;
+  const btn=$('cf-qr');btn.disabled=true;
+  try{
+    await loadQrLib();
+    const url=churchPageUrl(c);
+    const canvas=document.createElement('canvas');
+    drawQrCard(canvas,qrMatrix(url),c.name);
+    const blob=await new Promise(r=>canvas.toBlob(r,'image/png'));
+    if(!blob)throw new Error('png');
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);a.download='qr-church-'+c.id+'.png';
+    document.body.append(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+    toast('QR kodu indirildi → '+url);
+  }catch(e){toast('QR kodu oluşturulamadı. Bağlantını kontrol edip tekrar dene.')}
+  btn.disabled=false;
 });
 
 /* ---------------- Haritadan konum seçme ---------------- */
