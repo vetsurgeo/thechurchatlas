@@ -34,6 +34,25 @@ async function wikidataImage(qid){
   }catch(e){return null}finally{clearTimeout(timer)}
 }
 
+async function wikipediaImage(titles){
+  if(!titles||typeof titles!=='object')return null;
+  for(const lang of ['en','tr']){
+    const t=titles[lang];
+    if(typeof t!=='string'||!t||t.length>200)continue;
+    const ctrl=new AbortController();const timer=setTimeout(()=>ctrl.abort(),4000);
+    try{
+      const r=await fetch('https://'+lang+'.wikipedia.org/w/api.php?action=query&redirects=1&prop=pageimages&piprop=thumbnail&pithumbsize=1200&format=json&titles='+encodeURIComponent(t),{signal:ctrl.signal});
+      if(!r.ok)continue;
+      const j=await r.json();
+      const pages=Object.values((j&&j.query&&j.query.pages)||{});
+      const src=pages[0]&&pages[0].thumbnail&&pages[0].thumbnail.source;
+      const ok=httpsUrl(src);
+      if(ok)return ok;
+    }catch(e){}finally{clearTimeout(timer)}
+  }
+  return null;
+}
+
 function countryLabel(c,lang){
   const code=String(c.country_code||'').toUpperCase();
   if(code){try{const n=new Intl.DisplayNames([lang],{type:'region'}).of(code);if(n&&n!==code)return n}catch(e){}}
@@ -129,7 +148,11 @@ module.exports=async function handler(req,res){
     // Dil belirtilmediyse: Türkiye'deki kiliseler Türkçe, diğerleri İngilizce açılır
     if(!explicit&&String(c.country_code||'').toUpperCase()==='TR')lang='tr';
     const hasUserPhoto=contribs.some(x=>httpsUrl(x.photo_url));
-    const wikiImage=(!hasUserPhoto&&c.wikidata)?await wikidataImage(c.wikidata):null;
+    let wikiImage=null;
+    if(!hasUserPhoto){
+      if(c.wikidata)wikiImage=await wikidataImage(c.wikidata);
+      if(!wikiImage)wikiImage=await wikipediaImage(c.wiki_titles);
+    }
     let nearby=[];
     if(c.city){try{nearby=await rest('atlas_churches?city=eq.'+encodeURIComponent(c.city)+'&id=neq.'+id+'&select=id,name&order=id.asc&limit=12')}catch(e){}}
     res.setHeader('Content-Type','text/html; charset=utf-8');
