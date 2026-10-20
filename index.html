@@ -363,7 +363,6 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
       <div id="pending-list"></div>
       <div id="church-admin" hidden>
         <button type="button" class="contrib-submit" id="church-add-btn">+ Yeni kilise ekle</button>
-        <button type="button" class="btn-secondary wide" id="import-city-btn" style="margin-top:8px">🔍 İzmir'de kiliseleri otomatik bul</button>
         <button type="button" class="btn-secondary wide" id="import-view-btn">🔍 Haritada görünen alanda otomatik bul</button>
         <div class="city-search">
           <input type="search" id="city-input" class="contrib-input" placeholder="Şehir veya ilçe adı yaz (Roma, Atina, Kadıköy...)" aria-label="Şehir veya ilçe adı">
@@ -1809,7 +1808,6 @@ function updateImportCount(){
   $('import-save').disabled=n===0;
 }
 
-$('import-city-btn').addEventListener('click',()=>startImport(IZMIR_BBOX,'İzmir','',{city:'İzmir',country:'Türkiye',countryCode:'TR',region:'İzmir'}));
 $('import-view-btn').addEventListener('click',()=>{
   const b=map.getBounds();
   const bbox=[b.getSouth(),b.getWest(),b.getNorth(),b.getEast()];
