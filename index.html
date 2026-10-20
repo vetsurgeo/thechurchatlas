@@ -250,6 +250,11 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
 #about-modal .modal-content{max-width:440px;text-align:start}
 #about-modal .support-title{text-align:center}
 .about-p{margin:0 0 12px;font-size:.88rem;line-height:1.6;color:#475569}
+
+/* Kiliseye özel paylaş düğmesi, yayındaki katkılar */
+.church-share{margin-inline-start:auto;flex:none;width:34px;height:34px;border-radius:50%;border:1px solid #e2e8f0;background:#f8fafc;color:#475569;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.church-share:hover{background:#e2e8f0}
+.approved-meta{font-size:.72rem;color:#94a3b8;margin-top:4px}
 </style>
 </head>
 <body>
@@ -317,6 +322,9 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
   <div class="drawer-header-row">
     <h2 id="drawer-name" class="drawer-title"></h2>
     <span id="drawer-badge" class="denomination-badge"></span>
+    <button type="button" class="church-share" id="church-share" data-i18n-aria="shareAria" aria-label="Paylaş">
+      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
+    </button>
   </div>
   <div id="drawer-name-local" class="drawer-name-local" hidden></div>
   <p id="drawer-loc" class="drawer-location"></p>
@@ -372,8 +380,14 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
       <div class="admin-tabs">
         <button type="button" id="tab-pending" class="active">Onay bekleyenler</button>
         <button type="button" id="tab-churches">Kiliseler</button>
+        <button type="button" id="tab-approved">Yayındakiler</button>
       </div>
       <div id="pending-list"></div>
+      <div id="approved-admin" hidden>
+        <p class="muted small" style="margin:0 0 10px">Yayındaki yorum ve fotoğraflar (en yeni önce). Sil'e basınca katkı ve varsa yüklenen fotoğraf kalıcı olarak kaldırılır.</p>
+        <div id="approved-list"></div>
+        <button type="button" class="btn-secondary wide" id="approved-more" hidden>Daha fazla göster</button>
+      </div>
       <div id="church-admin" hidden>
         <button type="button" class="contrib-submit" id="church-add-btn">+ Yeni kilise ekle</button>
         <button type="button" class="btn-secondary wide" id="import-view-btn">🔍 Haritada görünen alanda otomatik bul</button>
@@ -520,7 +534,7 @@ const sb=/BURAYA/.test(SUPABASE_URL+SUPABASE_KEY)?null:supabase.createClient(SUP
 const DONATE_URL='https://buymeacoffee.com/thechurchatlas';
 
 /* Sürüm damgası: yönetici penceresinin altında görünür; yeni dosyanın yayında olup olmadığını anlamak içindir */
-const APP_VERSION='2026.10.20-m';
+const APP_VERSION='2026.10.20-n';
 
 const $=id=>document.getElementById(id);
 const toastEl=$('toast');let toastTimer;
@@ -771,6 +785,7 @@ async function loadChurches(){
   });
   applyFilter(firstLoad);firstLoad=false;
   setStatusT('ready','ok');
+  openChurchFromUrl();
 }
 
 /* ==========================================================
@@ -1185,8 +1200,46 @@ async function renderLocation(c){
   }catch(e){}                                              // servis yanıt vermezse kayıtlı adlar kalır
 }
 
+// Adres çubuğunu ?church=ID ile günceller (paylaşılabilir bağlantı); diğer parametreler ve #admin korunur
+function setChurchParam(id){
+  try{
+    const u=new URL(location.href);
+    if(id)u.searchParams.set('church',String(id));else u.searchParams.delete('church');
+    history.replaceState(null,'',u.pathname+u.search+u.hash);
+  }catch(e){}
+}
+function closeDrawer(){
+  $('info-drawer').classList.remove('active');
+  setChurchParam(null);
+}
+
+// Site ?church=ID ile açıldıysa o kiliseyi doğrudan açar (veri yüklendikten sonra, yalnızca bir kez)
+let deepLinkHandled=false;
+function openChurchFromUrl(){
+  if(deepLinkHandled)return;
+  deepLinkHandled=true;
+  const id=Number(new URLSearchParams(location.search).get('church'));
+  if(!id)return;
+  const c=churchesData.find(x=>x.id===id);
+  if(c)openChurch(c);else setChurchParam(null);
+}
+
+// Kilise başına paylaşım: telefonda paylaşım menüsü, olmazsa bağlantıyı kopyalar
+async function shareChurch(){
+  const c=activeChurch;if(!c)return;
+  const url=location.origin+'/?church='+c.id;
+  const text=[denLabel(c.denomination),$('drawer-loc').textContent].filter(Boolean).join(' · ');
+  if(navigator.share){
+    try{await navigator.share({title:c.name+' — The Church Atlas',text,url});return}
+    catch(e){if(e&&e.name==='AbortError')return}
+  }
+  try{await navigator.clipboard.writeText(url);toast(t('tCopied'))}
+  catch(e){toast(url)}
+}
+
 function openChurch(c,opts){
   activeChurch=c;activeChurchId=c.id;
+  setChurchParam(c.id);
   $('drawer-img').alt=c.name;
 
   const userPhotos=c.photos.map(p=>({url:p.url,kind:'user',by:p.by}));
@@ -1212,10 +1265,10 @@ function openChurch(c,opts){
   if(!(opts&&opts.keepView))map.setView([c.lat,c.lng],15,{animate:true});
 }
 
-$('drawer-close').addEventListener('click',()=>$('info-drawer').classList.remove('active'));
+$('drawer-close').addEventListener('click',()=>closeDrawer());
 map.on('click',e=>{
   if(pickMode){setPick(e.latlng);return}
-  $('info-drawer').classList.remove('active');
+  closeDrawer();
 });
 
 $('empty-cta').addEventListener('click',e=>{
@@ -1367,7 +1420,7 @@ $('contrib-submit').addEventListener('click',async()=>{
   btn.disabled=false;btn.textContent=t('submit');
   ['contrib-name','contrib-photo','contrib-comment'].forEach(i=>$(i).value='');
   clearPicked();
-  $('info-drawer').classList.remove('active');
+  closeDrawer();
   toast(t('tSent'));
 });
 
@@ -1395,9 +1448,13 @@ function setTab(t){
   adminTab=t;
   $('tab-pending').classList.toggle('active',t==='pending');
   $('tab-churches').classList.toggle('active',t==='churches');
+  $('tab-approved').classList.toggle('active',t==='approved');
   $('pending-list').hidden=t!=='pending';
   $('church-admin').hidden=t!=='churches';
-  if(t==='pending')refreshPending();else renderChurchAdmin();
+  $('approved-admin').hidden=t!=='approved';
+  if(t==='pending')refreshPending();
+  else if(t==='churches')renderChurchAdmin();
+  else loadApproved(true);
 }
 
 /* ---------------- Yönetici: kilise ekle / düzenle / sil ---------------- */
@@ -1489,6 +1546,7 @@ $('cf-lat').addEventListener('input',()=>{
 
 $('tab-pending').addEventListener('click',()=>setTab('pending'));
 $('tab-churches').addEventListener('click',()=>setTab('churches'));
+$('tab-approved').addEventListener('click',()=>setTab('approved'));
 $('church-add-btn').addEventListener('click',()=>openChurchForm(null));
 $('cf-cancel').addEventListener('click',()=>{adminTab='churches';showPanel()});
 
@@ -2082,7 +2140,7 @@ function setPick(latlng){
 
 function startPick(){
   pickMode=true;pickLatLng=null;
-  $('info-drawer').classList.remove('active');
+  closeDrawer();
   $('admin-modal').style.display='none';
   $('pick-bar').hidden=false;
   $('pick-ok').disabled=true;
@@ -2169,6 +2227,67 @@ async function removeStoredPhoto(url){
   await sb.storage.from(PHOTO_BUCKET).remove([path]);
 }
 
+/* ---------------- Yönetici: yayındaki katkıları listele ve sil ---------------- */
+const APPROVED_PAGE=20;
+let approvedOffset=0;
+
+function renderApprovedItem(item){
+  const box=document.createElement('div');box.className='pending-item';
+  const church=document.createElement('div');
+  church.style.cssText='font-size:.8rem;font-weight:700;color:#2563eb';
+  church.textContent='⛪ '+((item.atlas_churches&&item.atlas_churches.name)||'Kilise');
+  const body=document.createElement('div');body.style.cssText='font-size:.85rem;margin:4px 0';
+  const author=document.createElement('strong');author.textContent=item.name;
+  body.append(author,': ',item.comment||'(yalnızca fotoğraf)');
+  box.append(church,body);
+  const photo=item.photo_url&&safeImageUrl(item.photo_url);
+  if(photo){
+    const pv=document.createElement('img');pv.className='pending-preview';pv.alt='Yayındaki fotoğraf';
+    pv.loading='lazy';pv.referrerPolicy='no-referrer';pv.src=photo;
+    pv.onerror=()=>{pv.hidden=true};
+    box.append(pv);
+  }
+  const meta=document.createElement('div');meta.className='approved-meta';
+  meta.textContent=item.created_at?new Date(item.created_at).toLocaleDateString('tr-TR'):'';
+  box.append(meta);
+  const actions=document.createElement('div');actions.className='pending-actions';
+  const del=document.createElement('button');del.type='button';del.className='btn-reject';del.textContent='🗑 Sil';
+  del.addEventListener('click',()=>deleteContribution(item,box,del));
+  actions.append(del);box.append(actions);
+  return box;
+}
+
+async function loadApproved(reset){
+  const list=$('approved-list'),more=$('approved-more');
+  if(reset){approvedOffset=0;list.replaceChildren();more.hidden=true;list.className='muted';list.textContent='Yükleniyor...'}
+  const{data,error}=await sb.from('atlas_contributions')
+    .select('id,name,comment,photo_url,created_at,atlas_churches(name)')
+    .eq('status','approved')
+    .order('created_at',{ascending:false})
+    .range(approvedOffset,approvedOffset+APPROVED_PAGE-1);
+  if(error){list.className='err';list.textContent='Hata: '+error.message;return}
+  if(reset){list.replaceChildren();list.className=''}
+  if(reset&&!data.length){list.className='muted';list.textContent='Yayında katkı yok.';return}
+  data.forEach(item=>list.append(renderApprovedItem(item)));
+  approvedOffset+=data.length;
+  more.hidden=data.length<APPROVED_PAGE;
+}
+$('approved-more').addEventListener('click',()=>loadApproved(false));
+
+async function deleteContribution(item,box,btn){
+  if(!confirm('Bu katkı (yorum ve varsa yüklenen fotoğraf) kalıcı olarak silinecek. Emin misin?'))return;
+  btn.disabled=true;
+  const{data,error}=await sb.from('atlas_contributions').delete().eq('id',item.id).select();
+  if(error){btn.disabled=false;toast('Silinemedi: '+error.message);return}
+  if(!data||!data.length){btn.disabled=false;toast('Silinemedi. Yönetici hesabıyla giriş yaptığından emin ol.');return}
+  removeStoredPhoto(item.photo_url).catch(()=>{});   // yüklenen fotoğraf dosyası da depodan silinir
+  box.remove();
+  approvedOffset=Math.max(0,approvedOffset-1);
+  toast('Katkı silindi.');
+  if(!$('approved-list').children.length){$('approved-list').className='muted';$('approved-list').textContent='Yayında katkı yok.'}
+  loadChurches();                                   // haritadaki herkese açık veri de güncellenir
+}
+
 async function moderate(id,status,photoUrl){
   const{data,error}=await sb.from('atlas_contributions').update({status}).eq('id',id).select();
   if(error)return toast('Hata: '+error.message);
@@ -2245,6 +2364,7 @@ function applySupportText(){
   LANGS.forEach(([code,name])=>{const o=document.createElement('option');o.value=code;o.textContent=name;sel.append(o)});
   sel.addEventListener('change',()=>setLang(sel.value,{persist:true}));
   $('share-btn').addEventListener('click',shareSite);
+  $('church-share').addEventListener('click',shareChurch);
 
   // Hakkında penceresi
   const aboutModal=$('about-modal');
