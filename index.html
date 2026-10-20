@@ -371,7 +371,9 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
         </div>
         <div id="city-results"></div>
         <button type="button" class="btn-secondary wide" id="fix-denom-btn">🪄 Mezhepleri otomatik düzelt</button>
-        <button type="button" class="btn-secondary wide" id="fill-geo-btn">🌍 Eksik şehir/ülke bilgisini tamamla</button>
+        <label class="field-label" for="geo-scope">Şehir/il/ülke bilgisi eksik olanlar için kapsam</label>
+        <select id="geo-scope" class="contrib-input"></select>
+        <button type="button" class="btn-secondary wide" id="fill-geo-btn">🌍 Eksik bilgileri tamamla</button>
         <p id="geo-progress" class="muted small" hidden></p>
         <p id="region-hint" class="err small" hidden>İl/eyalet ve ülke kodu için Supabase'de SQL Editor'ü açıp şunu bir kez çalıştır: <b>alter table atlas_churches add column if not exists region text, add column if not exists country_code text;</b> Sonra siteyi yenile.</p>
         <div class="church-filters">
@@ -1807,7 +1809,7 @@ function updateImportCount(){
   $('import-save').disabled=n===0;
 }
 
-$('import-city-btn').addEventListener('click',()=>startImport(IZMIR_BBOX,'İzmir','',{city:'İzmir',country:'Türkiye',countryCode:'TR'}));
+$('import-city-btn').addEventListener('click',()=>startImport(IZMIR_BBOX,'İzmir','',{city:'İzmir',country:'Türkiye',countryCode:'TR',region:'İzmir'}));
 $('import-view-btn').addEventListener('click',()=>{
   const b=map.getBounds();
   const bbox=[b.getSouth(),b.getWest(),b.getNorth(),b.getEast()];
@@ -1843,16 +1845,21 @@ $('import-save').addEventListener('click',async()=>{
       wiki_titles:c.wiki_titles
     };
   });
-  if(regionSupported)rows.forEach(r=>{r.region=''});
+  if(regionSupported)rows.forEach(r=>{r.region=(importPlace&&importPlace.region)||''});
   if(countryCodeSupported)rows.forEach(r=>{r.country_code=(importPlace&&importPlace.countryCode)||''});
   const btn=$('import-save');btn.disabled=true;$('import-msg').textContent='';
   const{data,error}=await sb.from('atlas_churches').insert(rows).select();
   if(error){btn.disabled=false;$('import-msg').textContent='Eklenemedi: '+error.message;return}
   if(!data||!data.length){btn.disabled=false;$('import-msg').textContent='Eklenemedi. Yönetici hesabıyla giriş yaptığından emin ol.';return}
   toast(data.length+' kilise eklendi.');
+  lastImportedIds=data.map(r=>r.id);
+  try{localStorage.setItem('lastImportedIds',JSON.stringify(lastImportedIds))}catch(e){}
   await loadChurches();
   if(lastImportBbox){const[s0,w0,n0,e0]=lastImportBbox;map.fitBounds([[s0,w0],[n0,e0]],{padding:[30,30],maxZoom:15})}
   adminTab='churches';showPanel();
+  // Yeni eklenenlerin eksik bilgisi (örn. haritadan görünen alanla eklenenlerin ili) varsa yalnızca onlar tamamlanır
+  const need=geoTodo('last');
+  if(need.length){toast('Yeni eklenen '+need.length+' kilisenin eksik bilgileri tamamlanıyor...');runGeoFill(need)}
 });
 
 /* ---------------- Şehir adıyla arama (OpenStreetMap Nominatim) ---------------- */
@@ -1888,7 +1895,12 @@ function startPlaceImport(p,area){
   $('city-results').replaceChildren();
   startImport(area.bbox,name,
     area.clamped?'Şehir büyük olduğu için merkezinin çevresindeki alan tarandı; başka bir bölgeyi haritadan seçerek de arayabilirsin.':'',
-    {city:name,country:parts.length>1?parts[parts.length-1]:'',countryCode:String((p.address&&p.address.country_code)||'').toUpperCase()});
+    {city:name,country:parts.length>1?parts[parts.length-1]:'',
+     countryCode:String((p.address&&p.address.country_code)||'').toUpperCase(),
+     region:(()=>{
+       const a=p.address||{},inTr=String(a.country_code||'').toLowerCase()==='tr';
+       return (inTr?(a.province||a.state):(a.state||a.province||a.county))||'';
+     })()});
 }
 
 async function runCitySearch(){
@@ -1952,19 +1964,40 @@ async function reverseGeocode(lat,lng,lang){
 }
 
 let geoRunning=false,geoStop=false;
+let lastImportedIds=safeParse(localStorage.getItem('lastImportedIds'),[]);
 const needsGeo=c=>!c.city||!c.country||(regionSupported&&!c.region)||(countryCodeSupported&&!c.countryCode);
-function missingGeoCount(){return churchesData.filter(needsGeo).length}
+
+// Kapsam: son içe aktarılanlar, en yeni 50/100 ya da tümü. Liste hep en yeni kilise önce gelir.
+function geoPool(scope){
+  let pool=churchesData.slice().sort((a,b)=>b.id-a.id);
+  if(scope==='last'){const ids=new Set(lastImportedIds);pool=pool.filter(c=>ids.has(c.id))}
+  else if(scope!=='all')pool=pool.slice(0,Number(scope)||50);
+  return pool;
+}
+const geoTodo=scope=>geoPool(scope).filter(needsGeo);
+const geoMinutes=n=>Math.max(1,Math.round(n*1.1/60));
+
 function updateGeoBtn(){
   if(geoRunning)return;
-  $('fill-geo-btn').textContent='🌍 Eksik şehir/il/ülke bilgisini tamamla ('+missingGeoCount()+')';
+  const sel=$('geo-scope'),keep=sel.value;
+  const opts=[];
+  if(lastImportedIds.length)opts.push(['last','Son içe aktarılan '+geoPool('last').length+' kilise']);
+  opts.push(['50','En yeni 50 kilise'],['100','En yeni 100 kilise'],['all','Tüm kiliseler ('+churchesData.length+')']);
+  sel.replaceChildren();
+  opts.forEach(([v,l])=>{
+    const o=document.createElement('option');o.value=v;
+    o.textContent=l+' — eksik: '+geoTodo(v).length;
+    sel.append(o);
+  });
+  sel.value=opts.some(o=>o[0]===keep)?keep:opts[0][0];
+  const n=geoTodo(sel.value).length;
+  $('fill-geo-btn').textContent='🌍 Eksik bilgileri tamamla ('+n+(n?' kilise · ≈'+geoMinutes(n)+' dk':'')+')';
   $('region-hint').hidden=(regionSupported&&countryCodeSupported)||!churchesData.length;
 }
+$('geo-scope').addEventListener('change',updateGeoBtn);
 
-$('fill-geo-btn').addEventListener('click',async()=>{
-  if(geoRunning){geoStop=true;return}
-  if(!sb)return;
-  const todo=churchesData.filter(needsGeo);
-  if(!todo.length){toast('Eksik şehir/il/ülke bilgisi olan kilise yok.');return}
+async function runGeoFill(todo){
+  if(!sb||geoRunning||!todo.length)return;
   geoRunning=true;geoStop=false;
   const btn=$('fill-geo-btn'),prog=$('geo-progress');
   btn.textContent='⏹ Durdur';prog.hidden=false;
@@ -1987,11 +2020,20 @@ $('fill-geo-btn').addEventListener('click',async()=>{
     }catch(e){failed++}
     await sleep(1100); // Nominatim kuralı: saniyede en fazla 1 istek
   }
+  const stopped=geoStop;
   geoRunning=false;geoStop=false;
   prog.hidden=true;
-  toast(done+' kilisenin bilgisi tamamlandı'+(failed?'; '+failed+' tanesi bulunamadı.':'.'));
+  toast(done+' kilisenin bilgisi tamamlandı'+(stopped?' (durduruldu)':'')+(failed?'; '+failed+' tanesi bulunamadı.':'.'));
   await loadChurches();
   renderChurchAdmin();
+}
+
+$('fill-geo-btn').addEventListener('click',async()=>{
+  if(geoRunning){geoStop=true;return}
+  const todo=geoTodo($('geo-scope').value);
+  if(!todo.length){toast('Bu kapsamda eksik şehir/il/ülke bilgisi olan kilise yok.');return}
+  if(todo.length>60&&!confirm(todo.length+' kilise için bilgi aranacak. Servis saniyede yalnızca 1 istek kabul ettiği için yaklaşık '+geoMinutes(todo.length)+' dakika sürer; sayfayı kapatma. "Durdur"a basarsan o ana kadar yapılanlar kaydedilir. Devam edilsin mi?'))return;
+  await runGeoFill(todo);
 });
 
 /* ---------------- Haritadan konum seçme ---------------- */
