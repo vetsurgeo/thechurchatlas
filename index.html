@@ -21,7 +21,7 @@
 <meta name="twitter:image" content="https://thechurchatlas.com/og-image.png">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebSite", "name": "The Church Atlas", "url": "https://thechurchatlas.com/", "description": "An open, community-built map documenting the world's church heritage: architecture, history and photographs.", "inLanguage": ["en", "tr", "es", "fr", "de", "it", "pt", "nl", "pl", "ro", "ru", "uk", "el", "hy", "ar", "ja", "ko", "zh"], "publisher": {"@type": "Organization", "name": "The Church Atlas", "url": "https://thechurchatlas.com/", "logo": "https://thechurchatlas.com/apple-touch-icon.png"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebSite", "name": "The Church Atlas", "url": "https://thechurchatlas.com/", "description": "An open, community-built map documenting the world's church heritage: architecture, history and photographs.", "inLanguage": ["en", "tr", "es", "fr", "de", "it", "pt", "nl", "pl", "ro", "ru", "uk", "el", "hy", "ar", "ja", "ko", "zh"], "publisher": {"@type": "Organization", "name": "The Church Atlas", "url": "https://thechurchatlas.com/", "logo": "https://thechurchatlas.com/apple-touch-icon.png", "email": "info@thechurchatlas.com", "contactPoint": {"@type": "ContactPoint", "email": "info@thechurchatlas.com", "contactType": "customer support"}}}</script>
 <meta name="theme-color" content="#0f172a">
 <link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -484,6 +484,7 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
     <p class="about-p" data-i18n="aboutP1"></p>
     <p class="about-p" data-i18n="aboutHow"></p>
     <p class="about-p" data-i18n="aboutData"></p>
+    <p class="about-p" style="text-align:center;margin-bottom:14px">✉ <a href="mailto:info@thechurchatlas.com">info@thechurchatlas.com</a></p>
     <div style="text-align:center"><a class="support-cta" id="about-more" href="/about.html" target="_blank" rel="noopener" data-i18n="aboutMore">Read</a></div>
     <button type="button" class="support-close" id="about-close" data-i18n="close">Close</button>
   </div>
@@ -519,7 +520,7 @@ const sb=/BURAYA/.test(SUPABASE_URL+SUPABASE_KEY)?null:supabase.createClient(SUP
 const DONATE_URL='https://buymeacoffee.com/thechurchatlas';
 
 /* Sürüm damgası: yönetici penceresinin altında görünür; yeni dosyanın yayında olup olmadığını anlamak içindir */
-const APP_VERSION='2026.10.20-l';
+const APP_VERSION='2026.10.20-m';
 
 const $=id=>document.getElementById(id);
 const toastEl=$('toast');let toastTimer;
