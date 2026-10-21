@@ -99,6 +99,17 @@ function notFound(res,lang){
   res.status(404).send(page({title:'Not found — The Church Atlas',desc:'Not found',lang,canonical:'',robots:'noindex',image:SITE+'/og-image.png',ld:null,body}));
 }
 
+// Gizliliğe saygılı ziyaret sayacı: çerez, IP adresi ya da kişi kimliği yok; JavaScript çalıştırmayan botlar zaten sayılmaz
+function trackScript(id,lang){
+  return '<script>(function(){try{if(navigator.doNotTrack==="1"||navigator.globalPrivacyControl||localStorage.getItem("noTrack")==="1")return;'
+   +'var k="hit:church:'+id+'";if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1");'
+   +'var p=new URLSearchParams(location.search),s=String(p.get("src")||p.get("utm_source")||"").toLowerCase().replace(/[^a-z0-9_-]/g,"").slice(0,30),r="";'
+   +'try{var h=new URL(document.referrer).hostname.replace(/^www\\./,"");if(h&&h!==location.hostname.replace(/^www\\./,""))r=h}catch(e){}'
+   +'var b=JSON.stringify({k:"church",c:'+Number(id)+',l:"'+lang+'",r:r,s:s});'
+   +'if(!(navigator.sendBeacon&&navigator.sendBeacon("/api/hit",new Blob([b],{type:"application/json"}))))fetch("/api/hit",{method:"POST",headers:{"Content-Type":"application/json"},body:b,keepalive:true})'
+   +'}catch(e){}})()</script>';
+}
+
 function buildChurchPage(c,contribs,nearby,lang,wikiImage){
   const ui=UI[lang],den=(DEN[lang]||DEN.en)[c.denomination]||c.denomination||'';
   const country=countryLabel(c,lang);
@@ -128,7 +139,8 @@ function buildChurchPage(c,contribs,nearby,lang,wikiImage){
    +(photos.length>1?'<h2>'+esc(ui.photos)+'</h2>\n<div class="grid">'+photos.slice(1,13).map(p=>'<img loading="lazy" src="'+esc(p)+'" alt="'+esc(c.name)+'">').join('')+'</div>\n':'')
    +(comments?'<h2>'+esc(COMMENTS[lang]||COMMENTS.en)+'</h2>\n'+comments+'\n':'')
    +(nearby.length?'<h2>'+esc(ui.nearby.replace('{place}',c.city||c.region||country))+'</h2>\n<ul class="links">'+nearby.map(n=>'<li><a href="/church/'+n.id+'?lang='+lang+'">'+esc(n.name)+'</a></li>').join('')+'</ul>\n':'')
-   +'<footer>'+LANGS.map(([code,name])=>'<a href="/church/'+c.id+'?lang='+code+'" hreflang="'+code+'">'+esc(name)+'</a>').join('')+'</footer>\n</main>';
+   +'<footer>'+LANGS.map(([code,name])=>'<a href="/church/'+c.id+'?lang='+code+'" hreflang="'+code+'">'+esc(name)+'</a>').join('')+'</footer>\n</main>\n'
+   +trackScript(c.id,lang);
   return page({title,desc,lang,canonical:url,robots:'index,follow',image,ld,body});
 }
 
