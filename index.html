@@ -403,6 +403,7 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
         <select id="geo-scope" class="contrib-input"></select>
         <button type="button" class="btn-secondary wide" id="fill-geo-btn">🌍 Eksik bilgileri tamamla</button>
         <p id="geo-progress" class="muted small" hidden></p>
+        <div id="geo-report" class="muted small" hidden></div>
         <p id="region-hint" class="err small" hidden>İl/eyalet ve ülke kodu için Supabase'de SQL Editor'ü açıp şunu bir kez çalıştır: <b>alter table atlas_churches add column if not exists region text, add column if not exists country_code text;</b> Sonra siteyi yenile.</p>
         <div class="church-filters">
           <input type="search" id="church-filter" class="contrib-input" placeholder="Listede ara..." aria-label="Kilise listesinde ara">
@@ -538,7 +539,7 @@ const DONATE_URL='https://buymeacoffee.com/thechurchatlas';
 const SITE_URL='https://thechurchatlas.com';
 
 /* Sürüm damgası: yönetici penceresinin altında görünür; yeni dosyanın yayında olup olmadığını anlamak içindir */
-const APP_VERSION='2026.10.21-q';
+const APP_VERSION='2026.10.21-r';
 
 const $=id=>document.getElementById(id);
 const toastEl=$('toast');let toastTimer;
@@ -2089,14 +2090,18 @@ async function reverseGeocode(lat,lng,lang){
   const ctrl=new AbortController();const timer=setTimeout(()=>ctrl.abort(),10000);
   try{
     const r=await fetch(url,{signal:ctrl.signal});
-    if(!r.ok)throw new Error('HTTP '+r.status);
+    if(!r.ok){const e=new Error('HTTP '+r.status);e.status=r.status;throw e}
     const j=await r.json();
     const a=j.address||{};
     const inTr=String(a.country_code||'').toLowerCase()==='tr';
     // Türkiye'de il adı (Samsun, İzmir...), diğer ülkelerde eyalet/bölge adı
-    const region=(inTr?(a.province||a.state):(a.state||a.province||a.county))||'';
-    const city=(a.city||a.town||a.municipality||a.village||a.county||a.province)||a.state||'';
-    return{city,region,country:a.country||'',countryCode:String(a.country_code||'').toUpperCase()};
+    const region0=(inTr?(a.province||a.state):(a.state||a.province||a.county))||'';
+    const city0=(a.city||a.town||a.municipality||a.village||a.county||a.province)||a.state||'';
+    const country=a.country||'';
+    // Yedek: bulunamayan alan komşu bilgiyle doldurulur (küçük ülkelerde il/eyalet yoktur; aksi halde kilise hep "eksik" görünürdü)
+    const region=region0||city0||country;
+    const city=city0||region0||country;
+    return{city,region,country,countryCode:String(a.country_code||'').toUpperCase()};
   }finally{clearTimeout(timer)}
 }
 
@@ -2130,37 +2135,79 @@ function updateGeoBtn(){
   const n=geoTodo(sel.value).length;
   $('fill-geo-btn').textContent='🌍 Eksik bilgileri tamamla ('+n+(n?' kilise · ≈'+geoMinutes(n)+' dk':'')+')';
   $('region-hint').hidden=(regionSupported&&countryCodeSupported)||!churchesData.length;
+  showGeoReport(geoReport);
 }
 $('geo-scope').addEventListener('change',updateGeoBtn);
+
+const GEO_REPORT_KEY='geoReport_v1';
+let geoReport=safeParse(localStorage.getItem(GEO_REPORT_KEY),null);
+const GEO_REASONS={
+  empty:'Servis bu konum için bilgi vermedi',
+  network:'Bağlantı hatası ya da zaman aşımı',
+  save:'Veritabanına yazılamadı (yönetici olarak giriş yaptığından emin ol)'
+};
+const geoReasonText=k=>GEO_REASONS[k]||(k.startsWith('http-')?'Servis isteği reddetti (HTTP '+k.slice(5)+'; çok sık istek yüzünden geçici sınır olabilir)':k);
+
+function showGeoReport(rep){
+  const box=$('geo-report');
+  if(!rep){box.hidden=true;return}
+  const lines=['Son çalışma ('+new Date(rep.t).toLocaleString('tr-TR')+'): tamamlanan '+rep.done+', tamamlanamayan '+rep.failed.length
+    +(rep.stoppedBy==='limit'?' — servis istekleri sınırladığı için durduruldu; bir saat kadar sonra tekrar dene':rep.stoppedBy==='user'?' — durduruldu':'')];
+  const by={};rep.failed.forEach(f=>{by[f.reason]=(by[f.reason]||0)+1});
+  Object.entries(by).forEach(([k,v])=>lines.push('• '+geoReasonText(k)+': '+v));
+  rep.failed.slice(0,15).forEach(f=>lines.push('    – '+f.name+' (#'+f.id+')'));
+  if(rep.failed.length>15)lines.push('    … ve '+(rep.failed.length-15)+' tane daha');
+  box.textContent=lines.join('\n');box.style.whiteSpace='pre-wrap';box.hidden=false;
+}
 
 async function runGeoFill(todo){
   if(!sb||geoRunning||!todo.length)return;
   geoRunning=true;geoStop=false;
   const btn=$('fill-geo-btn'),prog=$('geo-progress');
   btn.textContent='⏹ Durdur';prog.hidden=false;
-  let done=0,failed=0;
+  let done=0,consecutiveLimit=0,stoppedBy='';
+  const failed=[];
+  const isLimit=e=>e&&(e.status===429||e.status===403||e.status===503);
   for(let i=0;i<todo.length;i++){
-    if(geoStop)break;
+    if(geoStop){stoppedBy='user';break}
     const c=todo[i];
     prog.textContent='Tamamlanıyor: '+(i+1)+' / '+todo.length+' ('+c.name+')';
+    let reason=null;
     try{
-      const g=await reverseGeocode(c.lat,c.lng);
-      const patch={};
-      if(!c.city&&g.city)patch.city=g.city;
-      if(!c.country&&g.country)patch.country=g.country;
-      if(regionSupported&&!c.region&&g.region)patch.region=g.region;
-      if(countryCodeSupported&&!c.countryCode&&g.countryCode)patch.country_code=g.countryCode;
-      if(Object.keys(patch).length){
-        const{data,error}=await sb.from('atlas_churches').update(patch).eq('id',c.id).select();
-        if(error||!data||!data.length)failed++;else{Object.assign(c,patch);if(patch.country_code)c.countryCode=patch.country_code;done++}
-      }else failed++;
-    }catch(e){failed++}
+      let g;
+      try{g=await reverseGeocode(c.lat,c.lng)}
+      catch(e){
+        if(isLimit(e)){await sleep(4000);g=await reverseGeocode(c.lat,c.lng)}   // sınır hatasında bir kez daha dene
+        else throw e;
+      }
+      consecutiveLimit=0;
+      if(!g.city&&!g.region&&!g.country)reason='empty';
+      else{
+        const patch={};
+        if(!c.city&&g.city)patch.city=g.city;
+        if(!c.country&&g.country)patch.country=g.country;
+        if(regionSupported&&!c.region&&g.region)patch.region=g.region;
+        if(countryCodeSupported&&!c.countryCode&&g.countryCode)patch.country_code=g.countryCode;
+        if(!Object.keys(patch).length)reason='empty';
+        else{
+          const{data,error}=await sb.from('atlas_churches').update(patch).eq('id',c.id).select();
+          if(error||!data||!data.length)reason='save';
+          else{Object.assign(c,patch);if(patch.country_code)c.countryCode=patch.country_code;done++}
+        }
+      }
+    }catch(e){
+      reason=e&&e.status?'http-'+e.status:'network';
+      consecutiveLimit=isLimit(e)?consecutiveLimit+1:0;
+    }
+    if(reason)failed.push({id:c.id,name:c.name,reason});
+    if(consecutiveLimit>=3){stoppedBy='limit';break}      // servis sınırlıyorsa daha fazla zorlama
     await sleep(1100); // Nominatim kuralı: saniyede en fazla 1 istek
   }
-  const stopped=geoStop;
   geoRunning=false;geoStop=false;
   prog.hidden=true;
-  toast(done+' kilisenin bilgisi tamamlandı'+(stopped?' (durduruldu)':'')+(failed?'; '+failed+' tanesi bulunamadı.':'.'));
+  geoReport={t:Date.now(),done,failed,stoppedBy};
+  try{localStorage.setItem(GEO_REPORT_KEY,JSON.stringify(geoReport))}catch(e){}
+  toast(done+' kilisenin bilgisi tamamlandı'+(failed.length?'; '+failed.length+' tanesi tamamlanamadı (nedenleri aşağıda).':'.'));
   await loadChurches();
   renderChurchAdmin();
 }
