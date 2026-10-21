@@ -538,7 +538,7 @@ const DONATE_URL='https://buymeacoffee.com/thechurchatlas';
 const SITE_URL='https://thechurchatlas.com';
 
 /* Sürüm damgası: yönetici penceresinin altında görünür; yeni dosyanın yayında olup olmadığını anlamak içindir */
-const APP_VERSION='2026.10.21-p';
+const APP_VERSION='2026.10.21-q';
 
 const $=id=>document.getElementById(id);
 const toastEl=$('toast');let toastTimer;
@@ -830,25 +830,34 @@ function updateCountBadge(){
 
 function renderMarkers(data,fit){
   if(clusterGroup)clusterGroup.clearLayers();else markers.forEach(m=>map.removeLayer(m));
-  markers=[];
-  data.forEach(c=>{
-    const m=L.marker([c.lat,c.lng]);
-    m.on('click',()=>{if(pickMode)return;openChurch(c)});
-    markers.push(m);
+  markers=data.map(c=>{
+    // Her kilisenin işareti bir kez oluşturulur, aramada yeniden kullanılır (binlerce işareti baştan yaratmak yavaştı)
+    if(!c._m){
+      c._m=L.marker([c.lat,c.lng]);
+      c._m.on('click',()=>{if(pickMode)return;openChurch(c)});
+    }
+    return c._m;
   });
   if(clusterGroup)clusterGroup.addLayers(markers);else markers.forEach(m=>m.addTo(map));
   lastCount=data.length;
   updateCountBadge();
-  if(fit&&data.length)map.fitBounds(L.featureGroup(markers).getBounds(),{padding:[40,40],maxZoom:15});
+  if(fit&&data.length)map.fitBounds(L.latLngBounds(data.map(c=>[c.lat,c.lng])),{padding:[40,40],maxZoom:15});
 }
 
 const activeDens=new Set(); // seçili mezhepler; boşsa hepsi gösterilir
 const denKey=c=>DENOMS.includes(c.denomination)?c.denomination:'Diğer';
 
 // Arama kutusundaki sözcüklerin hepsi kilisede geçiyor mu? ("İzmir", "izmir", "İZMİR" aynıdır)
+// Aranacak metin kilise başına bir kez hazırlanır; her tuş vuruşunda yeniden hesaplanmaz
+function hayOf(c){
+  if(c._hay&&c._hayLang===currentLang)return c._hay;
+  c._hayLang=currentLang;
+  c._hay=foldText([c.name,c.city,c.region,countrySearchText(c),c.denomination,denLabel(c.denomination),c.description].join(' '));
+  return c._hay;
+}
 function matchesSearch(c,tokens){
   if(!tokens.length)return true;
-  const hay=foldText([c.name,c.city,c.region,countrySearchText(c),c.denomination,denLabel(c.denomination),c.description].join(' '));
+  const hay=hayOf(c);
   return tokens.every(t=>hay.includes(t));
 }
 const searchTokens=()=>foldText($('search-input').value).split(/\s+/).filter(Boolean);
@@ -944,7 +953,11 @@ document.addEventListener('pointerdown',e=>{
   if(filterOpen&&!e.target.closest('.header-container'))setFilterOpen(false);
 });
 addEventListener('keydown',e=>{if(e.key==='Escape'&&filterOpen)setFilterOpen(false)});
-$('search-input').addEventListener('input',()=>applyFilter(true));
+let searchTimer=null;
+$('search-input').addEventListener('input',()=>{
+  clearTimeout(searchTimer);
+  searchTimer=setTimeout(()=>applyFilter(true),220);   // her harfte değil, yazma durunca çalışır
+});
 
 /* ---------------- Fotoğraf alanı (çekmece) ---------------- */
 let currentPhotos=[]; // [{url, credit}]
@@ -1535,7 +1548,7 @@ function renderChurchAdmin(){
       const{data,error}=await sb.from('atlas_churches').update({denomination:v}).eq('id',c.id).select();
       sel.disabled=false;
       if(error||!data||!data.length){sel.value=prev;toast('Güncellenemedi. Yönetici hesabıyla giriş yaptığından emin ol.');return}
-      c.denomination=v;c.badgeClass=DENOM[v]||'badge-diger';
+      c.denomination=v;c.badgeClass=DENOM[v]||'badge-diger';c._hay=null;
       toast('Mezhep güncellendi: '+v);
     });
     const b=document.createElement('button');b.type='button';b.className='btn-secondary';b.textContent='Düzenle';
