@@ -427,6 +427,9 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
         <button type="button" class="btn-secondary wide" id="disambig-btn" style="margin-top:10px">🏷 Aynı adlı kiliseleri ayrıştır</button>
         <p id="disambig-progress" class="muted small" hidden></p>
         <div id="disambig-report" class="muted small" hidden></div>
+        <button type="button" class="btn-secondary wide" id="wikilinks-btn" style="margin-top:10px">📚 Wikipedia bağlantılarını bul ve kaydet</button>
+        <p id="wikilinks-progress" class="muted small" hidden></p>
+        <div id="wikilinks-report" class="muted small" hidden></div>
         <p id="region-hint" class="err small" hidden>İl/eyalet ve ülke kodu için Supabase'de SQL Editor'ü açıp şunu bir kez çalıştır: <b>alter table atlas_churches add column if not exists region text, add column if not exists country_code text;</b> Sonra siteyi yenile.</p>
         <div class="church-filters">
           <input type="search" id="church-filter" class="contrib-input" placeholder="Listede ara..." aria-label="Kilise listesinde ara">
@@ -565,7 +568,7 @@ const DONATE_URL='https://buymeacoffee.com/thechurchatlas';
 const SITE_URL='https://thechurchatlas.com';
 
 /* Sürüm damgası: yönetici penceresinin altında görünür; yeni dosyanın yayında olup olmadığını anlamak içindir */
-const APP_VERSION='2026.10.21-t';
+const APP_VERSION='2026.10.21-u';
 
 const $=id=>document.getElementById(id);
 const toastEl=$('toast');let toastTimer;
@@ -2239,6 +2242,7 @@ function updateGeoBtn(){
   $('region-hint').hidden=(regionSupported&&countryCodeSupported)||!churchesData.length;
   showGeoReport(geoReport);
   updateDisambigBtn();
+  updateWikiBtn();
 }
 $('geo-scope').addEventListener('change',updateGeoBtn);
 
@@ -2469,6 +2473,117 @@ async function runDisambig(){
   renderChurchAdmin();
 }
 $('disambig-btn').addEventListener('click',()=>{if(disambigRunning){disambigStop=true;return}runDisambig()});
+
+/* ---------------- Yönetici: Wikipedia bağlantılarını Wikidata'dan toplu bul ve kaydet ---------------- */
+// Wikidata kaydı olan kiliselerin Wikipedia madde başlıklarını (Türkçe, İngilizce ve ülkenin kendi dili) tek seferde bulup kaydeder.
+// Böylece kilise sayfalarında ve uygulamadaki Wikipedia kutusunda özet ve fotoğraf daha hızlı ve eksiksiz gelir.
+const WIKI_REPORT_KEY='wikiLinksReport_v1',WIKI_DONE_KEY='wikiLinksDone_v1';
+let wikiRunning=false,wikiStop=false;
+let wikiDone=new Set(safeParse(localStorage.getItem(WIKI_DONE_KEY),[]));
+let wikiReport=safeParse(localStorage.getItem(WIKI_REPORT_KEY),null);
+const COUNTRY_WIKI_LANG={IT:'it',HR:'hr',FI:'fi',ES:'es',IS:'is',GR:'el',CY:'el',SY:'ar',UA:'uk',ZA:'af',DE:'de',FR:'fr',PT:'pt',NL:'nl',PL:'pl',RO:'ro',RU:'ru'};
+
+const wikiTargets=()=>churchesData.filter(c=>/^Q\d+$/.test(c.wikidata||'')&&!Object.keys(c.wikiTitles||{}).length&&!wikiDone.has(c.id));
+function updateWikiBtn(){
+  if(wikiRunning)return;
+  const n=wikiTargets().length;
+  $('wikilinks-btn').textContent='📚 Wikipedia bağlantılarını bul ve kaydet ('+n+')';
+  showWikiReport(wikiReport);
+}
+
+async function fetchSitelinks(qids){
+  const ctrl=new AbortController();const timer=setTimeout(()=>ctrl.abort(),15000);
+  try{
+    const r=await fetch('https://www.wikidata.org/w/api.php?action=wbgetentities&props=sitelinks&format=json&origin=*&ids='+qids.join('|'),{signal:ctrl.signal});
+    if(!r.ok){const e=new Error('HTTP '+r.status);e.status=r.status;throw e}
+    const j=await r.json();
+    return j.entities||{};
+  }finally{clearTimeout(timer)}
+}
+
+// Bir kilisenin Wikidata Wikipedia bağlantılarından saklanacak başlıklar: tr, en ve ülkenin kendi dili
+function titlesFromSitelinks(c,links){
+  const out={};
+  const pick=l=>{const t=links&&links[l+'wiki']&&links[l+'wiki'].title;if(typeof t==='string'&&t&&t.length<=200)out[l]=t};
+  pick('tr');pick('en');
+  const local=COUNTRY_WIKI_LANG[c.countryCode||''];
+  if(local)pick(local);
+  return out;
+}
+
+function showWikiReport(rep){
+  const box=$('wikilinks-report');
+  if(!rep){box.hidden=true;return}
+  const lines=['Son çalışma ('+new Date(rep.t).toLocaleString('tr-TR')+'): '+rep.checked+' kilise kontrol edildi'
+    +(rep.stopped==='error'?' — servis yanıt vermedi, durduruldu; biraz sonra tekrar dene':rep.stopped==='user'?' — durduruldu':''),
+    '• Türkçe Vikipedi maddesi olan: '+rep.tr,
+    '• İngilizce maddesi olan (Türkçesi olmayan): '+rep.enOnly,
+    '• Yalnızca başka dilde maddesi olan: '+rep.otherOnly,
+    '• Hiç Vikipedi maddesi bulunamayan: '+rep.none.length+(rep.none.length?' (aşağıda ilk '+Math.min(25,rep.none.length)+' tanesi)':'')];
+  rep.none.slice(0,25).forEach(f=>lines.push('    – '+f.name+' (#'+f.id+', '+(f.city||'')+')'));
+  if(rep.saveFailed)lines.push('• Veritabanına yazılamayan: '+rep.saveFailed+' (yönetici olarak giriş yaptığından emin ol)');
+  box.textContent=lines.join('\n');box.style.whiteSpace='pre-wrap';box.hidden=false;
+}
+
+async function runWikiLinks(){
+  if(!sb||wikiRunning)return;
+  const todo=wikiTargets();
+  if(!todo.length){toast('Kontrol edilecek yeni kilise yok.');return}
+  wikiRunning=true;wikiStop=false;
+  const btn=$('wikilinks-btn'),prog=$('wikilinks-progress');
+  btn.textContent='⏹ Durdur';prog.hidden=false;
+  const rep={t:Date.now(),checked:0,tr:0,enOnly:0,otherOnly:0,none:[],saveFailed:0,stopped:''};
+  let errors=0;
+  for(let i=0;i<todo.length;i+=50){
+    if(wikiStop){rep.stopped='user';break}
+    const chunk=todo.slice(i,i+50);
+    prog.textContent='Wikidata sorgulanıyor: '+Math.min(i+50,todo.length)+' / '+todo.length;
+    let ents;
+    try{ents=await fetchSitelinks(chunk.map(c=>c.wikidata));errors=0}
+    catch(e){
+      errors++;
+      if(errors>=2){rep.stopped='error';break}
+      i-=50;await sleep(3000);continue;                                  // bu parçayı bir kez daha dene
+    }
+    const writes=[];
+    chunk.forEach(c=>{
+      const links=ents[c.wikidata]&&ents[c.wikidata].sitelinks;
+      const titles=titlesFromSitelinks(c,links);
+      const any=links&&Object.keys(links).some(k=>/^[a-z]{2,3}wiki$/.test(k));
+      rep.checked++;
+      if(titles.tr)rep.tr++;
+      else if(titles.en)rep.enOnly++;
+      else if(any)rep.otherOnly++;
+      else rep.none.push({id:c.id,name:c.name,city:c.city});
+      // Başka dilde de olsa bir madde varsa, ilk bulunan dil de saklanır
+      if(!Object.keys(titles).length&&any){
+        const k=Object.keys(links).filter(x=>/^[a-z]{2,3}wiki$/.test(x)).sort()[0];
+        if(k&&links[k].title&&links[k].title.length<=200)titles[k.replace('wiki','')]=links[k].title;
+      }
+      if(Object.keys(titles).length)writes.push({c,titles});
+      wikiDone.add(c.id);
+    });
+    // Veritabanına 6'şar kayıt aynı anda yazılır
+    for(let w=0;w<writes.length;w+=6){
+      await Promise.all(writes.slice(w,w+6).map(async({c,titles})=>{
+        try{
+          const{data,error}=await sb.from('atlas_churches').update({wiki_titles:titles}).eq('id',c.id).select();
+          if(error||!data||!data.length){rep.saveFailed++;wikiDone.delete(c.id)}   // yazılamadıysa bir sonraki çalışmada yeniden denenir
+          else c.wikiTitles=titles;
+        }catch(e){rep.saveFailed++;wikiDone.delete(c.id)}
+      }));
+    }
+    try{localStorage.setItem(WIKI_DONE_KEY,JSON.stringify([...wikiDone]))}catch(e){}
+    await sleep(300);
+  }
+  wikiRunning=false;wikiStop=false;prog.hidden=true;
+  wikiReport=rep;
+  try{localStorage.setItem(WIKI_REPORT_KEY,JSON.stringify(rep))}catch(e){}
+  toast(rep.checked+' kilise kontrol edildi; '+(rep.tr+rep.enOnly+rep.otherOnly)+' tanesinin Vikipedi maddesi bulundu.');
+  await loadChurches();
+  renderChurchAdmin();
+}
+$('wikilinks-btn').addEventListener('click',()=>{if(wikiRunning){wikiStop=true;return}runWikiLinks()});
 
 /* ---------------- Haritadan konum seçme ---------------- */
 let pickMarker=null,pickLatLng=null;
