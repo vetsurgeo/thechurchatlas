@@ -424,6 +424,9 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
         <button type="button" class="btn-secondary wide" id="fill-geo-btn">🌍 Eksik bilgileri tamamla</button>
         <p id="geo-progress" class="muted small" hidden></p>
         <div id="geo-report" class="muted small" hidden></div>
+        <button type="button" class="btn-secondary wide" id="disambig-btn" style="margin-top:10px">🏷 Aynı adlı kiliseleri ayrıştır</button>
+        <p id="disambig-progress" class="muted small" hidden></p>
+        <div id="disambig-report" class="muted small" hidden></div>
         <p id="region-hint" class="err small" hidden>İl/eyalet ve ülke kodu için Supabase'de SQL Editor'ü açıp şunu bir kez çalıştır: <b>alter table atlas_churches add column if not exists region text, add column if not exists country_code text;</b> Sonra siteyi yenile.</p>
         <div class="church-filters">
           <input type="search" id="church-filter" class="contrib-input" placeholder="Listede ara..." aria-label="Kilise listesinde ara">
@@ -446,6 +449,9 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
           <option value="">Tüm mezhepler</option><option>Katolik</option><option>Ortodoks</option><option>Oryantal Ortodoks</option><option>Doğu Kilisesi</option><option>Protestan</option><option>Anglikan</option><option>Diğer</option>
         </select>
       </div>
+      <label class="field-label" for="import-city">Kayıtta görünecek şehir / yer adı</label>
+      <input type="text" id="import-city" class="contrib-input" placeholder="örn. Sisam, Roma, Sevilla" aria-label="Kayıtta görünecek şehir adı">
+      <label class="check-row"><input type="checkbox" id="import-disambig" checked> Aynı adlı kiliselere yer (köy/mahalle) adı ekle <span class="muted small">(kaydetme biraz uzun sürer)</span></label>
       <label class="check-row"><input type="checkbox" id="import-notable"> Yalnızca bilinen kiliseler (Wikidata kaydı olanlar)</label>
       <label class="check-row"><input type="checkbox" id="import-existing"> Zaten ekli olanları da göster</label>
       <div class="pending-actions" style="margin:0 0 8px">
@@ -559,7 +565,7 @@ const DONATE_URL='https://buymeacoffee.com/thechurchatlas';
 const SITE_URL='https://thechurchatlas.com';
 
 /* Sürüm damgası: yönetici penceresinin altında görünür; yeni dosyanın yayında olup olmadığını anlamak içindir */
-const APP_VERSION='2026.10.21-s';
+const APP_VERSION='2026.10.21-t';
 
 const $=id=>document.getElementById(id);
 const toastEl=$('toast');let toastTimer;
@@ -1873,9 +1879,20 @@ async function runWikidata([s,w,n,e]){
   }finally{clearTimeout(timer)}
 }
 
+// Yunanca/Arapça/Kiril gibi harflerle yazılmış adlar yerine, varsa Türkçe ya da İngilizce ad tercih edilir
+const NONLATIN=/[\u0370-\u03ff\u1f00-\u1fff\u0400-\u04ff\u0530-\u058f\u0590-\u05ff\u0600-\u06ff\u3040-\u30ff\u4e00-\u9fff\uac00-\ud7af]/;
+function pickName(t){
+  const tr=String(t['name:tr']||'').trim();
+  if(tr)return tr;
+  const local=String(t.name||'').trim();
+  if(local&&!NONLATIN.test(local))return local;          // Latin harfli yerel ad (örn. İtalyanca) olduğu gibi kalır
+  const alt=String(t['name:en']||t.int_name||'').trim();
+  return alt||local;
+}
+
 function toCandidate(el){
   const t=el.tags||{};
-  const name=String(t['name:tr']||t.name||'').trim();
+  const name=pickName(t);
   const lat=el.lat!=null?el.lat:el.center&&el.center.lat;
   const lng=el.lon!=null?el.lon:el.center&&el.center.lon;
   if(!name||lat==null||lng==null)return null;
@@ -1942,6 +1959,7 @@ async function startImport(bbox,label,extra,place){
     +(extra?' '+extra:''));
   // Süzgeçleri sıfırla; çok sonuç varsa önce yalnızca bilinen (Wikidata kaydı olan) kiliseleri öne al
   $('import-search').value='';$('import-denom').value='';$('import-existing').checked=false;
+  $('import-city').value=(importPlace&&importPlace.city)||'';
   const notable=list.length>150;
   $('import-notable').checked=notable;
   list.forEach(c=>{c.selected=!c.exists&&(!notable||!!c.wikidata)});
@@ -2020,6 +2038,14 @@ $('import-none').addEventListener('click',()=>{
   renderImportList(false);
 });
 $('import-cancel').addEventListener('click',()=>{adminTab='churches';showPanel()});
+// Aynı ad + aynı şehirdeki kiliseleri ayırt etmek için ada yer adı eklenir: "Agia Paraskevi (Karyes)"
+const nameKey=(n,city)=>foldText(n)+'|'+foldText(city||'');
+function addLocality(name,loc){
+  loc=String(loc||'').trim();
+  if(!loc||foldText(name).includes(foldText(loc)))return name;
+  return name+' ('+loc+')';
+}
+
 $('import-save').addEventListener('click',async()=>{
   const chosen=selectedImports();
   if(!chosen.length||!sb)return;
@@ -2027,7 +2053,7 @@ $('import-save').addEventListener('click',async()=>{
     const local=inBbox(c.lat,c.lng,IZMIR_BBOX);
     return{
       name:c.name,
-      city:c.city||(importPlace&&importPlace.city)||(local?'İzmir':''),
+      city:$('import-city').value.trim()||c.city||(importPlace&&importPlace.city)||(local?'İzmir':''),
       country:(importPlace&&importPlace.country)||(local?'Türkiye':''),
       denomination:c.denomination,
       description:c.description,
@@ -2040,6 +2066,25 @@ $('import-save').addEventListener('click',async()=>{
   if(regionSupported)rows.forEach(r=>{r.region=(importPlace&&importPlace.region)||''});
   if(countryCodeSupported)rows.forEach(r=>{r.country_code=(importPlace&&importPlace.countryCode)||''});
   const btn=$('import-save');btn.disabled=true;$('import-msg').textContent='';
+
+  // Aynı adlı kiliseler (eklenecekler arasında ya da zaten kayıtlı olanlarla): yer adı eklenir
+  if($('import-disambig').checked){
+    const counts=new Map();
+    rows.forEach(r=>{const k=nameKey(r.name,r.city);counts.set(k,(counts.get(k)||0)+1)});
+    const existingKeys=new Set(churchesData.map(e=>nameKey(e.name,e.city)));
+    const dup=rows.filter(r=>{const k=nameKey(r.name,r.city);return counts.get(k)>1||existingKeys.has(k)});
+    let limitHits=0;
+    for(let i=0;i<dup.length&&limitHits<3;i++){
+      $('import-msg').textContent='Aynı adlı kiliselere yer adı ekleniyor: '+(i+1)+' / '+dup.length+'...';
+      try{
+        const g=await reverseGeocode(dup[i].lat,dup[i].lng,'tr',16);
+        dup[i].name=addLocality(dup[i].name,g.locality);
+        limitHits=0;
+      }catch(e){if(e&&(e.status===429||e.status===403||e.status===503))limitHits++}
+      await sleep(1100);                                   // Nominatim kuralı: saniyede en fazla 1 istek
+    }
+    $('import-msg').textContent='';
+  }
   const{data,error}=await sb.from('atlas_churches').insert(rows).select();
   if(error){btn.disabled=false;$('import-msg').textContent='Eklenemedi: '+error.message;return}
   if(!data||!data.length){btn.disabled=false;$('import-msg').textContent='Eklenemedi. Yönetici hesabıyla giriş yaptığından emin ol.';return}
@@ -2084,10 +2129,12 @@ function placeArea(p){
 function startPlaceImport(p,area){
   const parts=String(p.display_name).split(', ');
   const name=parts[0];
+  const typed=$('city-input').value.trim();
+  const friendly=typed?typed.charAt(0).toLocaleUpperCase('tr')+typed.slice(1):name;   // yazdığın ad, resmî ad değil
   $('city-results').replaceChildren();
   startImport(area.bbox,name,
     area.clamped?'Şehir büyük olduğu için merkezinin çevresindeki alan tarandı; başka bir bölgeyi haritadan seçerek de arayabilirsin.':'',
-    {city:name,country:parts.length>1?parts[parts.length-1]:'',
+    {city:friendly,country:parts.length>1?parts[parts.length-1]:'',
      countryCode:String((p.address&&p.address.country_code)||'').toUpperCase(),
      region:(()=>{
        const a=p.address||{},inTr=String(a.country_code||'').toLowerCase()==='tr';
@@ -2139,8 +2186,8 @@ $('city-go').addEventListener('click',runCitySearch);
 $('city-input').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();runCitySearch()}});
 
 /* ---------------- Konumdan şehir/ülke bulma (OpenStreetMap Nominatim) ---------------- */
-async function reverseGeocode(lat,lng,lang){
-  const url='https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=10&accept-language='+encodeURIComponent(lang||'tr')+'&lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lng);
+async function reverseGeocode(lat,lng,lang,zoom){
+  const url='https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom='+(zoom||10)+'&accept-language='+encodeURIComponent(lang||'tr')+'&lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lng);
   const ctrl=new AbortController();const timer=setTimeout(()=>ctrl.abort(),10000);
   try{
     const r=await fetch(url,{signal:ctrl.signal});
@@ -2155,7 +2202,8 @@ async function reverseGeocode(lat,lng,lang){
     // Yedek: bulunamayan alan komşu bilgiyle doldurulur (küçük ülkelerde il/eyalet yoktur; aksi halde kilise hep "eksik" görünürdü)
     const region=region0||city0||country;
     const city=city0||region0||country;
-    return{city,region,country,countryCode:String(a.country_code||'').toUpperCase()};
+    const locality=a.village||a.hamlet||a.suburb||a.neighbourhood||a.quarter||a.city_district||a.town||'';   // köy/mahalle (zoom 16 ile daha doğru)
+    return{city,region,country,locality,countryCode:String(a.country_code||'').toUpperCase()};
   }finally{clearTimeout(timer)}
 }
 
@@ -2190,6 +2238,7 @@ function updateGeoBtn(){
   $('fill-geo-btn').textContent='🌍 Eksik bilgileri tamamla ('+n+(n?' kilise · ≈'+geoMinutes(n)+' dk':'')+')';
   $('region-hint').hidden=(regionSupported&&countryCodeSupported)||!churchesData.length;
   showGeoReport(geoReport);
+  updateDisambigBtn();
 }
 $('geo-scope').addEventListener('change',updateGeoBtn);
 
@@ -2354,6 +2403,72 @@ $('cf-qr').addEventListener('click',async()=>{
   }catch(e){toast('QR kodu oluşturulamadı. Bağlantını kontrol edip tekrar dene.')}
   btn.disabled=false;
 });
+
+/* ---------------- Yönetici: aynı adlı kiliseleri ayrıştır ---------------- */
+let disambigRunning=false,disambigStop=false;
+let disambigDone=new Set(safeParse(localStorage.getItem('disambigDone_v1'),[]));
+const saveDisambigDone=()=>{try{localStorage.setItem('disambigDone_v1',JSON.stringify([...disambigDone]))}catch(e){}};
+
+// Aynı ad + aynı şehirde birden çok kilise olan ve daha önce işlenmemiş olanlar
+function disambigTargets(){
+  const groups=new Map();
+  churchesData.forEach(c=>{const k=nameKey(c.name,c.city);if(!groups.has(k))groups.set(k,[]);groups.get(k).push(c)});
+  const out=[];
+  groups.forEach(arr=>{if(arr.length>1)arr.forEach(c=>{if(!disambigDone.has(c.id))out.push(c)})});
+  return out.sort((a,b)=>b.id-a.id);
+}
+function updateDisambigBtn(){
+  if(disambigRunning)return;
+  const n=disambigTargets().length;
+  $('disambig-btn').textContent='🏷 Aynı adlı kiliseleri ayrıştır ('+n+(n?' kilise · ≈'+geoMinutes(n)+' dk':'')+')';
+}
+
+async function runDisambig(){
+  if(!sb||disambigRunning||geoRunning)return;
+  const todo=disambigTargets();
+  if(!todo.length){toast('Ayrıştırılacak aynı adlı kilise yok.');return}
+  if(todo.length>40&&!confirm(todo.length+' kilisenin adına köy/mahalle adı eklenecek. Servis saniyede yalnızca 1 istek kabul ettiği için yaklaşık '+geoMinutes(todo.length)+' dakika sürer; sayfayı kapatma. "Durdur"a basarsan o ana kadar yapılanlar kaydedilir. Devam edilsin mi?'))return;
+  disambigRunning=true;disambigStop=false;
+  const btn=$('disambig-btn'),prog=$('disambig-progress'),rep=$('disambig-report');
+  btn.textContent='⏹ Durdur';prog.hidden=false;
+  let renamed=0,limitHits=0,stoppedBy='';
+  const failed=[];
+  for(let i=0;i<todo.length;i++){
+    if(disambigStop){stoppedBy='user';break}
+    const c=todo[i];
+    prog.textContent='Ayrıştırılıyor: '+(i+1)+' / '+todo.length+' ('+c.name+')';
+    try{
+      let g;
+      try{g=await reverseGeocode(c.lat,c.lng,'tr',16)}
+      catch(e){
+        if(e&&(e.status===429||e.status===403||e.status===503)){await sleep(4000);g=await reverseGeocode(c.lat,c.lng,'tr',16)}
+        else throw e;
+      }
+      limitHits=0;
+      const newName=addLocality(c.name,g.locality);
+      if(newName!==c.name){
+        const{data,error}=await sb.from('atlas_churches').update({name:newName}).eq('id',c.id).select();
+        if(error||!data||!data.length){failed.push({id:c.id,name:c.name,reason:'veritabanına yazılamadı'})}
+        else{c.name=newName;c._hay=null;renamed++;disambigDone.add(c.id)}
+      }else disambigDone.add(c.id);                      // yer adı bulunamadı ya da zaten adda var: tekrar denenmez
+    }catch(e){
+      failed.push({id:c.id,name:c.name,reason:e&&e.status?'servis reddetti (HTTP '+e.status+')':'bağlantı hatası'});
+      if(e&&(e.status===429||e.status===403||e.status===503))limitHits++;else limitHits=0;
+    }
+    if(limitHits>=3){stoppedBy='limit';break}
+    await sleep(1100);
+  }
+  saveDisambigDone();
+  disambigRunning=false;disambigStop=false;prog.hidden=true;
+  const lines=['Son çalışma: '+renamed+' kilisenin adına yer adı eklendi'+(failed.length?', '+failed.length+' tanesi yapılamadı':'')
+    +(stoppedBy==='limit'?' — servis istekleri sınırladığı için durduruldu; bir saat kadar sonra tekrar dene':stoppedBy==='user'?' — durduruldu':'')];
+  failed.slice(0,10).forEach(f=>lines.push('    – '+f.name+' (#'+f.id+'): '+f.reason));
+  rep.textContent=lines.join('\n');rep.style.whiteSpace='pre-wrap';rep.hidden=false;
+  toast(renamed+' kilisenin adı ayrıştırıldı.');
+  await loadChurches();
+  renderChurchAdmin();
+}
+$('disambig-btn').addEventListener('click',()=>{if(disambigRunning){disambigStop=true;return}runDisambig()});
 
 /* ---------------- Haritadan konum seçme ---------------- */
 let pickMarker=null,pickLatLng=null;
