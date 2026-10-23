@@ -202,7 +202,8 @@ function buildChurchPage(c,contribs,nearby,lang,wikiImage,summary){
    +(photos.length>1?'<h2>'+esc(ui.photos)+'</h2>\n<div class="grid">'+photos.slice(1,13).map(p=>'<img loading="lazy" src="'+esc(p)+'" alt="'+esc(c.name)+'">').join('')+'</div>\n':'')
    +(comments?'<h2>'+esc(COMMENTS[lang]||COMMENTS.en)+'</h2>\n'+comments+'\n':'')
    +(nearby.length?'<h2>'+esc(ui.nearby.replace('{place}',c.city||c.region||country))+'</h2>\n<ul class="links">'+nearby.map(n=>'<li><a href="/church/'+n.id+'?lang='+lang+'">'+esc(n.name)+'</a></li>').join('')+'</ul>\n':'')
-   +'<footer>'+LANGS.map(([code,name])=>'<a href="/church/'+c.id+'?lang='+code+'" hreflang="'+code+'">'+esc(name)+'</a>').join('')+'</footer>\n</main>\n'
+   +'<footer>'+LANGS.map(([code,name])=>'<a href="/church/'+c.id+'?lang='+code+'" hreflang="'+code+'">'+esc(name)+'</a>').join('')
+   +'<p class="credit">Locations and names: &copy; <a href="https://www.openstreetmap.org/copyright" rel="noopener">OpenStreetMap</a> contributors, <a href="https://opendatacommons.org/licenses/odbl/" rel="noopener">ODbL</a></p></footer>\n</main>\n'
    +trackScript(c.id,lang);
   return page({title,desc,lang,canonical:url,robots:'index,follow',image,ld,body});
 }
