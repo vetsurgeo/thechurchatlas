@@ -266,6 +266,9 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
 .stat-bars div{flex:1;background:#94a3b8;border-radius:2px 2px 0 0;min-height:2px}
 .stat-axis{display:flex;justify-content:space-between;font-size:.68rem;color:#94a3b8;margin-top:3px}
 .stat-row{display:flex;justify-content:space-between;gap:8px;padding:5px 8px;font-size:.82rem;border-radius:6px;margin-bottom:2px;background:linear-gradient(90deg,#e2e8f0 var(--w,0%),transparent var(--w,0%))}
+
+.osm-credit{margin:14px 20px 22px;font-size:.72rem;color:#94a3b8;line-height:1.5}
+.osm-credit a{color:#64748b}
 </style>
 </head>
 <body>
@@ -362,6 +365,7 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
     <p class="legal" data-i18n="legal">Fotoğraf göndererek görselin size ait olduğunu ve adınızla birlikte yayınlanmasına izin verdiğinizi onaylarsınız. Katkılar yönetici onayından sonra görünür.</p>
     <button class="contrib-submit" id="contrib-submit" data-i18n="submit">Onaya Gönder</button>
   </div>
+  <p class="osm-credit">Locations and names: &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors, <a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener">ODbL</a></p>
 </div>
 
 <div id="lightbox" role="dialog" aria-modal="true" data-i18n-aria="lbDialog" aria-label="Fotoğraf görüntüleyici" hidden>
@@ -568,7 +572,7 @@ const DONATE_URL='https://buymeacoffee.com/thechurchatlas';
 const SITE_URL='https://thechurchatlas.com';
 
 /* Sürüm damgası: yönetici penceresinin altında görünür; yeni dosyanın yayında olup olmadığını anlamak içindir */
-const APP_VERSION='2026.10.21-u';
+const APP_VERSION='2026.10.22-v';
 
 const $=id=>document.getElementById(id);
 const toastEl=$('toast');let toastTimer;
@@ -692,7 +696,7 @@ function setLang(code,opts){
 /* ---------------- Harita ---------------- */
 const map=L.map('map',{zoomControl:false}).setView([38.4192,27.1428],13);
 L.control.zoom({position:'topright'}).addTo(map);
-const osmLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
+const osmLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="https://opendatacommons.org/licenses/odbl/">ODbL</a>'}).addTo(map);
 const satLayer=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Tiles &copy; Esri'});
 let layersCtl=null;
 function buildLayersControl(){
