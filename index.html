@@ -275,6 +275,10 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
 
 .osm-credit{margin:14px 20px 22px;font-size:.72rem;color:#94a3b8;line-height:1.5}
 .osm-credit a{color:#64748b}
+
+/* Harita düğmeleri (yakınlaştırma, harita/uydu) üst menünün altında kalmasın; --hdr, menünün alt kenarını JavaScript ile ölçer */
+.leaflet-top.leaflet-left{margin-top:var(--hdr,0px)}
+@media (max-width:640px){.leaflet-top.leaflet-right{margin-top:var(--hdr,0px)}}
 </style>
 </head>
 <body>
@@ -578,7 +582,7 @@ const DONATE_URL='https://buymeacoffee.com/thechurchatlas';
 const SITE_URL='https://thechurchatlas.com';
 
 /* Sürüm damgası: yönetici penceresinin altında görünür; yeni dosyanın yayında olup olmadığını anlamak içindir */
-const APP_VERSION='2026.10.22-x';
+const APP_VERSION='2026.10.22-y';
 
 const $=id=>document.getElementById(id);
 const toastEl=$('toast');let toastTimer;
@@ -2932,6 +2936,21 @@ function applySupportText(){
   aboutModal.addEventListener('click',e=>{if(e.target===aboutModal)closeAbout()});
   addEventListener('keydown',e=>{if(e.key==='Escape'&&aboutModal.style.display==='flex')closeAbout()});
 })();
+// Üst menünün alt kenarını ölç: menü büyüyüp küçüldükçe (arama, filtre etiketleri, yazı yüklenmesi) harita düğmeleri onunla birlikte kayar
+(function(){
+  const hdr=document.querySelector('.header-container');
+  if(!hdr)return;
+  const measure=()=>{
+    const r=hdr.getBoundingClientRect();
+    document.documentElement.style.setProperty('--hdr',Math.max(0,Math.round(r.bottom+6))+'px');
+  };
+  measure();
+  if('ResizeObserver' in window)new ResizeObserver(measure).observe(hdr);
+  addEventListener('resize',measure);
+  addEventListener('orientationchange',measure);
+  addEventListener('load',measure);
+})();
+
 $('app-version').textContent='Sürüm '+APP_VERSION;
 setLang(pickLang());
 trackHit('app');
