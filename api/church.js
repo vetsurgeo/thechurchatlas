@@ -198,7 +198,7 @@ function buildChurchPage(c,contribs,nearby,lang,wikiImage,summary){
   const mapUrl='/?church='+c.id+'&lang='+lang;
   const paras=String(c.description||'').split(/\n+/).map(s=>s.trim()).filter(Boolean).map(s=>'<p>'+esc(s)+'</p>').join('');
   const comments=contribs.filter(x=>x.comment).slice(0,5).map(x=>'<div class="comment">💬 <strong>'+esc(x.name)+'</strong>: '+esc(x.comment)+'</div>').join('');
-  const body='<main>\n<nav><a href="/">The Church Atlas</a><a href="/'+(lang==='tr'?'hakkinda':'about')+'.html">'+(lang==='tr'?'Hakkında':'About')+'</a></nav>\n'
+  const body='<main>\n<nav><a href="/">The Church Atlas</a><a href="/collections?lang='+lang+'">'+(lang==='tr'?'Koleksiyonlar':'Collections')+'</a><a href="/'+(lang==='tr'?'hakkinda':'about')+'.html">'+(lang==='tr'?'Hakkında':'About')+'</a></nav>\n'
    +(heroUrl?'<img class="hero" src="'+esc(heroUrl)+'" alt="'+esc(c.name)+'">\n'+(!photos[0]?'<p class="credit">'+esc(CREDIT[lang]||CREDIT.en)+'</p>\n':''):'')
    +'<h1>'+esc(c.name)+'</h1>\n<span class="badge">'+esc(den)+'</span>\n'+(place?'<p class="place">'+esc(place)+'</p>\n':'')
    +(c.verified_at?'<p class="verified">✓ '+esc((CLAIM_UI[lang]||CLAIM_UI.en).badge)+(c.verified_by?' · '+esc(c.verified_by):'')+'</p>\n':'')
