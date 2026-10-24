@@ -7,6 +7,14 @@
     {
       "source": "/sitemap-churches.xml",
       "destination": "/api/sitemap"
+    },
+    {
+      "source": "/collections",
+      "destination": "/api/collection"
+    },
+    {
+      "source": "/collection/:slug",
+      "destination": "/api/collection?slug=:slug"
     }
   ]
 }

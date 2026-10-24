@@ -16,4 +16,24 @@
     <xhtml:link rel="alternate" hreflang="en" href="https://thechurchatlas.com/about.html"/>
     <xhtml:link rel="alternate" hreflang="tr" href="https://thechurchatlas.com/hakkinda.html"/>
   </url>
+  <url>
+    <loc>https://thechurchatlas.com/collections</loc>
+    <lastmod>2026-10-25</lastmod>
+  </url>
+  <url>
+    <loc>https://thechurchatlas.com/collection/rome-early-churches</loc>
+    <lastmod>2026-10-25</lastmod>
+  </url>
+  <url>
+    <loc>https://thechurchatlas.com/collection/istanbul-three-stories</loc>
+    <lastmod>2026-10-25</lastmod>
+  </url>
+  <url>
+    <loc>https://thechurchatlas.com/collection/helsinki-reykjavik</loc>
+    <lastmod>2026-10-25</lastmod>
+  </url>
+  <url>
+    <loc>https://thechurchatlas.com/collection/anatolia-monasteries-armenian</loc>
+    <lastmod>2026-10-25</lastmod>
+  </url>
 </urlset>
