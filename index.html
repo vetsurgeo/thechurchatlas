@@ -623,7 +623,7 @@ const DONATE_URL='https://buymeacoffee.com/thechurchatlas';
 const SITE_URL='https://thechurchatlas.com';
 
 /* Sürüm damgası: yönetici penceresinin altında görünür; yeni dosyanın yayında olup olmadığını anlamak içindir */
-const APP_VERSION='2026.10.25-c';
+const APP_VERSION='2026.10.25-d';
 
 const $=id=>document.getElementById(id);
 const toastEl=$('toast');let toastTimer;
@@ -1353,6 +1353,9 @@ function setChurchParam(id){
     const u=new URL(location.href);
     if(id)u.searchParams.set('church',String(id));else u.searchParams.delete('church');
     history.replaceState(null,'',u.pathname+u.search+u.hash);
+    // Arama motorları ?church=ID adresini ayrı bir sayfa saymasın: kilisenin kendi sayfası kanonik adres olur
+    const cl=document.querySelector('link[rel="canonical"]');
+    if(cl)cl.href=id?SITE_URL+'/church/'+id:SITE_URL+'/';
   }catch(e){}
 }
 function closeDrawer(){
