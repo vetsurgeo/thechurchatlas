@@ -631,7 +631,7 @@ const DONATE_URL='https://buymeacoffee.com/thechurchatlas';
 const SITE_URL='https://thechurchatlas.com';
 
 /* Sürüm damgası: yönetici penceresinin altında görünür; yeni dosyanın yayında olup olmadığını anlamak içindir */
-const APP_VERSION='2026.10.25-e';
+const APP_VERSION='2026.10.25-f';
 
 const $=id=>document.getElementById(id);
 const toastEl=$('toast');let toastTimer;
@@ -1426,6 +1426,13 @@ function trackHit(kind,churchId){
 }
 
 // "Kilise temsilcisince doğrulandı" rozeti
+// Adres temizliği: yalnızca numara ya da harf içermeyen metinleri atar, sondaki şehir adını kırpar
+function cleanAddress(a,city){
+  a=String(a||'').replace(/\s+/g,' ').trim();
+  if(!a||!/\p{L}/u.test(a)||/^\d+\s*\p{L}?$/u.test(a)||(city&&a===city))return '';   // boş, yalnızca numara (31, 17A) ya da yalnızca şehir adı
+  if(city&&a.length>city.length+2&&a.slice(-(city.length+2))===', '+city)a=a.slice(0,-(city.length+2)).trim();
+  return a.slice(0,200);
+}
 function renderAddress(c){
   const el=$('drawer-addr');
   el.textContent=c.address?'📍 '+c.address:'';
@@ -2054,7 +2061,7 @@ function toCandidate(el){
   const titles={};
   const m=String(t.wikipedia||'').match(/^(tr|en):(.+)$/);
   if(m)titles[m[1]]=m[2].trim();
-  const addr=[t['addr:street'],t['addr:housenumber'],t['addr:suburb']||t['addr:district']].filter(Boolean).join(' ');
+  const addr=cleanAddress(t['addr:street']?[t['addr:street'],t['addr:housenumber'],t['addr:suburb']||t['addr:district']].filter(Boolean).join(' '):'',t['addr:city']||'');
   const description=String(t['description:tr']||t.description||'').trim();
   let den=mapDenomination(t);
   if(den==='Diğer')den=guessDenomination(t['name:tr'],t.name,t['name:en'],t.operator);
@@ -2815,7 +2822,7 @@ async function runAddrWd(){
     const writes=[];
     chunk.forEach(c=>{
       rep.checked++;
-      const a=addressFromClaims(c,ents[c.wikidata]&&ents[c.wikidata].claims,labels);
+      const a=cleanAddress(addressFromClaims(c,ents[c.wikidata]&&ents[c.wikidata].claims,labels),c.city);
       addrDone.add(c.id);
       if(a){rep.found++;writes.push({c,a})}
     });
