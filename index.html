@@ -291,6 +291,8 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
 .verified-badge{display:inline-flex;align-items:center;gap:6px;font-size:.75rem;font-weight:600;color:#166534;background:#dcfce7;border-radius:999px;padding:3px 10px;margin:2px 0 8px}
 
 .img-credit a,#lb-caption a{color:inherit;text-decoration:underline}
+
+.drawer-address{margin:0 0 8px;font-size:.82rem;color:#475569}
 </style>
 </head>
 <body>
@@ -364,6 +366,7 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
   </div>
   <div id="drawer-name-local" class="drawer-name-local" hidden></div>
   <p id="drawer-loc" class="drawer-location"></p>
+  <p id="drawer-addr" class="drawer-address" hidden></p>
   <div id="verified-badge" class="verified-badge" hidden>✓ <span id="verified-text"></span></div>
   <div id="drawer-description" class="drawer-desc">
     <p id="desc-text" class="desc-text"></p>
@@ -468,6 +471,9 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
         <button type="button" class="btn-secondary wide" id="wikilinks-btn" style="margin-top:10px">📚 Wikipedia bağlantılarını bul ve kaydet</button>
         <p id="wikilinks-progress" class="muted small" hidden></p>
         <div id="wikilinks-report" class="muted small" hidden></div>
+        <button type="button" class="btn-secondary wide" id="addrwd-btn" style="margin-top:10px">📍 Adresleri Wikidata'dan al</button>
+        <p id="addrwd-progress" class="muted small" hidden></p>
+        <div id="addrwd-report" class="muted small" hidden></div>
         <p id="region-hint" class="err small" hidden>İl/eyalet ve ülke kodu için Supabase'de SQL Editor'ü açıp şunu bir kez çalıştır: <b>alter table atlas_churches add column if not exists region text, add column if not exists country_code text;</b> Sonra siteyi yenile.</p>
         <div class="church-filters">
           <input type="search" id="church-filter" class="contrib-input" placeholder="Listede ara..." aria-label="Kilise listesinde ara">
@@ -517,6 +523,8 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
         <div><label class="field-label" for="cf-city">Şehir</label><input id="cf-city" class="contrib-input" maxlength="80"></div>
         <div><label class="field-label" for="cf-country">Ülke</label><input id="cf-country" class="contrib-input" maxlength="80"></div>
       </div>
+      <label class="field-label" for="cf-address">Adres (sokak ve numara, isteğe bağlı)</label>
+      <input id="cf-address" class="contrib-input" maxlength="200">
       <div id="cf-region-box"><label class="field-label" for="cf-region">İl / eyalet (aramada kullanılır)</label><input id="cf-region" class="contrib-input" maxlength="80" placeholder="örn. Samsun, Lazio"></div>
       <label class="field-label" for="cf-denom">Mezhep</label>
       <select id="cf-denom" class="contrib-input">
@@ -623,7 +631,7 @@ const DONATE_URL='https://buymeacoffee.com/thechurchatlas';
 const SITE_URL='https://thechurchatlas.com';
 
 /* Sürüm damgası: yönetici penceresinin altında görünür; yeni dosyanın yayında olup olmadığını anlamak içindir */
-const APP_VERSION='2026.10.25-d';
+const APP_VERSION='2026.10.25-e';
 
 const $=id=>document.getElementById(id);
 const toastEl=$('toast');let toastTimer;
@@ -847,7 +855,7 @@ async function getWikiImage(c){
 let churchesData=[],markers=[],activeChurchId=null;
 const DENOM={Katolik:'badge-katolik',Ortodoks:'badge-ortodoks','Oryantal Ortodoks':'badge-oryantal','Doğu Kilisesi':'badge-dogu',Protestan:'badge-protestan',Anglikan:'badge-anglikan'};
 
-let firstLoad=true,regionSupported=false,countryCodeSupported=false,verifiedSupported=false;
+let firstLoad=true,regionSupported=false,countryCodeSupported=false,verifiedSupported=false,addressSupported=false;
 // Supabase tek istekte en çok 1000 satır döndürür; daha fazlası için sayfa sayfa çekilir
 const PAGE_SIZE=1000;
 async function fetchAll(build){
@@ -884,13 +892,14 @@ async function loadChurches(){
   regionSupported=cr.data.length>0?('region' in cr.data[0]):regionSupported;
   countryCodeSupported=cr.data.length>0?('country_code' in cr.data[0]):countryCodeSupported;
   verifiedSupported=cr.data.length>0?('verified_at' in cr.data[0]):verifiedSupported;
+  addressSupported=cr.data.length>0?('address' in cr.data[0]):addressSupported;
   // Katkıları kiliseye göre bir kez grupla (binlerce kilise ve katkıda döngü içinde döngüden kaçınmak için)
   const byChurch=new Map();
   approved.forEach(x=>{if(!byChurch.has(x.church_id))byChurch.set(x.church_id,[]);byChurch.get(x.church_id).push(x)});
   churchesData=cr.data.map(c=>{
     const mine=byChurch.get(c.id)||[];
     return{
-      id:c.id,name:c.name,city:c.city||'',region:c.region||'',country:c.country||'',countryCode:String(c.country_code||'').toUpperCase(),verifiedAt:c.verified_at||null,verifiedBy:c.verified_by||'',
+      id:c.id,name:c.name,city:c.city||'',region:c.region||'',country:c.country||'',countryCode:String(c.country_code||'').toUpperCase(),verifiedAt:c.verified_at||null,verifiedBy:c.verified_by||'',address:c.address||'',
       denomination:c.denomination,badgeClass:DENOM[c.denomination]||'badge-diger',
       description:c.description||'',lat:c.lat,lng:c.lng,
       wikidata:c.wikidata||'',wikiTitles:c.wiki_titles||{},
@@ -938,7 +947,7 @@ const denKey=c=>DENOMS.includes(c.denomination)?c.denomination:'Diğer';
 function hayOf(c){
   if(c._hay&&c._hayLang===currentLang)return c._hay;
   c._hayLang=currentLang;
-  c._hay=foldText([c.name,c.city,c.region,countrySearchText(c),c.denomination,denLabel(c.denomination),c.description].join(' '));
+  c._hay=foldText([c.name,c.address,c.city,c.region,countrySearchText(c),c.denomination,denLabel(c.denomination),c.description].join(' '));
   return c._hay;
 }
 function matchesSearch(c,tokens){
@@ -1417,6 +1426,11 @@ function trackHit(kind,churchId){
 }
 
 // "Kilise temsilcisince doğrulandı" rozeti
+function renderAddress(c){
+  const el=$('drawer-addr');
+  el.textContent=c.address?'📍 '+c.address:'';
+  el.hidden=!c.address;
+}
 function renderVerified(c){
   const box=$('verified-badge');
   if(c.verifiedAt){
@@ -1493,6 +1507,7 @@ function openChurch(c,opts){
   $('drawer-name').textContent=c.name;
   const badge=$('drawer-badge');badge.textContent=denLabel(c.denomination);badge.className='denomination-badge '+c.badgeClass;
   renderLocation(c);      // şehir/il/ülke ziyaretçinin dilinde
+  renderAddress(c);
   renderVerified(c);
   renderDescription(c);   // ziyaretçinin diline otomatik çevrilir
   renderWiki(c);          // varsa o dildeki Wikipedia özeti ve yerel ad
@@ -1769,6 +1784,8 @@ function openChurchForm(c){
   $('cf-city').value=c?c.city:'';
   $('cf-country').value=c?c.country:'';
   $('cf-region').value=c?(c.region||''):'';
+  $('cf-address').value=c?(c.address||''):'';
+  $('cf-address').parentElement.querySelectorAll('[for=cf-address],#cf-address').forEach(e=>e.hidden=!addressSupported);
   $('cf-region-box').hidden=!regionSupported;
   $('cf-denom').value=c?(DENOMS.includes(c.denomination)?c.denomination:'Diğer'):'Diğer';
   $('cf-desc').value=c?c.description:'';
@@ -1830,6 +1847,7 @@ $('cf-save').addEventListener('click',async()=>{
   };
   if(regionSupported)row.region=region;
   if(countryCodeSupported)row.country_code=cc||'';
+  if(addressSupported)row.address=$('cf-address').value.trim();
   const btn=$('cf-save');btn.disabled=true;
   const q=editingChurchId
     ?sb.from('atlas_churches').update(row).eq('id',editingChurchId).select()
@@ -2037,10 +2055,10 @@ function toCandidate(el){
   const m=String(t.wikipedia||'').match(/^(tr|en):(.+)$/);
   if(m)titles[m[1]]=m[2].trim();
   const addr=[t['addr:street'],t['addr:housenumber'],t['addr:suburb']||t['addr:district']].filter(Boolean).join(' ');
-  const description=String(t['description:tr']||t.description||'').trim()||(addr?'Adres: '+addr:'');
+  const description=String(t['description:tr']||t.description||'').trim();
   let den=mapDenomination(t);
   if(den==='Diğer')den=guessDenomination(t['name:tr'],t.name,t['name:en'],t.operator);
-  return{name,lat,lng,denomination:den,wikidata,wiki_titles:titles,description,city:t['addr:city']||''};
+  return{name,lat,lng,denomination:den,wikidata,wiki_titles:titles,description,address:addr,city:t['addr:city']||''};
 }
 
 const importCache={}; // aynı aramayı 10 dakika içinde tekrar sorma
@@ -2199,6 +2217,7 @@ $('import-save').addEventListener('click',async()=>{
       wiki_titles:c.wiki_titles
     };
   });
+  if(addressSupported)rows.forEach((r,i)=>{r.address=(chosen[i]&&chosen[i].address)||''});
   if(regionSupported)rows.forEach(r=>{r.region=(importPlace&&importPlace.region)||''});
   if(countryCodeSupported)rows.forEach(r=>{r.country_code=(importPlace&&importPlace.countryCode)||''});
   const btn=$('import-save');btn.disabled=true;$('import-msg').textContent='';
@@ -2376,6 +2395,7 @@ function updateGeoBtn(){
   showGeoReport(geoReport);
   updateDisambigBtn();
   updateWikiBtn();
+  updateAddrBtn();
 }
 $('geo-scope').addEventListener('change',updateGeoBtn);
 
@@ -2717,6 +2737,106 @@ async function runWikiLinks(){
   renderChurchAdmin();
 }
 $('wikilinks-btn').addEventListener('click',()=>{if(wikiRunning){wikiStop=true;return}runWikiLinks()});
+
+/* ---------------- Yönetici: Wikidata'dan adres (sokak ve numara) toplu al ---------------- */
+const ADDR_DONE_KEY='addrWdDone_v1',ADDR_REPORT_KEY='addrWdReport_v1';
+let addrRunning=false,addrStop=false;
+let addrDone=new Set(safeParse(localStorage.getItem(ADDR_DONE_KEY),[]));
+let addrReport=safeParse(localStorage.getItem(ADDR_REPORT_KEY),null);
+const addrTargets=()=>churchesData.filter(c=>/^Q\d+$/.test(c.wikidata||'')&&!c.address&&!addrDone.has(c.id));
+function updateAddrBtn(){
+  if(addrRunning)return;
+  if(!addressSupported){$('addrwd-btn').textContent='📍 Adresleri Wikidata\'dan al (önce atlas-address.sql çalıştırılmalı)';$('addrwd-btn').disabled=true;return}
+  $('addrwd-btn').disabled=false;
+  $('addrwd-btn').textContent='📍 Adresleri Wikidata\'dan al ('+addrTargets().length+')';
+  const box=$('addrwd-report');
+  if(!addrReport){box.hidden=true;return}
+  box.textContent='Son çalışma ('+new Date(addrReport.t).toLocaleString('tr-TR')+'): '+addrReport.checked+' kilise kontrol edildi; adres bulunan: '+addrReport.found
+    +(addrReport.saveFailed?' · kaydedilemeyen: '+addrReport.saveFailed:'')+(addrReport.stopped==='error'?' — servis yanıt vermedi, durduruldu':addrReport.stopped==='user'?' — durduruldu':'');
+  box.style.whiteSpace='pre-wrap';box.hidden=false;
+}
+async function wdEntities(ids,props,extra){
+  const ctrl=new AbortController();const timer=setTimeout(()=>ctrl.abort(),15000);
+  try{
+    const r=await fetch('https://www.wikidata.org/w/api.php?action=wbgetentities&format=json&origin=*&props='+props+(extra||'')+'&ids='+ids.join('|'),{signal:ctrl.signal});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    return (await r.json()).entities||{};
+  }finally{clearTimeout(timer)}
+}
+// Tek bir kilisenin Wikidata kaydından adres: önce "sokak adresi" (P6375), yoksa "sokak" (P669) + "ev numarası" (P670)
+function addressFromClaims(c,claims,streetLabels){
+  const local=COUNTRY_WIKI_LANG[c.countryCode||'']||'en';
+  const pref=[local,'en'];
+  const p6375=(claims&&claims.P6375)||[];
+  const texts=p6375.map(x=>x.mainsnak&&x.mainsnak.datavalue&&x.mainsnak.datavalue.value).filter(v=>v&&typeof v.text==='string');
+  if(texts.length){
+    const best=pref.map(l=>texts.find(v=>v.language===l)).find(Boolean)||texts[0];
+    return best.text.replace(/\s+/g,' ').trim().slice(0,200);
+  }
+  const st=(claims&&claims.P669)||[];
+  for(const x of st){
+    const id=x.mainsnak&&x.mainsnak.datavalue&&x.mainsnak.datavalue.value&&x.mainsnak.datavalue.value.id;
+    const label=id&&streetLabels[id];
+    if(!label)continue;
+    const q=x.qualifiers&&x.qualifiers.P670&&x.qualifiers.P670[0];
+    const num=q&&q.datavalue&&typeof q.datavalue.value==='string'?q.datavalue.value:'';
+    return (label+(num?' '+num:'')).replace(/\s+/g,' ').trim().slice(0,200);
+  }
+  return '';
+}
+async function runAddrWd(){
+  if(!sb||addrRunning||!addressSupported)return;
+  const todo=addrTargets();
+  if(!todo.length){toast('Kontrol edilecek yeni kilise yok.');return}
+  addrRunning=true;addrStop=false;
+  const btn=$('addrwd-btn'),prog=$('addrwd-progress');btn.textContent='⏹ Durdur';prog.hidden=false;
+  const rep={t:Date.now(),checked:0,found:0,saveFailed:0,stopped:''};
+  let errors=0;
+  for(let i=0;i<todo.length;i+=50){
+    if(addrStop){rep.stopped='user';break}
+    const chunk=todo.slice(i,i+50);
+    prog.textContent='Wikidata sorgulanıyor: '+Math.min(i+50,todo.length)+' / '+todo.length;
+    let ents,labels={};
+    try{
+      ents=await wdEntities(chunk.map(c=>c.wikidata),'claims');
+      // sokak kayıtlarının adları (tek ek istek)
+      const streetIds=new Set();
+      chunk.forEach(c=>{((ents[c.wikidata]&&ents[c.wikidata].claims&&ents[c.wikidata].claims.P669)||[]).forEach(x=>{const id=x.mainsnak&&x.mainsnak.datavalue&&x.mainsnak.datavalue.value&&x.mainsnak.datavalue.value.id;if(id)streetIds.add(id)})});
+      if(streetIds.size){
+        const langs=['en','it','el','es','hr','fi','is','tr','de','fr'];
+        const ls=await wdEntities([...streetIds].slice(0,50),'labels','&languages='+langs.join('|'));
+        Object.keys(ls).forEach(id=>{const lab=ls[id]&&ls[id].labels;if(lab){const k=langs.find(l=>lab[l]);if(k)labels[id]=lab[k].value}});
+      }
+      errors=0;
+    }catch(e){
+      errors++;if(errors>=2){rep.stopped='error';break}
+      i-=50;await sleep(3000);continue;
+    }
+    const writes=[];
+    chunk.forEach(c=>{
+      rep.checked++;
+      const a=addressFromClaims(c,ents[c.wikidata]&&ents[c.wikidata].claims,labels);
+      addrDone.add(c.id);
+      if(a){rep.found++;writes.push({c,a})}
+    });
+    for(let w=0;w<writes.length;w+=6){
+      await Promise.all(writes.slice(w,w+6).map(async({c,a})=>{
+        try{
+          const{data,error}=await sb.from('atlas_churches').update({address:a}).eq('id',c.id).select();
+          if(error||!data||!data.length){rep.saveFailed++;addrDone.delete(c.id)}else{c.address=a;c._hay=null}
+        }catch(e){rep.saveFailed++;addrDone.delete(c.id)}
+      }));
+    }
+    try{localStorage.setItem(ADDR_DONE_KEY,JSON.stringify([...addrDone]))}catch(e){}
+    await sleep(300);
+  }
+  addrRunning=false;addrStop=false;prog.hidden=true;
+  addrReport=rep;
+  try{localStorage.setItem(ADDR_REPORT_KEY,JSON.stringify(rep))}catch(e){}
+  toast(rep.checked+' kilise kontrol edildi; '+rep.found+' tanesine adres eklendi.');
+  updateAddrBtn();renderChurchAdmin();
+}
+$('addrwd-btn').addEventListener('click',()=>{if(addrRunning){addrStop=true;return}runAddrWd()});
 
 /* ---------------- Haritadan konum seçme ---------------- */
 let pickMarker=null,pickLatLng=null;
