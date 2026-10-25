@@ -105,7 +105,7 @@ function buildCollectionPage(slug,churches,photos,lang){
       +(ph?'<img loading="lazy" src="'+esc(ph.url)+'" alt="'+esc(c.name)+'">':'<div class="thumb-empty" aria-hidden="true">⛪</div>')
       +'<div><h3><a href="'+esc(link)+'">'+esc(c.name)+'</a></h3><span class="badge">'+esc(den[c.denomination]||c.denomination||'')+'</span>'
       +'<p class="place">'+esc(placeOf(c,lang))+'</p><p class="note">'+esc(it.note[lang]||it.note.en)+'</p>'
-      +(ph?'<p class="credit">'+esc(ui.photoBy)+' '+(ph.link?'<a href="'+esc(ph.link)+'" rel="nofollow ugc noopener">'+esc(ph.by)+'</a>':esc(ph.by))+'</p>':'<p class="credit"><a href="/?church='+it.id+'&lang='+lang+'&src=photo-wanted">'+esc(ui.addPhoto)+'</a></p>')
+      +(ph?'<p class="credit">'+esc(ui.photoBy)+' '+(ph.link?'<a href="'+esc(ph.link)+'" rel="nofollow ugc noopener">'+esc(ph.by)+'</a>':esc(ph.by))+'</p>':'<p class="credit"><a href="/?church='+it.id+'&lang='+lang+'&src=photo-wanted" rel="nofollow">'+esc(ui.addPhoto)+'</a></p>')
       +'<a href="'+esc(link)+'">'+esc(ui.open)+' →</a></div></div>';
   }).join('');
   const items=col.items.filter(it=>byId.has(it.id));
@@ -116,7 +116,7 @@ function buildCollectionPage(slug,churches,photos,lang){
     isPartOf:{'@type':'WebSite',name:'The Church Atlas',url:SITE+'/'},
     mainEntity:{'@type':'ItemList',itemListElement:items.map((it,i)=>({'@type':'ListItem',position:i+1,url:SITE+'/church/'+it.id}))}};
   const body='<main>\n<nav><a href="/">'+esc(ui.home)+'</a><a href="/collections?lang='+lang+'">'+esc(ui.more)+'</a></nav>\n<h1>'+esc(title)+'</h1>\n<p>'+esc(intro)+'</p>\n'+cards
-    +'<div class="cta"><strong>'+esc(ui.ctaTitle)+'</strong><p>'+esc(ui.cta)+' <a href="/?lang='+lang+'&src=collection-cta">'+esc(ui.ctaLink)+' →</a></p></div>\n'
+    +'<div class="cta"><strong>'+esc(ui.ctaTitle)+'</strong><p>'+esc(ui.cta)+' <a href="/?lang='+lang+'&src=collection-cta" rel="nofollow">'+esc(ui.ctaLink)+' →</a></p></div>\n'
     +'<p class="more"><a href="/collections?lang='+lang+'">'+esc(ui.more)+'</a></p>\n<footer>Locations and names: &copy; <a href="https://www.openstreetmap.org/copyright" rel="noopener">OpenStreetMap</a> contributors, <a href="https://opendatacommons.org/licenses/odbl/" rel="noopener">ODbL</a></footer>\n</main>';
   return page({title:title+' | The Church Atlas',desc:clip(intro,155),lang,canonical:url,image:firstPhoto?firstPhoto.url:SITE+'/og-image.png',ld,body});
 }
