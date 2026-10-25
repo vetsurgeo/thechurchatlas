@@ -49,9 +49,9 @@ const DEN={en:{Katolik:'Catholic',Ortodoks:'Orthodox','Oryantal Ortodoks':'Orien
            tr:{Katolik:'Katolik',Ortodoks:'Ortodoks','Oryantal Ortodoks':'Oryantal Ortodoks','Doğu Kilisesi':'Doğu Kilisesi',Protestan:'Protestan',Anglikan:'Anglikan','Diğer':'Diğer'}};
 const UI={
   en:{h1All:'Collections',introAll:'Hand-picked groups of churches, each with a short, sourced note. Open a church to see its full page, photos and history.',open:'Open the page',more:'All collections',home:'The Church Atlas',
-      ctaTitle:'Know these places?',cta:'If you have a photo or a correction for one of these churches, open its page and add it. Contributions are reviewed and credited by name.',ctaLink:'Open the map',churchesWord:'churches',photoBy:'Photo:'},
+      ctaTitle:'Know these places?',cta:'If you have a photo or a correction for one of these churches, open its page and add it. Contributions are reviewed and credited by name.',ctaLink:'Open the map',churchesWord:'churches',photoBy:'Photo:',addPhoto:'📷 Add the first photo'},
   tr:{h1All:'Koleksiyonlar',introAll:'Elle seçilmiş kilise grupları, her biri için kısa ve kaynaklı bir notla. Tam sayfa, fotoğraf ve tarihçe için kiliseyi açın.',open:'Sayfayı aç',more:'Tüm koleksiyonlar',home:'The Church Atlas',
-      ctaTitle:'Bu yerleri biliyor musunuz?',cta:'Bu kiliselerden biri için fotoğrafınız ya da bir düzeltmeniz varsa, sayfasını açıp ekleyin. Katkılar incelenir ve adınızla yayınlanır.',ctaLink:'Haritayı aç',churchesWord:'kilise',photoBy:'Fotoğraf:'}
+      ctaTitle:'Bu yerleri biliyor musunuz?',cta:'Bu kiliselerden biri için fotoğrafınız ya da bir düzeltmeniz varsa, sayfasını açıp ekleyin. Katkılar incelenir ve adınızla yayınlanır.',ctaLink:'Haritayı aç',churchesWord:'kilise',photoBy:'Fotoğraf:',addPhoto:'📷 İlk fotoğrafı sen ekle'}
 };
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const httpsUrl=u=>{try{const x=new URL(u);return x.protocol==='https:'?x.href:null}catch(e){return null}};
@@ -95,7 +95,7 @@ function buildCollectionPage(slug,churches,photos,lang){
   const col=COLLECTIONS[slug],ui=UI[lang],den=DEN[lang]||DEN.en;
   const byId=new Map(churches.map(c=>[c.id,c]));
   const photoOf=new Map();
-  photos.forEach(p=>{const u=httpsUrl(p.photo_url);if(u&&!photoOf.has(p.church_id))photoOf.set(p.church_id,{url:u,by:p.name})});
+  photos.forEach(p=>{const u=httpsUrl(p.photo_url);if(u&&!photoOf.has(p.church_id))photoOf.set(p.church_id,{url:u,by:p.name,link:httpsUrl(p.credit_url)})});
   const url=SITE+'/collection/'+slug;
   const cards=col.items.map(it=>{
     const c=byId.get(it.id);if(!c)return '';
@@ -105,7 +105,7 @@ function buildCollectionPage(slug,churches,photos,lang){
       +(ph?'<img loading="lazy" src="'+esc(ph.url)+'" alt="'+esc(c.name)+'">':'<div class="thumb-empty" aria-hidden="true">⛪</div>')
       +'<div><h3><a href="'+esc(link)+'">'+esc(c.name)+'</a></h3><span class="badge">'+esc(den[c.denomination]||c.denomination||'')+'</span>'
       +'<p class="place">'+esc(placeOf(c,lang))+'</p><p class="note">'+esc(it.note[lang]||it.note.en)+'</p>'
-      +(ph?'<p class="credit">'+esc(ui.photoBy)+' '+esc(ph.by)+'</p>':'')
+      +(ph?'<p class="credit">'+esc(ui.photoBy)+' '+(ph.link?'<a href="'+esc(ph.link)+'" rel="nofollow ugc noopener">'+esc(ph.by)+'</a>':esc(ph.by))+'</p>':'<p class="credit"><a href="/?church='+it.id+'&lang='+lang+'&src=photo-wanted">'+esc(ui.addPhoto)+'</a></p>')
       +'<a href="'+esc(link)+'">'+esc(ui.open)+' →</a></div></div>';
   }).join('');
   const items=col.items.filter(it=>byId.has(it.id));
@@ -151,7 +151,7 @@ module.exports=async function handler(req,res){
     const ids=COLLECTIONS[slug].items.map(i=>i.id).join(',');
     const [churches,photos]=await Promise.all([
       rest('atlas_churches?id=in.('+ids+')&select=id,name,city,region,country,country_code,denomination'),
-      rest('atlas_contributions?church_id=in.('+ids+')&status=eq.approved&photo_url=not.is.null&select=church_id,name,photo_url&order=created_at.desc')
+      rest('atlas_contributions?church_id=in.('+ids+')&status=eq.approved&photo_url=not.is.null&select=*&order=created_at.desc')
     ]);
     res.setHeader('Content-Language',lang);
     res.setHeader('Cache-Control','public, max-age=0, s-maxage=3600, stale-while-revalidate=86400');

@@ -17,6 +17,7 @@ const CLAIM_UI={
   it:{link:'Sei un responsabile della chiesa? Correggi o rivendica questa pagina',badge:'Verificata da un rappresentante della chiesa'}
 };
 const WIKI_READ={"tr": "Wikipedia'da oku", "en": "Read on Wikipedia", "es": "Leer en Wikipedia", "fr": "Lire sur Wikipédia", "de": "Auf Wikipedia lesen", "it": "Leggi su Wikipedia", "pt": "Ler na Wikipédia", "nl": "Lees op Wikipedia", "pl": "Czytaj w Wikipedii", "ro": "Citește pe Wikipedia", "ru": "Читать в Википедии", "uk": "Читати у Вікіпедії", "el": "Διαβάστε στη Βικιπαίδεια", "hy": "Կարդալ Վիքիպեդիայում", "ar": "اقرأ في ويكيبيديا", "ja": "Wikipedia で読む", "ko": "위키백과에서 읽기", "zh": "在维基百科阅读"};
+const CREDIT_USER={"tr": "Fotoğraf: ziyaretçi katkısı · {name}", "en": "Photo: visitor contribution · {name}", "es": "Foto: aportación de un visitante · {name}", "fr": "Photo : contribution d'un visiteur · {name}", "de": "Foto: Beitrag eines Besuchers · {name}", "it": "Foto: contributo di un visitatore · {name}", "pt": "Foto: contribuição de um visitante · {name}", "nl": "Foto: bijdrage van een bezoeker · {name}", "pl": "Zdjęcie: wkład odwiedzającego · {name}", "ro": "Fotografie: contribuția unui vizitator · {name}", "ru": "Фото: вклад посетителя · {name}", "uk": "Фото: внесок відвідувача · {name}", "el": "Φωτογραφία: συνεισφορά επισκέπτη · {name}", "hy": "Լուսանկար՝ այցելուի ներդրում · {name}", "ar": "الصورة: مساهمة زائر · {name}", "ja": "写真：訪問者の投稿 · {name}", "ko": "사진: 방문자 기여 · {name}", "zh": "照片：访客投稿 · {name}"};
 const TAG={"en": "World Church Heritage Map", "tr": "Dünya Kilise Mirası Haritası", "es": "Mapa del patrimonio de las iglesias del mundo", "fr": "Carte du patrimoine des églises du monde", "de": "Weltkarte des Kirchenerbes", "it": "Mappa del patrimonio delle chiese del mondo", "pt": "Mapa do patrimônio das igrejas do mundo", "nl": "Wereldkaart van het kerkelijk erfgoed", "pl": "Mapa dziedzictwa kościołów świata", "ro": "Harta patrimoniului bisericilor din lume", "ru": "Карта церковного наследия мира", "uk": "Мапа церковної спадщини світу", "el": "Χάρτης της εκκλησιαστικής κληρονομιάς του κόσμου", "hy": "Աշխարհի եկեղեցական ժառանգության քարտեզ", "ar": "خريطة التراث الكنسي في العالم", "ja": "世界の教会遺産マップ", "ko": "세계 교회 유산 지도", "zh": "世界教堂遗产地图"};
 const UI={"en": {"openMap": "Open on the map", "photos": "Photos", "nearby": "More churches in {place}"}, "tr": {"openMap": "Haritada aç", "photos": "Fotoğraflar", "nearby": "{place} bölgesindeki diğer kiliseler"}, "es": {"openMap": "Abrir en el mapa", "photos": "Fotos", "nearby": "Más iglesias en {place}"}, "fr": {"openMap": "Ouvrir sur la carte", "photos": "Photos", "nearby": "Autres églises à {place}"}, "de": {"openMap": "Auf der Karte öffnen", "photos": "Fotos", "nearby": "Weitere Kirchen in {place}"}, "it": {"openMap": "Apri sulla mappa", "photos": "Foto", "nearby": "Altre chiese a {place}"}, "pt": {"openMap": "Abrir no mapa", "photos": "Fotos", "nearby": "Mais igrejas em {place}"}, "nl": {"openMap": "Openen op de kaart", "photos": "Foto's", "nearby": "Meer kerken in {place}"}, "pl": {"openMap": "Otwórz na mapie", "photos": "Zdjęcia", "nearby": "Więcej kościołów: {place}"}, "ro": {"openMap": "Deschide pe hartă", "photos": "Fotografii", "nearby": "Mai multe biserici în {place}"}, "ru": {"openMap": "Открыть на карте", "photos": "Фотографии", "nearby": "Другие церкви: {place}"}, "uk": {"openMap": "Відкрити на мапі", "photos": "Фотографії", "nearby": "Інші церкви: {place}"}, "el": {"openMap": "Άνοιγμα στον χάρτη", "photos": "Φωτογραφίες", "nearby": "Περισσότερες εκκλησίες: {place}"}, "hy": {"openMap": "Բացել քարտեզում", "photos": "Լուսանկարներ", "nearby": "Այլ եկեղեցիներ՝ {place}"}, "ar": {"openMap": "افتح على الخريطة", "photos": "الصور", "nearby": "كنائس أخرى في {place}"}, "ja": {"openMap": "地図で開く", "photos": "写真", "nearby": "{place}の他の教会"}, "ko": {"openMap": "지도에서 열기", "photos": "사진", "nearby": "{place}의 다른 교회"}, "zh": {"openMap": "在地图上打开", "photos": "照片", "nearby": "{place}的更多教堂"}};
 const LOCALE={"en": "en_US", "tr": "tr_TR", "es": "es_ES", "fr": "fr_FR", "de": "de_DE", "it": "it_IT", "pt": "pt_BR", "nl": "nl_NL", "pl": "pl_PL", "ro": "ro_RO", "ru": "ru_RU", "uk": "uk_UA", "el": "el_GR", "hy": "hy_AM", "ar": "ar_AR", "ja": "ja_JP", "ko": "ko_KR", "zh": "zh_CN"};
@@ -175,6 +176,14 @@ function trackScript(id,lang){
    +'}catch(e){}})()</script>';
 }
 
+// Ziyaretçi fotoğrafının sahibi (bağlantı verdiyse tıklanabilir)
+function userCreditHtml(x,lang){
+  const parts=(CREDIT_USER[lang]||CREDIT_USER.en).split('{name}');
+  const link=httpsUrl(x.credit_url);
+  const who=link?'<a href="'+esc(link)+'" rel="nofollow ugc noopener">'+esc(x.name)+'</a>':esc(x.name);
+  return '<p class="credit">'+esc(parts[0]||'')+who+esc(parts[1]||'')+'</p>\n';
+}
+
 function buildChurchPage(c,contribs,nearby,lang,wikiImage,summary){
   const ui=UI[lang],den=(DEN[lang]||DEN.en)[c.denomination]||c.denomination||'';
   const country=countryLabel(c,lang);
@@ -199,7 +208,7 @@ function buildChurchPage(c,contribs,nearby,lang,wikiImage,summary){
   const paras=String(c.description||'').split(/\n+/).map(s=>s.trim()).filter(Boolean).map(s=>'<p>'+esc(s)+'</p>').join('');
   const comments=contribs.filter(x=>x.comment).slice(0,5).map(x=>'<div class="comment">💬 <strong>'+esc(x.name)+'</strong>: '+esc(x.comment)+'</div>').join('');
   const body='<main>\n<nav><a href="/">The Church Atlas</a><a href="/collections?lang='+lang+'">'+(lang==='tr'?'Koleksiyonlar':'Collections')+'</a><a href="/'+(lang==='tr'?'hakkinda':'about')+'.html">'+(lang==='tr'?'Hakkında':'About')+'</a></nav>\n'
-   +(heroUrl?'<img class="hero" src="'+esc(heroUrl)+'" alt="'+esc(c.name)+'">\n'+(!photos[0]?'<p class="credit">'+esc(CREDIT[lang]||CREDIT.en)+'</p>\n':''):'')
+   +(heroUrl?'<img class="hero" src="'+esc(heroUrl)+'" alt="'+esc(c.name)+'">\n'+(photos[0]?userCreditHtml(contribs.find(x=>httpsUrl(x.photo_url)),lang):'<p class="credit">'+esc(CREDIT[lang]||CREDIT.en)+'</p>\n'):'')
    +'<h1>'+esc(c.name)+'</h1>\n<span class="badge">'+esc(den)+'</span>\n'+(place?'<p class="place">'+esc(place)+'</p>\n':'')
    +(c.verified_at?'<p class="verified">✓ '+esc((CLAIM_UI[lang]||CLAIM_UI.en).badge)+(c.verified_by?' · '+esc(c.verified_by):'')+'</p>\n':'')
    +paras+'\n'
@@ -226,7 +235,7 @@ module.exports=async function handler(req,res){
   try{
     const [rows,contribs]=await Promise.all([
       rest('atlas_churches?id=eq.'+id+'&select=*&limit=1'),
-      rest('atlas_contributions?church_id=eq.'+id+'&status=eq.approved&select=name,comment,photo_url,created_at&order=created_at.desc&limit=30')
+      rest('atlas_contributions?church_id=eq.'+id+'&status=eq.approved&select=*&order=created_at.desc&limit=30')
     ]);
     const c=rows[0];
     if(!c)return notFound(res,lang);
