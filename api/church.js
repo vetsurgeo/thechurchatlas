@@ -138,7 +138,7 @@ const CSS='body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,s
 +'.badge{display:inline-block;font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:12px;background:#e2e8f0;color:#334155;text-transform:uppercase}'
 +'.place{color:#64748b;margin:4px 0 14px}.cta{display:inline-block;margin:16px 0 4px;background:#0f172a;color:#fff;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:999px}'
 +'.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}.grid img{width:100%;height:120px;object-fit:cover;border-radius:10px;background:#e2e8f0}'
-+'.verified{display:inline-block;font-size:.75rem;font-weight:600;color:#166534;background:#dcfce7;border-radius:999px;padding:3px 12px;margin:0 0 10px}.claim{font-size:.85rem;margin-top:24px}.credit{font-size:.72rem;color:#94a3b8;margin:6px 0 0}.comment{background:#f1f5f9;border-radius:8px;padding:8px 10px;margin:6px 0;font-size:.9rem}'
++'.addr{margin:-4px 0 10px;font-size:.88rem;color:#475569}.verified{display:inline-block;font-size:.75rem;font-weight:600;color:#166534;background:#dcfce7;border-radius:999px;padding:3px 12px;margin:0 0 10px}.claim{font-size:.85rem;margin-top:24px}.credit{font-size:.72rem;color:#94a3b8;margin:6px 0 0}.comment{background:#f1f5f9;border-radius:8px;padding:8px 10px;margin:6px 0;font-size:.9rem}'
 +'ul.links{padding-left:20px}ul.links li{margin:4px 0}footer{margin-top:40px;font-size:.8rem;color:#94a3b8}footer a{margin-right:10px;white-space:nowrap}';
 
 function page({title,desc,lang,canonical,robots,image,ld,body}){
@@ -194,13 +194,15 @@ function buildChurchPage(c,contribs,nearby,lang,wikiImage,summary){
   const image=heroUrl||SITE+'/og-image.png';
   const title=c.name+(place?' · '+place:'')+' | The Church Atlas';
   const ownText=String(c.description||'').trim();
-  const desc=clip(ownText,155)||clip(summary&&summary.text,155)||clip([den,place].filter(Boolean).join(' · ')+' — '+(TAG[lang]||TAG.en),155);
+  const addr=String(c.address||'').trim();
+  const base=ownText||(summary&&summary.text)||([den,place].filter(Boolean).join(' · ')+' — '+(TAG[lang]||TAG.en));
+  const desc=clip((addr?addr+(place?', '+place:'')+'. ':'')+base,155);
 
   const ld={'@context':'https://schema.org','@type':'Church',name:c.name,url,description:clip(ownText,500)||clip(summary&&summary.text,500)||undefined,
     inLanguage:lang,
     image:photos.length?photos.slice(0,6):(wikiImage?[wikiImage]:undefined),
     geo:(c.lat!=null&&c.lng!=null)?{'@type':'GeoCoordinates',latitude:c.lat,longitude:c.lng}:undefined,
-    address:place?{'@type':'PostalAddress',addressLocality:c.city||undefined,addressRegion:c.region||undefined,addressCountry:c.country_code||country||undefined}:undefined,
+    address:(place||addr)?{'@type':'PostalAddress',streetAddress:addr||undefined,addressLocality:c.city||undefined,addressRegion:c.region||undefined,addressCountry:c.country_code||country||undefined}:undefined,
     sameAs:c.wikidata?['https://www.wikidata.org/wiki/'+c.wikidata]:undefined,
     isPartOf:{'@type':'WebSite',name:'The Church Atlas',url:SITE+'/'}};
 
@@ -210,6 +212,7 @@ function buildChurchPage(c,contribs,nearby,lang,wikiImage,summary){
   const body='<main>\n<nav><a href="/">The Church Atlas</a><a href="/collections?lang='+lang+'">'+(lang==='tr'?'Koleksiyonlar':'Collections')+'</a><a href="/'+(lang==='tr'?'hakkinda':'about')+'.html">'+(lang==='tr'?'Hakkında':'About')+'</a></nav>\n'
    +(heroUrl?'<img class="hero" src="'+esc(heroUrl)+'" alt="'+esc(c.name)+'">\n'+(photos[0]?userCreditHtml(contribs.find(x=>httpsUrl(x.photo_url)),lang):'<p class="credit">'+esc(CREDIT[lang]||CREDIT.en)+'</p>\n'):'')
    +'<h1>'+esc(c.name)+'</h1>\n<span class="badge">'+esc(den)+'</span>\n'+(place?'<p class="place">'+esc(place)+'</p>\n':'')
+   +(addr?'<p class="addr">📍 '+esc(addr)+'</p>\n':'')
    +(c.verified_at?'<p class="verified">✓ '+esc((CLAIM_UI[lang]||CLAIM_UI.en).badge)+(c.verified_by?' · '+esc(c.verified_by):'')+'</p>\n':'')
    +paras+'\n'
    +((!paras&&summary)?'<p lang="'+esc(summary.wlang)+'">'+esc(summary.text)+'</p>\n<p class="credit">'+esc(WIKI_SRC[lang]||WIKI_SRC.en)+' — <a href="'+esc(summary.url)+'" rel="noopener nofollow">'+esc(WIKI_READ[lang]||WIKI_READ.en)+'</a></p>\n':'')
