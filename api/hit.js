@@ -3,7 +3,8 @@
 const SUPABASE_URL='https://siucplaufmjhqgdtorhf.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpdWNwbGF1Zm1qaHFnZHRvcmhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyMDU0MzksImV4cCI6MjEwNjc4MTQzOX0.dTo5uK-djOc3rkNrmJsahypGUw2-bHfwPFjcsx6-sso';   // yalnızca herkese açık (anon) anahtar
 
-const BOT=/bot|crawl|spider|slurp|preview|facebookexternalhit|whatsapp|telegram|curl|wget|python|java\b|go-http|headless|lighthouse|pingdom|uptime|monitor|scrapy|httpclient|axios|node-fetch/i;
+// Not: sayaç yalnızca sayfadaki betikten çağrılır; bağlantı önizleme botları betik çalıştırmaz. WhatsApp ve Telegram'ın uygulama içi tarayıcılarındaki gerçek ziyaretçiler sayılsın diye bu iki ad listeden çıkarıldı (TelegramBot gibi botlar "bot" kelimesiyle yine elenir).
+const BOT=/bot|crawl|spider|slurp|preview|facebookexternalhit|curl|wget|python|java\b|go-http|headless|lighthouse|pingdom|uptime|monitor|scrapy|httpclient|axios|node-fetch/i;
 const OK_HOST=h=>h==='thechurchatlas.com'||h==='www.thechurchatlas.com'||h.endsWith('.vercel.app');
 
 module.exports=async function handler(req,res){
