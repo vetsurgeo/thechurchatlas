@@ -266,7 +266,7 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
 .header-sub{flex-basis:100%;font-size:.74rem;color:#64748b;margin-top:4px;line-height:1.3}
 
 /* Yönetici istatistikleri */
-.stat-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat-cards{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
 .stat-card{background:#f1f5f9;border-radius:10px;padding:10px 6px;text-align:center;font-size:.72rem;color:#64748b}
 .stat-card b{display:block;font-size:1.25rem;color:#0f172a}
 .stat-bars{display:flex;align-items:flex-end;gap:2px;height:72px;margin-top:6px}
@@ -644,7 +644,7 @@ const DONATE_URL='https://buymeacoffee.com/thechurchatlas';
 const SITE_URL='https://thechurchatlas.com';
 
 /* Sürüm damgası: yönetici penceresinin altında görünür; yeni dosyanın yayında olup olmadığını anlamak içindir */
-const APP_VERSION='2026.10.25-g';
+const APP_VERSION='2026.10.28-h';
 
 const $=id=>document.getElementById(id);
 const toastEl=$('toast');let toastTimer;
@@ -3083,9 +3083,10 @@ function statList(title,entries,limit){
   return box;
 }
 
+const STATS_SPLIT_DAY='2026-10-29';   // kilise sayfası / harita ayrımının başladığı gün (yaklaşık)
 function summarizeStats(rows,days){
   const add=(m,k,n)=>m.set(k,(m.get(k)||0)+n);
-  const byKind={app:0,church:0,about:0},perDay=new Map(),langs=new Map(),countries=new Map(),sources=new Map(),devices=new Map(),churches=new Map();
+  const byKind={app:0,church:0,page:0,about:0},perDay=new Map(),langs=new Map(),countries=new Map(),sources=new Map(),devices=new Map(),churches=new Map();
   rows.forEach(r=>{
     const n=Number(r.hits)||0;
     byKind[r.kind]=(byKind[r.kind]||0)+n;
@@ -3094,7 +3095,7 @@ function summarizeStats(rows,days){
     add(countries,r.country||'',n);
     add(sources,r.src?'🏷 '+r.src:(r.ref?'🔗 '+r.ref:''),n);
     add(devices,r.device||'',n);
-    if(r.kind==='church')add(churches,r.church_id,n);
+    if(r.kind==='church'||r.kind==='page')add(churches,r.church_id,n);   // en çok bakılan kiliseler: harita + sayfa
   });
   const dayList=[];
   for(let i=days-1;i>=0;i--)dayList.push(istDay(new Date(Date.now()-i*864e5)));
@@ -3121,16 +3122,25 @@ async function loadStats(){
   body.className='';body.replaceChildren();
 
   const cards=document.createElement('div');cards.className='stat-cards';
-  [['Ziyaret (site açılışı)',S.byKind.app],['Kilise görüntüleme',S.byKind.church],['Hakkında sayfası',S.byKind.about]].forEach(([l,n])=>{
+  [['Harita açılışı',S.byKind.app],['Haritada kilise açılışı',S.byKind.church],['Kilise sayfası ziyareti (Google vb.)',S.byKind.page],['Hakkında sayfası',S.byKind.about]].forEach(([l,n])=>{
     const c=document.createElement('div');c.className='stat-card';
     const b=document.createElement('b');b.textContent=(n||0).toLocaleString('tr-TR');c.append(b,l);cards.append(c);
   });
   body.append(cards);
+  // Harita açılışı başına haritada açılan kilise ("Yakındaki kiliseler" gibi özelliklerin etkisini bu oran gösterir)
+  const ratio=document.createElement('div');ratio.className='muted small';ratio.style.marginTop='8px';
+  ratio.textContent='Harita açılışı başına haritada açılan kilise: '+(S.byKind.app?(S.byKind.church/S.byKind.app).toLocaleString('tr-TR',{maximumFractionDigits:2}):'–');
+  body.append(ratio);
+  if(S.dayList[0]<STATS_SPLIT_DAY){
+    const note=document.createElement('div');note.className='muted small';note.style.marginTop='4px';
+    note.textContent='Not: '+STATS_SPLIT_DAY+' öncesinde kilise sayfası ziyaretleri de "Haritada kilise açılışı" içinde sayılıyordu; bu günleri içeren dönemde oran biraz yüksek görünür.';
+    body.append(note);
+  }
 
   const max=Math.max(1,...S.dayList.map(d=>S.perDay.get(d)||0));
   const bars=document.createElement('div');bars.className='stat-bars';
   S.dayList.forEach(d=>{const v=S.perDay.get(d)||0;const bar=document.createElement('div');bar.style.height=Math.max(3,Math.round(v/max*100))+'%';bar.title=d+': '+v;bars.append(bar)});
-  const t1=document.createElement('div');t1.style.cssText='margin-top:16px;font-weight:700;font-size:.85rem';t1.textContent='Günlük ziyaret (en yüksek: '+max+')';
+  const t1=document.createElement('div');t1.style.cssText='margin-top:16px;font-weight:700;font-size:.85rem';t1.textContent='Günlük harita açılışı (en yüksek: '+max+')';
   const axis=document.createElement('div');axis.className='stat-axis';
   const a1=document.createElement('span');a1.textContent=S.dayList[0];const a2=document.createElement('span');a2.textContent=S.dayList[S.dayList.length-1];axis.append(a1,a2);
   body.append(t1,bars,axis);
