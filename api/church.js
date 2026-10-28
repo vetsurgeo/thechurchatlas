@@ -171,7 +171,7 @@ function trackScript(id,lang){
    +'var k="hit:church:'+id+'";if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1");'
    +'var p=new URLSearchParams(location.search),s=String(p.get("src")||p.get("utm_source")||"").toLowerCase().replace(/[^a-z0-9_-]/g,"").slice(0,30),r="";'
    +'try{var h=new URL(document.referrer).hostname.replace(/^www\\./,"");if(h&&h!==location.hostname.replace(/^www\\./,""))r=h}catch(e){}'
-   +'var b=JSON.stringify({k:"church",c:'+Number(id)+',l:"'+lang+'",r:r,s:s});'
+   +'var b=JSON.stringify({k:"page",c:'+Number(id)+',l:"'+lang+'",r:r,s:s});'
    +'if(!(navigator.sendBeacon&&navigator.sendBeacon("/api/hit",new Blob([b],{type:"application/json"}))))fetch("/api/hit",{method:"POST",headers:{"Content-Type":"application/json"},body:b,keepalive:true})'
    +'}catch(e){}})()</script>';
 }
