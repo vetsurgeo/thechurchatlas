@@ -651,7 +651,7 @@ const DONATE_URL='https://buymeacoffee.com/thechurchatlas';
 const SITE_URL='https://thechurchatlas.com';
 
 /* Sürüm damgası: yönetici penceresinin altında görünür; yeni dosyanın yayında olup olmadığını anlamak içindir */
-const APP_VERSION='2026.10.28-i';
+const APP_VERSION='2026.10.28-k';
 
 const $=id=>document.getElementById(id);
 const toastEl=$('toast');let toastTimer;
@@ -876,6 +876,11 @@ let churchesData=[],markers=[],activeChurchId=null;
 const DENOM={Katolik:'badge-katolik',Ortodoks:'badge-ortodoks','Oryantal Ortodoks':'badge-oryantal','Doğu Kilisesi':'badge-dogu',Protestan:'badge-protestan',Anglikan:'badge-anglikan'};
 
 let firstLoad=true,regionSupported=false,countryCodeSupported=false,verifiedSupported=false,addressSupported=false;
+// Hafif açılış: ziyaretçiler için açılışta yalnızca harita, arama ve filtre için gereken sütunlar indirilir;
+// açıklama, Wikipedia başlıkları, fotoğraf ve yorumlar bir kiliseye tıklanınca yalnızca o kilise için yüklenir.
+// Yönetici paneli açılınca tam veri yüklenir (fullData), çünkü düzenleme formu ve araçlar tüm bilgilere ihtiyaç duyar.
+const LIGHT_COLS='id,name,city,region,country,country_code,denomination,lat,lng,wikidata,address,verified_at,verified_by';
+let fullData=false,fullReady=false;
 // Supabase tek istekte en çok 1000 satır döndürür; daha fazlası için sayfa sayfa çekilir
 const PAGE_SIZE=1000;
 async function fetchAll(build){
@@ -902,10 +907,20 @@ async function fetchAll(build){
 async function loadChurches(){
   if(!sb){setStatus('Supabase ayarları eksik (SUPABASE_URL / SUPABASE_KEY)','error');lastCount=0;updateCountBadge();return}
   setStatusT('loadingChurches','loading');
-  const [cr,kr]=await Promise.all([
-    fetchAll((a,b,withCount)=>sb.from('atlas_churches').select('*',withCount?{count:'exact'}:undefined).order('id').range(a,b)),
-    fetchAll((a,b,withCount)=>sb.from('atlas_contributions').select('*',withCount?{count:'exact'}:undefined).eq('status','approved').order('created_at').order('id').range(a,b))
-  ]);
+  const wantFull=fullData;
+  const churchQuery=cols=>fetchAll((a,b,withCount)=>sb.from('atlas_churches').select(cols,withCount?{count:'exact'}:undefined).order('id').range(a,b));
+  let cr,kr;
+  if(wantFull){
+    [cr,kr]=await Promise.all([
+      churchQuery('*'),
+      fetchAll((a,b,withCount)=>sb.from('atlas_contributions').select('*',withCount?{count:'exact'}:undefined).eq('status','approved').order('created_at').order('id').range(a,b))
+    ]);
+  }else{
+    cr=await churchQuery(LIGHT_COLS);
+    // Bir sütun veritabanında yoksa (örneğin bir SQL çalıştırılmamışsa) eski yönteme dön
+    if(cr.error&&/column|does not exist|42703/i.test(String(cr.error.message||'')+String(cr.error.code||'')))cr=await churchQuery('*');
+    kr={data:[]};
+  }
   if(cr.error){setStatusT('loadError','error',{msg:cr.error.message});return}
   const approved=kr.data||[];
   // 'region' sütunu veritabanında varsa select * onu da getirir
@@ -925,12 +940,15 @@ async function loadChurches(){
       wikidata:c.wikidata||'',wikiTitles:c.wiki_titles||{},
       // Onaylı ziyaretçi fotoğrafları, en yeni en başta
       photos:mine.filter(x=>x.photo_url&&safeImageUrl(x.photo_url)).map(x=>({url:x.photo_url,by:x.name,link:safeCreditUrl(x.credit_url)})).reverse(),
-      comments:mine.filter(x=>x.comment).map(x=>({name:x.name,text:x.comment}))
+      comments:mine.filter(x=>x.comment).map(x=>({name:x.name,text:x.comment})),
+      _full:wantFull
     };
   });
+  if(wantFull)fullReady=true;
   applyFilter(firstLoad);firstLoad=false;
   setStatusT('ready','ok');
   openChurchFromUrl();
+  if(!wantFull)scheduleBackgroundDetails();
 }
 
 /* ==========================================================
@@ -1551,10 +1569,62 @@ $('claim-send').addEventListener('click',async()=>{
   btn.disabled=false;done();
 });
 
+// Arka planda tamamlama: harita hafif veriyle açıldıktan kısa süre sonra açıklamalar ve Wikipedia başlıkları sessizce yüklenir.
+// Böylece ilk açılış hızlı kalır, arama da açıklama metinlerinde çalışmaya devam eder.
+let bgDetailsStarted=false;
+function scheduleBackgroundDetails(){
+  if(bgDetailsStarted||fullData||!sb)return;
+  bgDetailsStarted=true;
+  const run=async()=>{
+    if(fullData)return;                 // yönetici paneli açıldıysa tam veri zaten yükleniyor
+    try{
+      const r=await fetchAll((a,b,withCount)=>sb.from('atlas_churches').select('id,description,wiki_titles',withCount?{count:'exact'}:undefined).order('id').range(a,b));
+      if(r.error||fullData)return;
+      const byId=new Map(churchesData.map(c=>[c.id,c]));
+      for(const row of r.data||[]){
+        const c=byId.get(row.id);
+        if(!c||c._full)continue;
+        c.description=row.description||'';
+        if(row.wiki_titles&&!Object.keys(c.wikiTitles||{}).length)c.wikiTitles=row.wiki_titles;
+        c._hay=null;
+      }
+      if(($('search-input').value||'').trim())applyFilter(false);   // açık bir arama varsa sonuçlar açıklamalarla yenilenir
+    }catch(e){}
+  };
+  const start=()=>setTimeout(run,1200);
+  if('requestIdleCallback' in window)requestIdleCallback(start,{timeout:3000});else start();
+}
+
+// Bir kilisenin ayrıntılarını (açıklama, Wikipedia başlıkları, onaylı fotoğraf ve yorumlar) yalnızca gerektiğinde yükler
+const detailsPending=new Map();
+function loadChurchDetails(c){
+  if(c._full||!sb)return Promise.resolve();
+  if(detailsPending.has(c.id))return detailsPending.get(c.id);
+  const job=(async()=>{
+    try{
+      const [d,k]=await Promise.all([
+        sb.from('atlas_churches').select('*').eq('id',c.id).maybeSingle(),
+        sb.from('atlas_contributions').select('*').eq('church_id',c.id).eq('status','approved').order('created_at').order('id')
+      ]);
+      if(d.error||k.error||!d.data)return;      // ayrıntı gelmezse panel temel bilgilerle kalır
+      c.description=d.data.description||'';
+      c.wikiTitles=d.data.wiki_titles||{};
+      const mine=k.data||[];
+      c.photos=mine.filter(x=>x.photo_url&&safeImageUrl(x.photo_url)).map(x=>({url:x.photo_url,by:x.name,link:safeCreditUrl(x.credit_url)})).reverse();
+      c.comments=mine.filter(x=>x.comment).map(x=>({name:x.name,text:x.comment}));
+      c._full=true;c._hay=null;
+      if(activeChurchId===c.id)openChurch(c,{keepView:true,refresh:true});
+    }catch(e){}
+    finally{detailsPending.delete(c.id)}
+  })();
+  detailsPending.set(c.id,job);
+  return job;
+}
+
 function openChurch(c,opts){
+  const refresh=!!(opts&&opts.refresh);
   activeChurch=c;activeChurchId=c.id;
-  setChurchParam(c.id);
-  trackHit('church',c.id);
+  if(!refresh){setChurchParam(c.id);trackHit('church',c.id)}
   $('drawer-img').alt=c.name;
 
   const userPhotos=c.photos.map(p=>({url:p.url,kind:'user',by:p.by,link:p.link}));
@@ -1581,6 +1651,7 @@ function openChurch(c,opts){
   renderNearby(c);
   $('info-drawer').classList.add('active');
   if(!(opts&&opts.keepView))map.setView([c.lat,c.lng],15,{animate:true});
+  if(!c._full&&!refresh)loadChurchDetails(c);
 }
 
 $('drawer-close').addEventListener('click',()=>closeDrawer());
@@ -1759,7 +1830,20 @@ async function openAdmin(){
 }
 function closeAdmin(){$('admin-modal').style.display='none'}
 function showLogin(){$('admin-login').hidden=false;$('admin-panel').hidden=true;$('church-form').hidden=true;$('import-view').hidden=true}
+// Yönetici paneli için tam veri: düzenleme formu ve araçlar açıklama ve fotoğraflara ihtiyaç duyar
+function ensureFullData(){
+  if(fullData)return;
+  fullData=true;fullReady=false;
+  loadChurches().then(()=>{try{renderChurchAdmin()}catch(e){}});
+}
+function needFull(){
+  if(fullData&&fullReady)return false;
+  ensureFullData();
+  toast('Tüm kilise verileri yükleniyor, birkaç saniye sonra tekrar dene.');
+  return true;
+}
 function showPanel(){
+  ensureFullData();
   setTimeout(()=>{try{refreshClaimsCount()}catch(e){}},0);
   try{localStorage.setItem('noTrack','1')}catch(e){}      // yönetici girişi yapılan tarayıcı sayaca eklenmez
   $('admin-login').hidden=true;$('church-form').hidden=true;$('import-view').hidden=true;$('admin-panel').hidden=false;
@@ -1844,6 +1928,7 @@ $('church-filter').addEventListener('input',()=>{churchAdminLimit=30;renderChurc
 $('church-filter-denom').addEventListener('change',()=>{churchAdminLimit=30;renderChurchAdmin()});
 
 function openChurchForm(c){
+  if(c&&needFull())return;      // açıklama tam yüklenmeden düzenleme açılmaz (yoksa kaydederken silinirdi)
   editingChurchId=c?c.id:null;
   editingCountryCode=c?(c.countryCode||''):'';
   $('cf-title').textContent=c?'Kiliseyi düzenle':'Yeni kilise ekle';
@@ -2488,6 +2573,7 @@ function showGeoReport(rep){
 }
 
 async function runGeoFill(todo){
+  if(needFull())return;
   if(!sb||geoRunning||!todo.length)return;
   geoRunning=true;geoStop=false;
   const btn=$('fill-geo-btn'),prog=$('geo-progress');
@@ -2648,6 +2734,7 @@ function updateDisambigBtn(){
 }
 
 async function runDisambig(){
+  if(needFull())return;
   if(!sb||disambigRunning||geoRunning)return;
   const todo=disambigTargets();
   if(!todo.length){toast('Ayrıştırılacak aynı adlı kilise yok.');return}
@@ -2746,6 +2833,7 @@ function showWikiReport(rep){
 }
 
 async function runWikiLinks(){
+  if(needFull())return;
   if(!sb||wikiRunning)return;
   const todo=wikiTargets();
   if(!todo.length){toast('Kontrol edilecek yeni kilise yok.');return}
@@ -2852,6 +2940,7 @@ function addressFromClaims(c,claims,streetLabels){
   return '';
 }
 async function runAddrWd(){
+  if(needFull())return;
   if(!sb||addrRunning||!addressSupported)return;
   const todo=addrTargets();
   if(!todo.length){toast('Kontrol edilecek yeni kilise yok.');return}
