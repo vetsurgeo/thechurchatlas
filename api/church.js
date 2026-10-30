@@ -167,7 +167,7 @@ function notFound(res,lang){
 
 // Gizliliğe saygılı ziyaret sayacı: çerez, IP adresi ya da kişi kimliği yok; JavaScript çalıştırmayan botlar zaten sayılmaz
 function trackScript(id,lang){
-  return '<script>(function(){try{if(navigator.doNotTrack==="1"||navigator.globalPrivacyControl||localStorage.getItem("noTrack")==="1")return;'
+  return '<script>(function(){try{if(navigator.doNotTrack==="1"||navigator.globalPrivacyControl||navigator.webdriver||localStorage.getItem("noTrack")==="1")return;'
    +'var k="hit:church:'+id+'";if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1");'
    +'var p=new URLSearchParams(location.search),s=String(p.get("src")||p.get("utm_source")||"").toLowerCase().replace(/[^a-z0-9_-]/g,"").slice(0,30),r="";'
    +'try{var h=new URL(document.referrer).hostname.replace(/^www\\./,"");if(h&&h!==location.hostname.replace(/^www\\./,""))r=h}catch(e){}'
