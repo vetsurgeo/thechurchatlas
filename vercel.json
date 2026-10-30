@@ -1,4 +1,11 @@
 {
+  "redirects": [
+    {
+      "source": "/church/395",
+      "destination": "/church/414",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/church/:id",
