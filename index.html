@@ -1314,6 +1314,16 @@ function setCredit(el,p){
     const a=document.createElement('a');
     a.href=p.link;a.target='_blank';a.rel='noopener noreferrer nofollow ugc';a.textContent=p.by;
     el.append(parts[0]||'',a,parts[1]||'');
+  }else if(p.kind==='curated'){
+    // Doğrulanmış fotoğraf: "Fotoğraf: Yazar · Lisans · Kaynak" (yazar → dosya sayfası, lisans → lisans metni)
+    const label=String(t('creditWiki')).split(/\s*[:：՝]/)[0];
+    const link=(href,text)=>{if(!href)return document.createTextNode(text);const a=document.createElement('a');a.href=href;a.target='_blank';a.rel='noopener noreferrer';a.textContent=text;return a};
+    const parts=[];
+    if(p.author)parts.push(link(p.page,p.author));
+    if(p.license)parts.push(link(p.licenseUrl,p.license));
+    if(p.source)parts.push(p.author?document.createTextNode(p.source):link(p.page,p.source));
+    el.append(label+': ');
+    parts.forEach((n,i)=>{if(i)el.append(' · ');el.append(n)});
   }else el.textContent=photoCredit(p);
 }
 function photoCredit(p){return p.kind==='wiki'?t('creditWiki'):p.kind==='user'?t('creditUserBy',{name:p.by}):''}
@@ -1610,6 +1620,8 @@ function loadChurchDetails(c){
       if(d.error||k.error||!d.data)return;      // ayrıntı gelmezse panel temel bilgilerle kalır
       c.description=d.data.description||'';
       c.wikiTitles=d.data.wiki_titles||{};
+      const imgUrl=d.data.image_url&&safeImageUrl(d.data.image_url);   // doğrulanmış fotoğraf (yazar/lisans atfıyla)
+      c.curatedPhoto=imgUrl?{url:imgUrl,kind:'curated',page:safeCreditUrl(d.data.image_page_url||''),author:String(d.data.image_author||'').trim(),license:String(d.data.image_license||'').trim(),licenseUrl:safeCreditUrl(d.data.image_license_url||''),source:String(d.data.image_source||'').trim()}:null;
       const mine=k.data||[];
       c.photos=mine.filter(x=>x.photo_url&&safeImageUrl(x.photo_url)).map(x=>({url:x.photo_url,by:x.name,link:safeCreditUrl(x.credit_url)})).reverse();
       c.comments=mine.filter(x=>x.comment).map(x=>({name:x.name,text:x.comment}));
@@ -1629,13 +1641,14 @@ function openChurch(c,opts){
   $('drawer-img').alt=c.name;
 
   const userPhotos=c.photos.map(p=>({url:p.url,kind:'user',by:p.by,link:p.link}));
-  currentPhotos=userPhotos.slice();
-  photoLoading=true;
+  const curated=c.curatedPhoto?[c.curatedPhoto]:[];
+  currentPhotos=[...userPhotos,...curated];
+  photoLoading=!curated.length;
   renderPhotoUI();
 
   // Wikipedia/Wikidata görseli, ziyaretçi fotoğraflarının ardına eklenir
-  getWikiImage(c).catch(()=>null).then(url=>{
-    if(activeChurchId!==c.id)return;
+  if(!curated.length)getWikiImage(c).catch(()=>null).then(url=>{
+    if(activeChurchId!==c.id||c.curatedPhoto)return;
     photoLoading=false;
     if(url)currentPhotos=[...userPhotos,{url,kind:'wiki'}];
     renderPhotoUI();

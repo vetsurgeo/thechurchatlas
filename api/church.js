@@ -177,6 +177,21 @@ function trackScript(id,lang){
 }
 
 // Ziyaretçi fotoğrafının sahibi (bağlantı verdiyse tıklanabilir)
+// Doğrulanmış (veritabanına kayıtlı) fotoğraf için yazar · lisans · kaynak atfı
+function curatedImage(c){
+  const url=httpsUrl(c.image_url);if(!url)return null;
+  return{url,page:httpsUrl(c.image_page_url),author:String(c.image_author||'').trim(),license:String(c.image_license||'').trim(),licenseUrl:httpsUrl(c.image_license_url),source:String(c.image_source||'').trim()};
+}
+function curatedCreditHtml(im,lang){
+  const label=String(CREDIT[lang]||CREDIT.en).split(/\s*[:：՝]/)[0];
+  const a=(href,text)=>href?'<a href="'+esc(href)+'" rel="noopener nofollow">'+esc(text)+'</a>':esc(text);
+  const parts=[];
+  if(im.author)parts.push(a(im.page,im.author));
+  if(im.license)parts.push(a(im.licenseUrl,im.license));
+  if(im.source)parts.push(im.author?esc(im.source):a(im.page,im.source));
+  return '<p class="credit">'+esc(label)+': '+parts.join(' · ')+'</p>\n';
+}
+
 function userCreditHtml(x,lang){
   const parts=(CREDIT_USER[lang]||CREDIT_USER.en).split('{name}');
   const link=httpsUrl(x.credit_url);
@@ -190,7 +205,8 @@ function buildChurchPage(c,contribs,nearby,lang,wikiImage,summary){
   const place=[c.city,c.region&&c.region!==c.city?c.region:'',country].filter(Boolean).join(', ');
   const url=SITE+'/church/'+c.id;
   const photos=contribs.map(x=>httpsUrl(x.photo_url)).filter(Boolean);
-  const heroUrl=photos[0]||wikiImage||null;           // ziyaretçi fotoğrafı yoksa Wikimedia görseli
+  const curated=curatedImage(c);
+  const heroUrl=photos[0]||(curated&&curated.url)||wikiImage||null;  // ziyaretçi fotoğrafı > doğrulanmış fotoğraf > Wikimedia görseli
   const image=heroUrl||SITE+'/og-image.png';
   const title=c.name+(place?' · '+place:'')+' | The Church Atlas';
   const ownText=String(c.description||'').trim();
@@ -200,7 +216,7 @@ function buildChurchPage(c,contribs,nearby,lang,wikiImage,summary){
 
   const ld={'@context':'https://schema.org','@type':'Church',name:c.name,url,description:clip(ownText,500)||clip(summary&&summary.text,500)||undefined,
     inLanguage:lang,
-    image:photos.length?photos.slice(0,6):(wikiImage?[wikiImage]:undefined),
+    image:photos.length?photos.slice(0,6):(curated?[curated.url]:(wikiImage?[wikiImage]:undefined)),
     geo:(c.lat!=null&&c.lng!=null)?{'@type':'GeoCoordinates',latitude:c.lat,longitude:c.lng}:undefined,
     address:(place||addr)?{'@type':'PostalAddress',streetAddress:addr||undefined,addressLocality:c.city||undefined,addressRegion:c.region||undefined,addressCountry:c.country_code||country||undefined}:undefined,
     sameAs:c.wikidata?['https://www.wikidata.org/wiki/'+c.wikidata]:undefined,
@@ -210,7 +226,7 @@ function buildChurchPage(c,contribs,nearby,lang,wikiImage,summary){
   const paras=String(c.description||'').split(/\n+/).map(s=>s.trim()).filter(Boolean).map(s=>'<p>'+esc(s)+'</p>').join('');
   const comments=contribs.filter(x=>x.comment).slice(0,5).map(x=>'<div class="comment">💬 <strong>'+esc(x.name)+'</strong>: '+esc(x.comment)+'</div>').join('');
   const body='<main>\n<nav><a href="/">The Church Atlas</a><a href="/collections?lang='+lang+'">'+(lang==='tr'?'Koleksiyonlar':'Collections')+'</a><a href="/'+(lang==='tr'?'hakkinda':'about')+'.html">'+(lang==='tr'?'Hakkında':'About')+'</a></nav>\n'
-   +(heroUrl?'<img class="hero" src="'+esc(heroUrl)+'" alt="'+esc(c.name)+'">\n'+(photos[0]?userCreditHtml(contribs.find(x=>httpsUrl(x.photo_url)),lang):'<p class="credit">'+esc(CREDIT[lang]||CREDIT.en)+'</p>\n'):'')
+   +(heroUrl?'<img class="hero" src="'+esc(heroUrl)+'" alt="'+esc(c.name)+'">\n'+(photos[0]?userCreditHtml(contribs.find(x=>httpsUrl(x.photo_url)),lang):curated?curatedCreditHtml(curated,lang):'<p class="credit">'+esc(CREDIT[lang]||CREDIT.en)+'</p>\n'):'')
    +'<h1>'+esc(c.name)+'</h1>\n<span class="badge">'+esc(den)+'</span>\n'+(place?'<p class="place">'+esc(place)+'</p>\n':'')
    +(addr?'<p class="addr">📍 '+esc(addr)+'</p>\n':'')
    +(c.verified_at?'<p class="verified">✓ '+esc((CLAIM_UI[lang]||CLAIM_UI.en).badge)+(c.verified_by?' · '+esc(c.verified_by):'')+'</p>\n':'')
@@ -248,7 +264,7 @@ module.exports=async function handler(req,res){
     const needSummary=!String(c.description||'').trim();
     // Wikimedia/Wikidata çağrıları ve yakın kiliseler aynı anda yapılır; dış servislere toplam 5 sn tanınır
     const [extra,nearby]=await Promise.all([
-      withDeadline(enrich(c,lang,!hasUserPhoto,needSummary),5000,{image:null,summary:null}).catch(()=>({image:null,summary:null})),
+      withDeadline(enrich(c,lang,!hasUserPhoto&&!httpsUrl(c.image_url),needSummary),5000,{image:null,summary:null}).catch(()=>({image:null,summary:null})),
       c.city?rest('atlas_churches?city=eq.'+encodeURIComponent(c.city)+'&id=neq.'+id+'&select=id,name&order=id.asc&limit=12').catch(()=>[]):Promise.resolve([])
     ]);
     const wikiImage=extra.image,summary=extra.summary;
