@@ -2,3 +2,5 @@ User-agent: *
 Allow: /
 
 Sitemap: https://thechurchatlas.com/sitemap.xml
+Sitemap: https://thechurchatlas.com/sitemap-churches.xml
+Sitemap: https://thechurchatlas.com/sitemap-cities.xml

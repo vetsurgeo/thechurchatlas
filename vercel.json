@@ -22,6 +22,14 @@
     {
       "source": "/collection/:slug",
       "destination": "/api/collection?slug=:slug"
+    },
+    {
+      "source": "/churches-in/:slug",
+      "destination": "/api/city?slug=:slug"
+    },
+    {
+      "source": "/sitemap-cities.xml",
+      "destination": "/api/city-sitemap"
     }
   ],
   "headers": [

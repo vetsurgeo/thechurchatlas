@@ -221,6 +221,7 @@ function buildChurchPage(c,contribs,nearby,lang,wikiImage,summary){
     address:(place||addr)?{'@type':'PostalAddress',streetAddress:addr||undefined,addressLocality:c.city||undefined,addressRegion:c.region||undefined,addressCountry:c.country_code||country||undefined}:undefined,
     sameAs:c.wikidata?['https://www.wikidata.org/wiki/'+c.wikidata]:undefined,
     isPartOf:{'@type':'WebSite',name:'The Church Atlas',url:SITE+'/'}};
+  const ldGraph={'@context':'https://schema.org','@graph':[ld,{'@type':'BreadcrumbList','itemListElement':[{'@type':'ListItem','position':1,'name':'The Church Atlas','item':SITE+'/'},{'@type':'ListItem','position':2,'name':c.name,'item':url}]}]};
 
   const mapUrl='/?church='+c.id+'&lang='+lang;
   const paras=String(c.description||'').split(/\n+/).map(s=>s.trim()).filter(Boolean).map(s=>'<p>'+esc(s)+'</p>').join('');
@@ -237,10 +238,10 @@ function buildChurchPage(c,contribs,nearby,lang,wikiImage,summary){
    +(comments?'<h2>'+esc(COMMENTS[lang]||COMMENTS.en)+'</h2>\n'+comments+'\n':'')
    +'<p class="claim"><a href="/?church='+c.id+'&claim=1&lang='+lang+'" rel="nofollow">'+esc((CLAIM_UI[lang]||CLAIM_UI.en).link)+'</a></p>\n'
    +(nearby.length?'<h2>'+esc(ui.nearby.replace('{place}',c.city||c.region||country))+'</h2>\n<ul class="links">'+nearby.map(n=>'<li><a href="/church/'+n.id+(lang===((String(c.country_code||'').toUpperCase()==='TR')?'tr':'en')?'':'?lang='+lang)+'">'+esc(n.name)+'</a></li>').join('')+'</ul>\n':'')
-   +'<footer>'+LANGS.map(([code,name])=>'<a href="/church/'+c.id+'?lang='+code+'" hreflang="'+code+'" rel="nofollow">'+esc(name)+'</a>').join('')
+   +'<footer>'+LANGS.map(([code,name])=>'<a href="/church/'+c.id+'?lang='+code+'" hreflang="'+code+'">'+esc(name)+'</a>').join('')
    +'<p class="credit">Locations and names: &copy; <a href="https://www.openstreetmap.org/copyright" rel="noopener">OpenStreetMap</a> contributors, <a href="https://opendatacommons.org/licenses/odbl/" rel="noopener">ODbL</a></p></footer>\n</main>\n'
    +trackScript(c.id,lang);
-  return page({title,desc,lang,canonical:url,robots:'index,follow',image,ld,body});
+  return page({title,desc,lang,canonical:url,robots:'index,follow',image,ld:ldGraph,body});
 }
 
 module.exports=async function handler(req,res){
