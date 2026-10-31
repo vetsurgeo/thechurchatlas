@@ -128,6 +128,7 @@ function countryLabel(c,lang){
 }
 
 const clip=(s,n)=>{s=String(s||'').replace(/\s+/g,' ').trim();return s.length>n?s.slice(0,n-1).trimEnd()+'…':s};
+const slugify=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')||'-';
 const jsonLd=o=>JSON.stringify(o).replace(/</g,'\\u003c');
 
 const CSS='body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#f8fafc;color:#334155;line-height:1.65}'
@@ -208,6 +209,7 @@ function buildChurchPage(c,contribs,nearby,lang,wikiImage,summary){
   const curated=curatedImage(c);
   const heroUrl=photos[0]||(curated&&curated.url)||wikiImage||null;  // ziyaretçi fotoğrafı > doğrulanmış fotoğraf > Wikimedia görseli
   const image=heroUrl||SITE+'/og-image.png';
+  const citySlug=c.city?slugify(c.city):'';
   const title=c.name+(place?' · '+place:'')+' | The Church Atlas';
   const ownText=String(c.description||'').trim();
   const addr=String(c.address||'').trim();
@@ -229,6 +231,7 @@ function buildChurchPage(c,contribs,nearby,lang,wikiImage,summary){
   const body='<main>\n<nav><a href="/">The Church Atlas</a><a href="/collections?lang='+lang+'">'+(lang==='tr'?'Koleksiyonlar':'Collections')+'</a><a href="/'+(lang==='tr'?'hakkinda':'about')+'.html">'+(lang==='tr'?'Hakkında':'About')+'</a></nav>\n'
    +(heroUrl?'<img class="hero" src="'+esc(heroUrl)+'" alt="'+esc(c.name)+'">\n'+(photos[0]?userCreditHtml(contribs.find(x=>httpsUrl(x.photo_url)),lang):curated?curatedCreditHtml(curated,lang):'<p class="credit">'+esc(CREDIT[lang]||CREDIT.en)+'</p>\n'):'')
    +'<h1>'+esc(c.name)+'</h1>\n<span class="badge">'+esc(den)+'</span>\n'+(place?'<p class="place">'+esc(place)+'</p>\n':'')
+   +(citySlug&&citySlug!=='-'?'<p><a href="/churches-in/'+citySlug+'">'+(lang==='tr'?'Tüm kiliseler: '+esc(c.city):'All churches in '+esc(c.city))+'</a></p>\n':'')
    +(addr?'<p class="addr">📍 '+esc(addr)+'</p>\n':'')
    +(c.verified_at?'<p class="verified">✓ '+esc((CLAIM_UI[lang]||CLAIM_UI.en).badge)+(c.verified_by?' · '+esc(c.verified_by):'')+'</p>\n':'')
    +paras+'\n'

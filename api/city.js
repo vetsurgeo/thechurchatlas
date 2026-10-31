@@ -62,7 +62,7 @@ const page=({title,desc,canonical,image,ld,body})=>'<!DOCTYPE html>\n<html lang=
 module.exports=async function handler(req,res){
   try{
     const slug=String(req.query.slug||'').toLowerCase().replace(/[^a-z0-9-]/g,'');
-    if(!slug)return res.status(404).send('Not found');
+    if(!slug||slug==='-')return res.status(404).send('Not found');
     const rows=await loadAll();
     const map=buildCityMap(rows);
     const g=map[slug];

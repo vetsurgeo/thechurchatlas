@@ -30,6 +30,10 @@
     {
       "source": "/sitemap-cities.xml",
       "destination": "/api/city-sitemap"
+    },
+    {
+      "source": "/cities",
+      "destination": "/api/cities"
     }
   ],
   "headers": [

@@ -23,7 +23,7 @@ module.exports=async function handler(req,res){
       byBase[base].add(r.country_code);
     }
     for(const [base,ccs] of Object.entries(byBase)){
-      if(ccs.size<=1)urls.push(SITE+'/churches-in/'+base);
+      if(ccs.size<=1){if(base&&base!=='-')urls.push(SITE+'/churches-in/'+base)}
       else[...ccs].forEach(cc=>urls.push(SITE+'/churches-in/'+base+'-'+String(cc||'xx').toLowerCase()));
     }
     const xml='<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
