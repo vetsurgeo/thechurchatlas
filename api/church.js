@@ -19,6 +19,8 @@ const CLAIM_UI={
   it:{link:'Sei un responsabile della chiesa? Correggi o rivendica questa pagina',badge:'Verificata da un rappresentante della chiesa'}
 };
 const WIKI_READ={"tr": "Wikipedia'da oku", "en": "Read on Wikipedia", "es": "Leer en Wikipedia", "fr": "Lire sur Wikipédia", "de": "Auf Wikipedia lesen", "it": "Leggi su Wikipedia", "pt": "Ler na Wikipédia", "nl": "Lees op Wikipedia", "pl": "Czytaj w Wikipedii", "ro": "Citește pe Wikipedia", "ru": "Читать в Википедии", "uk": "Читати у Вікіпедії", "el": "Διαβάστε στη Βικιπαίδεια", "hy": "Կարդալ Վիքիպեդիայում", "ar": "اقرأ في ويكيبيديا", "ja": "Wikipedia で読む", "ko": "위키백과에서 읽기", "zh": "在维基百科阅读"};
+const WD_SRC={"tr": "Wikidata'dan · CC0", "en": "From Wikidata · CC0"};
+const WD_READ={"tr": "Wikidata'da görüntüle", "en": "View on Wikidata"};
 const CREDIT_USER={"tr": "Fotoğraf: ziyaretçi katkısı · {name}", "en": "Photo: visitor contribution · {name}", "es": "Foto: aportación de un visitante · {name}", "fr": "Photo : contribution d'un visiteur · {name}", "de": "Foto: Beitrag eines Besuchers · {name}", "it": "Foto: contributo di un visitatore · {name}", "pt": "Foto: contribuição de um visitante · {name}", "nl": "Foto: bijdrage van een bezoeker · {name}", "pl": "Zdjęcie: wkład odwiedzającego · {name}", "ro": "Fotografie: contribuția unui vizitator · {name}", "ru": "Фото: вклад посетителя · {name}", "uk": "Фото: внесок відвідувача · {name}", "el": "Φωτογραφία: συνεισφορά επισκέπτη · {name}", "hy": "Լուսանկար՝ այցելուի ներդրում · {name}", "ar": "الصورة: مساهمة زائر · {name}", "ja": "写真：訪問者の投稿 · {name}", "ko": "사진: 방문자 기여 · {name}", "zh": "照片：访客投稿 · {name}"};
 const TAG={"en": "World Church Heritage Map", "tr": "Dünya Kilise Mirası Haritası", "es": "Mapa del patrimonio de las iglesias del mundo", "fr": "Carte du patrimoine des églises du monde", "de": "Weltkarte des Kirchenerbes", "it": "Mappa del patrimonio delle chiese del mondo", "pt": "Mapa do patrimônio das igrejas do mundo", "nl": "Wereldkaart van het kerkelijk erfgoed", "pl": "Mapa dziedzictwa kościołów świata", "ro": "Harta patrimoniului bisericilor din lume", "ru": "Карта церковного наследия мира", "uk": "Мапа церковної спадщини світу", "el": "Χάρτης της εκκλησιαστικής κληρονομιάς του κόσμου", "hy": "Աշխարհի եկեղեցական ժառանգության քարտեզ", "ar": "خريطة التراث الكنسي في العالم", "ja": "世界の教会遺産マップ", "ko": "세계 교회 유산 지도", "zh": "世界教堂遗产地图"};
 const UI={"en": {"openMap": "Open on the map", "photos": "Photos", "nearby": "More churches in {place}"}, "tr": {"openMap": "Haritada aç", "photos": "Fotoğraflar", "nearby": "{place} bölgesindeki diğer kiliseler"}, "es": {"openMap": "Abrir en el mapa", "photos": "Fotos", "nearby": "Más iglesias en {place}"}, "fr": {"openMap": "Ouvrir sur la carte", "photos": "Photos", "nearby": "Autres églises à {place}"}, "de": {"openMap": "Auf der Karte öffnen", "photos": "Fotos", "nearby": "Weitere Kirchen in {place}"}, "it": {"openMap": "Apri sulla mappa", "photos": "Foto", "nearby": "Altre chiese a {place}"}, "pt": {"openMap": "Abrir no mapa", "photos": "Fotos", "nearby": "Mais igrejas em {place}"}, "nl": {"openMap": "Openen op de kaart", "photos": "Foto's", "nearby": "Meer kerken in {place}"}, "pl": {"openMap": "Otwórz na mapie", "photos": "Zdjęcia", "nearby": "Więcej kościołów: {place}"}, "ro": {"openMap": "Deschide pe hartă", "photos": "Fotografii", "nearby": "Mai multe biserici în {place}"}, "ru": {"openMap": "Открыть на карте", "photos": "Фотографии", "nearby": "Другие церкви: {place}"}, "uk": {"openMap": "Відкрити на мапі", "photos": "Фотографії", "nearby": "Інші церкви: {place}"}, "el": {"openMap": "Άνοιγμα στον χάρτη", "photos": "Φωτογραφίες", "nearby": "Περισσότερες εκκλησίες: {place}"}, "hy": {"openMap": "Բացել քարտեզում", "photos": "Լուսանկարներ", "nearby": "Այլ եկեղեցիներ՝ {place}"}, "ar": {"openMap": "افتح على الخريطة", "photos": "الصور", "nearby": "كنائس أخرى في {place}"}, "ja": {"openMap": "地図で開く", "photos": "写真", "nearby": "{place}の他の教会"}, "ko": {"openMap": "지도에서 열기", "photos": "사진", "nearby": "{place}의 다른 교회"}, "zh": {"openMap": "在地图上打开", "photos": "照片", "nearby": "{place}的更多教堂"}};
@@ -39,7 +41,7 @@ async function wikidataEntity(qid){
   if(!/^Q\d+$/.test(String(qid||'')))return null;
   const ctrl=new AbortController();const timer=setTimeout(()=>ctrl.abort(),2500);
   try{
-    const r=await fetch('https://www.wikidata.org/w/api.php?action=wbgetentities&props=claims|sitelinks&format=json&ids='+qid,{signal:ctrl.signal,headers:WIKI_HEADERS});
+    const r=await fetch('https://www.wikidata.org/w/api.php?action=wbgetentities&props=claims|sitelinks|descriptions&format=json&ids='+qid,{signal:ctrl.signal,headers:WIKI_HEADERS});
     if(!r.ok)return null;
     const j=await r.json();
     const e=j&&j.entities&&j.entities[qid];
@@ -47,7 +49,8 @@ async function wikidataEntity(qid){
     const p18=e.claims&&e.claims.P18&&e.claims.P18[0]&&e.claims.P18[0].mainsnak&&e.claims.P18[0].mainsnak.datavalue&&e.claims.P18[0].mainsnak.datavalue.value;
     const links={};
     Object.keys(e.sitelinks||{}).forEach(k=>{const m=k.match(/^([a-z]{2,3})wiki$/);if(m&&e.sitelinks[k]&&typeof e.sitelinks[k].title==='string')links[m[1]]=e.sitelinks[k].title});
-    return{image:p18?'https://commons.wikimedia.org/wiki/Special:FilePath/'+encodeURIComponent(p18)+'?width=1200':null,links};
+    const desc={};Object.keys(e.descriptions||{}).forEach(k=>{if(e.descriptions[k]&&typeof e.descriptions[k].value==='string')desc[k]=e.descriptions[k].value});
+    return{image:p18?'https://commons.wikimedia.org/wiki/Special:FilePath/'+encodeURIComponent(p18)+'?width=1200':null,links,desc};
   }catch(e){return null}finally{clearTimeout(timer)}
 }
 
@@ -120,7 +123,14 @@ async function enrich(c,lang,needImage,needSummary){
     pick?wikiSummary(pick):null,
     (needImage&&!(entity&&entity.image))?wikipediaImage(Object.assign({},entity&&entity.links&&{en:entity.links.en,tr:entity.links.tr},c.wiki_titles)):null
   ]);
-  return{image:(entity&&entity.image)||pageImage||null,summary};
+  let finalSummary=summary;
+  if(needSummary&&(!finalSummary||finalSummary.wlang!==lang)){
+    const wd=entity&&entity.desc&&entity.desc[lang];
+    if(typeof wd==='string'&&wd.trim().length>=10){
+      finalSummary={text:clipSentences(wd,700),url:'https://www.wikidata.org/wiki/'+c.wikidata,wlang:lang,source:'wikidata'};
+    }
+  }
+  return{image:(entity&&entity.image)||pageImage||null,summary:finalSummary};
 }
 
 function countryLabel(c,lang){
@@ -216,6 +226,9 @@ function buildChurchPage(c,contribs,nearby,lang,wikiImage,summary){
   const ownText=String(c.description||'').trim();
   const ownLang=String(c.description_lang||'').trim().toLowerCase();
   const showSummary=summary&&summary.text&&summary.wlang===lang;
+  const srcCredit=showSummary?(summary.source==='wikidata'
+    ?esc(WD_SRC[lang]||WD_SRC.en)+' — <a href="'+esc(summary.url)+'" rel="noopener nofollow">'+esc(WD_READ[lang]||WD_READ.en)+'</a>'
+    :esc(WIKI_SRC[lang]||WIKI_SRC.en)+' — <a href="'+esc(summary.url)+'" rel="noopener nofollow">'+esc(WIKI_READ[lang]||WIKI_READ.en)+'</a>'):null;
   const addr=String(c.address||'').trim();
   const base=(showSummary?summary.text:ownText)||(summary&&summary.text)||([den,place].filter(Boolean).join(' · ')+' — '+(TAG[lang]||TAG.en));
   const desc=clip((addr?addr+(place?', '+place:'')+'. ':'')+base,155);
@@ -240,7 +253,7 @@ function buildChurchPage(c,contribs,nearby,lang,wikiImage,summary){
    +(c.verified_at?'<p class="verified">✓ '+esc((CLAIM_UI[lang]||CLAIM_UI.en).badge)+(c.verified_by?' · '+esc(c.verified_by):'')+'</p>\n':'')
    +(paras&&ownLang&&ownLang!==lang?'<p class=\"credit\">'+esc((lang==='tr'?'Kaynak dili: ':'Original language: ')+(DLABEL[ownLang]||ownLang.toUpperCase()))+'</p>\n':'')
    +paras+'\n'
-   +((showSummary)?'<p lang="'+esc(summary.wlang)+'">'+esc(summary.text)+'</p>\n<p class="credit">'+esc(WIKI_SRC[lang]||WIKI_SRC.en)+' — <a href="'+esc(summary.url)+'" rel="noopener nofollow">'+esc(WIKI_READ[lang]||WIKI_READ.en)+'</a></p>\n':'')
+   +((showSummary)?'<p lang="'+esc(summary.wlang)+'">'+esc(summary.text)+'</p>\n<p class="credit">'+srcCredit+'</p>\n':'')
    +'<a class="cta" href="'+esc(mapUrl)+'" rel="nofollow">'+esc(ui.openMap)+' →</a>\n'
    +(photos.length>1?'<h2>'+esc(ui.photos)+'</h2>\n<div class="grid">'+photos.slice(1,13).map(p=>'<img loading="lazy" src="'+esc(p)+'" alt="'+esc(c.name)+'">').join('')+'</div>\n':'')
    +(comments?'<h2>'+esc(COMMENTS[lang]||COMMENTS.en)+'</h2>\n'+comments+'\n':'')
