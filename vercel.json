@@ -8,6 +8,10 @@
   ],
   "rewrites": [
     {
+      "source": "/seven-churches",
+      "destination": "/api/seven-churches"
+    },
+    {
       "source": "/church/:id",
       "destination": "/api/church?id=:id"
     },

@@ -83,7 +83,7 @@ module.exports=async function handler(req,res){
       +'<h1>Churches in '+esc(city)+'</h1>\n<p class="count">'+n+' '+esc((n===1?'church':'churches')+(country?' in '+esc(place):''))+'</p>\n'
       +'<ul class="churches">'+list.map(c=>'<li><a href="/church/'+c.id+'">'+esc(c.name)+'</a></li>').join('\n')+'</ul>\n'
       +(n>300?'<p>+'+(n-300)+' more churches — see the <a href="/">map</a>.</p>\n':'')
-      +'<footer><a href="/">The Church Atlas</a> — churches around the world</footer>\n</main>';
+      +'<footer><a href="/">The Church Atlas</a> — churches around the world · <a href="/seven-churches?lang='+lang+'">'+(lang==='tr'?'Yedi Kilise Rotası':'Seven Churches Route')+'</a></footer>\n</main>';
     res.setHeader('Content-Type','text/html; charset=utf-8');
     res.setHeader('Cache-Control','public, max-age=0, s-maxage=3600, stale-while-revalidate=86400');
     res.status(200).send(page({title,desc,canonical:url,image:SITE+'/og-image.png',ld,body}));

@@ -60,8 +60,8 @@ const COLLECTIONS={
     ]}
 };
 const ORDER=Object.keys(COLLECTIONS);
-const DEN={en:{Katolik:'Catholic',Ortodoks:'Orthodox','Oryantal Ortodoks':'Oriental Orthodox','Doğu Kilisesi':'Church of the East',Protestan:'Protestant',Anglikan:'Anglican','Diğer':'Other'},
-           tr:{Katolik:'Katolik',Ortodoks:'Ortodoks','Oryantal Ortodoks':'Oryantal Ortodoks','Doğu Kilisesi':'Doğu Kilisesi',Protestan:'Protestan',Anglikan:'Anglikan','Diğer':'Diğer'}};
+const DEN={en:{'Erken Hristiyanlık':'Early Christianity',Katolik:'Catholic',Ortodoks:'Orthodox','Oryantal Ortodoks':'Oriental Orthodox','Doğu Kilisesi':'Church of the East',Protestan:'Protestant',Anglikan:'Anglican','Diğer':'Other'},
+           tr:{'Erken Hristiyanlık':'Erken Hristiyanlık',Katolik:'Katolik',Ortodoks:'Ortodoks','Oryantal Ortodoks':'Oryantal Ortodoks','Doğu Kilisesi':'Doğu Kilisesi',Protestan:'Protestan',Anglikan:'Anglikan','Diğer':'Diğer'}};
 const UI={
   en:{h1All:'Collections',introAll:'Hand-picked groups of churches, each with a short, sourced note. Open a church to see its full page, photos and history.',open:'Open the page',more:'All collections',home:'The Church Atlas',
       ctaTitle:'Know these places?',cta:'If you have a photo or a correction for one of these churches, open its page and add it. Contributions are reviewed and credited by name.',ctaLink:'Open the map',churchesWord:'churches',photoBy:'Photo:',addPhoto:'📷 Add the first photo'},
@@ -132,7 +132,7 @@ function buildCollectionPage(slug,churches,photos,lang){
     mainEntity:{'@type':'ItemList',itemListElement:items.map((it,i)=>({'@type':'ListItem',position:i+1,url:SITE+'/church/'+it.id}))}};
   const body='<main>\n<nav><a href="/">'+esc(ui.home)+'</a><a href="/collections?lang='+lang+'">'+esc(ui.more)+'</a></nav>\n<h1>'+esc(title)+'</h1>\n<p>'+esc(intro)+'</p>\n'+cards
     +'<div class="cta"><strong>'+esc(ui.ctaTitle)+'</strong><p>'+esc(ui.cta)+' <a href="/?lang='+lang+'&src=collection-cta" rel="nofollow">'+esc(ui.ctaLink)+' →</a></p></div>\n'
-    +'<p class="more"><a href="/collections?lang='+lang+'">'+esc(ui.more)+'</a></p>\n<footer>Locations and names: &copy; <a href="https://www.openstreetmap.org/copyright" rel="noopener">OpenStreetMap</a> contributors, <a href="https://opendatacommons.org/licenses/odbl/" rel="noopener">ODbL</a></footer>\n</main>';
+    +'<p class="more"><a href="/collections?lang='+lang+'">'+esc(ui.more)+'</a></p>\n<footer><a href="/seven-churches?lang='+lang+'">'+(lang==='tr'?'Yedi Kilise Rotası':'Seven Churches Route')+'</a> — Locations and names: &copy; <a href="https://www.openstreetmap.org/copyright" rel="noopener">OpenStreetMap</a> contributors, <a href="https://opendatacommons.org/licenses/odbl/" rel="noopener">ODbL</a></footer>\n</main>';
   return page({title:title+' | The Church Atlas',desc:clip(intro,155),lang,canonical:url,image:firstPhoto?firstPhoto.url:SITE+'/og-image.png',ld,body});
 }
 
