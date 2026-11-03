@@ -141,7 +141,7 @@ function buildIndexPage(lang){
   const list=ORDER.map(slug=>{const c=COLLECTIONS[slug];
     return '<div class="card"><div class="thumb-empty" aria-hidden="true">⛪</div><div><h3><a href="/collection/'+slug+'?lang='+lang+'">'+esc(c.title[lang]||c.title.en)+'</a></h3>'
       +'<p class="note">'+esc(clip(c.intro[lang]||c.intro.en,170))+'</p><p class="credit">'+c.items.length+' '+esc(ui.churchesWord)+'</p></div></div>'}).join('');
-  const body='<main>\n<nav><a href="/">'+esc(ui.home)+'</a><span></span></nav>\n<h1>'+esc(ui.h1All)+'</h1>\n<p>'+esc(ui.introAll)+'</p>\n'+list+'\n</main>';
+  const body='<main>\n<nav><a href="/">'+esc(ui.home)+'</a><span></span></nav>\n<h1>'+esc(ui.h1All)+'</h1>\n<p>'+esc(ui.introAll)+'</p>\n'+list+'\n<footer><a href="/seven-churches?lang='+lang+'">'+(lang==='tr'?'Yedi Kilise Rotası':'Seven Churches Route')+'</a></footer>\n</main>';
   const ld={'@context':'https://schema.org','@type':'CollectionPage',name:ui.h1All,url:SITE+'/collections',inLanguage:lang,
     mainEntity:{'@type':'ItemList',itemListElement:ORDER.map((slug,i)=>({'@type':'ListItem',position:i+1,url:SITE+'/collection/'+slug}))}};
   return page({title:ui.h1All+' | The Church Atlas',desc:clip(ui.introAll,155),lang,canonical:SITE+'/collections',image:SITE+'/og-image.png',ld,body});
