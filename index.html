@@ -651,7 +651,7 @@ const DONATE_URL='https://buymeacoffee.com/thechurchatlas';
 const SITE_URL='https://thechurchatlas.com';
 
 /* Sürüm damgası: yönetici penceresinin altında görünür; yeni dosyanın yayında olup olmadığını anlamak içindir */
-const APP_VERSION='2026.10.31-n';
+const APP_VERSION='2026.11.05-o';
 
 const $=id=>document.getElementById(id);
 const toastEl=$('toast');let toastTimer;
@@ -2152,6 +2152,16 @@ function normName(t){return String(t||'').toLocaleLowerCase('tr').replace(/ı/g,
 const RETRY_WAIT_MS=[4000,10000]; // sunucular meşgulse: 4 sn, sonra 10 sn bekleyip yeniden dene
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
+// Yol kenarı haçları, tapınakçıklar, Golgota sahneleri vb. kilise sayılmaz.
+// Kaynak: Joost Schouppe, "classifying places of worship for risk management" (OSM günlüğü, 2025). Şapeller tutulur.
+const MINOR_POW=new Set(['cross','wayside_cross','wayside_shrine','shrine','calvary','lourdes_grotto','grotto','holy_well','altar','tree']);
+function isMinorWorship(t){
+  t=t||{};
+  return MINOR_POW.has(t.place_of_worship)||MINOR_POW.has(t['place_of_worship:type'])
+    ||MINOR_POW.has(t.building)||MINOR_POW.has(t['building:part'])
+    ||t.historic==='wayside_shrine'||t.historic==='wayside_cross';
+}
+
 async function runOverpass([s,w,n,e],onStatus){
   const q='[out:json][timeout:25];nwr["amenity"="place_of_worship"]["religion"="christian"]('+s+','+w+','+n+','+e+');out center tags;';
   let errs=[];
@@ -2258,13 +2268,15 @@ async function startImport(bbox,label,extra,place){
   importCandidates=[];
 
   const key=bbox.map(x=>x.toFixed(3)).join(',');
-  let cands,source='OpenStreetMap';
+  let cands,source='OpenStreetMap',minor=0;
   const hit=importCache[key];
   if(hit&&Date.now()-hit.t<10*60*1000){
-    cands=hit.cands;source=hit.source;
+    cands=hit.cands;source=hit.source;minor=hit.minor||0;
   }else{
     try{
-      cands=(await runOverpass(bbox,setMsg)).map(toCandidate);
+      const els=await runOverpass(bbox,setMsg);
+      minor=els.filter(el=>isMinorWorship(el.tags)).length;
+      cands=els.filter(el=>!isMinorWorship(el.tags)).map(toCandidate);
     }catch(osmErr){
       setMsg('OpenStreetMap yanıt vermedi, Wikidata\'dan aranıyor...');
       try{
@@ -2275,7 +2287,7 @@ async function startImport(bbox,label,extra,place){
         return;
       }
     }
-    importCache[key]={t:Date.now(),cands,source};
+    importCache[key]={t:Date.now(),cands,source,minor};
   }
 
   let unnamed=0,dupes=0;
@@ -2293,7 +2305,7 @@ async function startImport(bbox,label,extra,place){
   const fresh=list.filter(c=>!c.exists).length;
   setMsg((source==='Wikidata'?'OpenStreetMap şu an yoğun, sonuçlar Wikidata\'dan geldi ve daha az olabilir; birkaç dakika sonra tekrar deneyebilirsin. ':'')
     +list.length+' kilise bulundu: '+fresh+' yeni, '+(list.length-fresh)+' zaten ekli.'
-    +(unnamed?' '+unnamed+' adsız kayıt atlandı.':'')+(dupes?' '+dupes+' tekrar eden kayıt birleştirildi.':'')
+    +(unnamed?' '+unnamed+' adsız kayıt atlandı.':'')+(minor?' '+minor+' yol kenarı haçı, tapınakçık gibi küçük yapı atlandı.':'')+(dupes?' '+dupes+' tekrar eden kayıt birleştirildi.':'')
     +(extra?' '+extra:''));
   // Süzgeçleri sıfırla; çok sonuç varsa önce yalnızca bilinen (Wikidata kaydı olan) kiliseleri öne al
   $('import-search').value='';$('import-denom').value='';$('import-existing').checked=false;
