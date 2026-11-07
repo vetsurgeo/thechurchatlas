@@ -656,7 +656,7 @@ const DONATE_URL='https://buymeacoffee.com/thechurchatlas';
 const SITE_URL='https://thechurchatlas.com';
 
 /* Sürüm damgası: yönetici penceresinin altında görünür; yeni dosyanın yayında olup olmadığını anlamak içindir */
-const APP_VERSION='2026.11.06-p';
+const APP_VERSION='2026.11.07-q';
 
 const $=id=>document.getElementById(id);
 const toastEl=$('toast');let toastTimer;
@@ -853,6 +853,40 @@ async function wikipediaImage(church,lang){
   const list=Object.values(pages).sort((a,b)=>(a.index||0)-(b.index||0));
   for(const p of list){if(p.thumbnail&&(exact||relevant(church,p)))return p.thumbnail.source}
   return null;
+}
+
+// Commons dosya adı (Special:FilePath ya da upload.wikimedia.org/wikipedia/commons/...).
+// Commons dışındaki görseller (yerel Vikipedi'de barınan, çoğu adil kullanım) gösterilmez.
+function commonsFile(u){
+  try{
+    const x=new URL(u);
+    if(x.hostname==='commons.wikimedia.org'){const m=x.pathname.match(/\/wiki\/Special:FilePath\/(.+)$/);return m?decodeURIComponent(m[1]).replace(/_/g,' '):null}
+    if(x.hostname==='upload.wikimedia.org'){
+      const p=x.pathname.split('/');if(p[1]!=='wikipedia'||p[2]!=='commons')return null;
+      const name=p[3]==='thumb'?p[6]:p[5];return name?decodeURIComponent(name).replace(/_/g,' '):null}
+  }catch(e){}
+  return null;
+}
+const commonsMetaCache=new Map();
+// CC lisanslarının istediği atıf: yazar → dosya sayfası, lisans → lisans metni, kaynak
+async function wikiPhoto(url){
+  const file=commonsFile(url);if(!file)return null;
+  if(commonsMetaCache.has(file))return Object.assign({url},commonsMetaCache.get(file));
+  const page='https://commons.wikimedia.org/wiki/File:'+encodeURIComponent(file.replace(/ /g,'_'));
+  const meta={kind:'curated',page,author:'',license:'',licenseUrl:'',source:'Wikimedia Commons'};
+  try{
+    const d=await fetchJSON('https://commons.wikimedia.org/w/api.php?action=query&prop=imageinfo&iiprop=extmetadata&iiextmetadatafilter=Artist|Credit|LicenseShortName|LicenseUrl&format=json&origin=*&titles='+encodeURIComponent('File:'+file));
+    const pg=Object.values(d?.query?.pages||{})[0];
+    const m=pg?.imageinfo?.[0]?.extmetadata||{};
+    const txt=h=>{if(!h)return '';const doc=new DOMParser().parseFromString(String(h),'text/html');return (doc.body.textContent||'').replace(/\s+/g,' ').trim()};
+    let author=txt(m.Artist?.value)||txt(m.Credit?.value);
+    if(author.length>80)author=author.slice(0,79).trimEnd()+'…';
+    meta.author=author;
+    meta.license=txt(m.LicenseShortName?.value).slice(0,40);
+    meta.licenseUrl=safeCreditUrl(String(m.LicenseUrl?.value||'').replace(/^http:\/\//,'https://'));
+    commonsMetaCache.set(file,meta);
+  }catch(e){}
+  return Object.assign({url},meta);
 }
 
 async function findAutoImage(c){
@@ -1652,10 +1686,11 @@ function openChurch(c,opts){
   renderPhotoUI();
 
   // Wikipedia/Wikidata görseli, ziyaretçi fotoğraflarının ardına eklenir
-  if(!curated.length)getWikiImage(c).catch(()=>null).then(url=>{
+  if(!curated.length)getWikiImage(c).catch(()=>null).then(async url=>{
+    const ph=url?await wikiPhoto(url).catch(()=>null):null;   // yazar ve lisansıyla; Commons dışındakiler atlanır
     if(activeChurchId!==c.id||c.curatedPhoto)return;
     photoLoading=false;
-    if(url)currentPhotos=[...userPhotos,{url,kind:'wiki'}];
+    if(ph)currentPhotos=[...userPhotos,ph];
     renderPhotoUI();
   });
 
