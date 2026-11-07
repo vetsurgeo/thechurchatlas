@@ -74,6 +74,40 @@ async function wikipediaImage(titles){
   return null;
 }
 
+// Commons dosya adı: Special:FilePath bağlantısından ya da upload.wikimedia.org/wikipedia/commons/... adresinden.
+// Commons dışındaki (yerel Vikipedi'de barınan, çoğu adil kullanım kapsamındaki) görseller kullanılmaz.
+function commonsFile(u){
+  try{
+    const x=new URL(u);
+    if(x.hostname==='commons.wikimedia.org'){const m=x.pathname.match(/\/wiki\/Special:FilePath\/(.+)$/);return m?decodeURIComponent(m[1]).replace(/_/g,' '):null}
+    if(x.hostname==='upload.wikimedia.org'){
+      const p=x.pathname.split('/');if(p[1]!=='wikipedia'||p[2]!=='commons')return null;
+      const name=p[3]==='thumb'?p[6]:p[5];return name?decodeURIComponent(name).replace(/_/g,' '):null}
+  }catch(e){}
+  return null;
+}
+const stripHtml=s=>String(s||'').replace(/<[^>]*>/g,' ').replace(/&nbsp;/g,' ').replace(/&quot;/g,'"').replace(/&#0?39;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&').replace(/\s+/g,' ').trim();
+// CC lisansları yazar, lisans (bağlantısıyla) ve kaynak ister: bunlar Commons'tan alınır
+async function commonsMeta(file){
+  const page='https://commons.wikimedia.org/wiki/File:'+encodeURIComponent(file.replace(/ /g,'_'));
+  const out={page,author:'',license:'',licenseUrl:null,source:'Wikimedia Commons'};
+  const ctrl=new AbortController();const timer=setTimeout(()=>ctrl.abort(),2500);
+  try{
+    const r=await fetch('https://commons.wikimedia.org/w/api.php?action=query&prop=imageinfo&iiprop=extmetadata&iiextmetadatafilter=Artist|Credit|LicenseShortName|LicenseUrl&format=json&titles='+encodeURIComponent('File:'+file),{signal:ctrl.signal,headers:WIKI_HEADERS});
+    if(!r.ok)return out;
+    const j=await r.json();
+    const pg=Object.values((j&&j.query&&j.query.pages)||{})[0];
+    const m=(pg&&pg.imageinfo&&pg.imageinfo[0]&&pg.imageinfo[0].extmetadata)||{};
+    const v=k=>m[k]&&m[k].value;
+    let author=stripHtml(v('Artist'))||stripHtml(v('Credit'));
+    if(author.length>80)author=author.slice(0,79).trimEnd()+'…';
+    out.author=author;
+    out.license=stripHtml(v('LicenseShortName')).slice(0,40);
+    out.licenseUrl=httpsUrl(String(v('LicenseUrl')||'').replace(/^http:\/\//,'https://'));
+  }catch(e){}finally{clearTimeout(timer)}
+  return out;
+}
+
 function clipSentences(text,max){
   const t=String(text||'').replace(/\s+/g,' ').trim();
   if(t.length<=max)return t;
@@ -131,7 +165,12 @@ async function enrich(c,lang,needImage,needSummary){
       finalSummary={text:clipSentences(wd,700),url:'https://www.wikidata.org/wiki/'+c.wikidata,wlang:lang,source:'wikidata'};
     }
   }
-  return{image:(entity&&entity.image)||pageImage||null,summary:finalSummary};
+  // Görsel yalnızca Commons'taysa, yazar ve lisans bilgisiyle birlikte kullanılır
+  let image=null;
+  const imgUrl=needImage?((entity&&entity.image)||pageImage):null;
+  const file=imgUrl&&commonsFile(imgUrl);
+  if(file)image=Object.assign({url:imgUrl},await commonsMeta(file));
+  return{image,summary:finalSummary};
 }
 
 function countryLabel(c,lang){
@@ -214,13 +253,15 @@ function userCreditHtml(x,lang){
 }
 
 function buildChurchPage(c,contribs,nearby,lang,wikiImage,summary){
+  // Eski çağrılar için: düz adres verildiyse en azından dosya sayfasına bağlanan atıf hazırlanır
+  if(typeof wikiImage==='string'){const f=commonsFile(wikiImage);wikiImage=f?{url:wikiImage,page:'https://commons.wikimedia.org/wiki/File:'+encodeURIComponent(f.replace(/ /g,'_')),author:'',license:'',licenseUrl:null,source:'Wikimedia Commons'}:null}
   const ui=UI[lang],den=(DEN[lang]||DEN.en)[c.denomination]||c.denomination||'';
   const country=countryLabel(c,lang);
   const place=[c.city,c.region&&c.region!==c.city?c.region:'',country].filter(Boolean).join(', ');
   const url=SITE+'/church/'+c.id;
   const photos=contribs.map(x=>httpsUrl(x.photo_url)).filter(Boolean);
   const curated=curatedImage(c);
-  const heroUrl=photos[0]||(curated&&curated.url)||wikiImage||null;  // ziyaretçi fotoğrafı > doğrulanmış fotoğraf > Wikimedia görseli
+  const heroUrl=photos[0]||(curated&&curated.url)||(wikiImage&&wikiImage.url)||null;  // ziyaretçi fotoğrafı > doğrulanmış fotoğraf > Wikimedia görseli
   const image=heroUrl||SITE+'/og-image.png';
   const citySlug=c.city?slugify(c.city):'';
   const title=c.name+(place?' · '+place:'')+' | The Church Atlas';
@@ -236,7 +277,7 @@ function buildChurchPage(c,contribs,nearby,lang,wikiImage,summary){
 
   const ld={'@context':'https://schema.org','@type':'Church',name:c.name,url,description:clip(showSummary?summary.text:ownText,500)||clip(summary&&summary.text,500)||undefined,
     inLanguage:lang,
-    image:photos.length?photos.slice(0,6):(curated?[curated.url]:(wikiImage?[wikiImage]:undefined)),
+    image:photos.length?photos.slice(0,6):(curated?[curated.url]:(wikiImage?[wikiImage.url]:undefined)),
     geo:(c.lat!=null&&c.lng!=null)?{'@type':'GeoCoordinates',latitude:c.lat,longitude:c.lng}:undefined,
     address:(place||addr)?{'@type':'PostalAddress',streetAddress:addr||undefined,addressLocality:c.city||undefined,addressRegion:c.region||undefined,addressCountry:c.country_code||country||undefined}:undefined,
     sameAs:c.wikidata?['https://www.wikidata.org/wiki/'+c.wikidata]:undefined,
@@ -247,7 +288,7 @@ function buildChurchPage(c,contribs,nearby,lang,wikiImage,summary){
   const paras=showSummary?'':String(c.description||'').split(/\n+/).map(s=>s.trim()).filter(Boolean).map(s=>'<p>'+esc(s)+'</p>').join('');
   const comments=contribs.filter(x=>x.comment).slice(0,5).map(x=>'<div class="comment">💬 <strong>'+esc(x.name)+'</strong>: '+esc(x.comment)+'</div>').join('');
   const body='<main>\n<nav><a href="/">The Church Atlas</a><a href="/collections?lang='+lang+'">'+(lang==='tr'?'Koleksiyonlar':'Collections')+'</a><a href="/'+(lang==='tr'?'hakkinda':'about')+'.html">'+(lang==='tr'?'Hakkında':'About')+'</a></nav>\n'
-   +(heroUrl?'<img class="hero" src="'+esc(heroUrl)+'" alt="'+esc(c.name)+'">\n'+(photos[0]?userCreditHtml(contribs.find(x=>httpsUrl(x.photo_url)),lang):curated?curatedCreditHtml(curated,lang):'<p class="credit">'+esc(CREDIT[lang]||CREDIT.en)+'</p>\n'):'')
+   +(heroUrl?'<img class="hero" src="'+esc(heroUrl)+'" alt="'+esc(c.name)+'">\n'+(photos[0]?userCreditHtml(contribs.find(x=>httpsUrl(x.photo_url)),lang):curated?curatedCreditHtml(curated,lang):wikiImage?curatedCreditHtml(wikiImage,lang):''):'')
    +'<h1>'+esc(c.name)+'</h1>\n<span class="badge">'+esc(den)+'</span>\n'+(place?'<p class="place">'+esc(place)+'</p>\n':'')
    +(citySlug&&citySlug!=='-'?'<p><a href="/churches-in/'+citySlug+'">'+(lang==='tr'?'Tüm kiliseler: '+esc(c.city):'All churches in '+esc(c.city))+'</a></p>\n':'')
    +(addr?'<p class="addr">📍 '+esc(addr)+'</p>\n':'')
