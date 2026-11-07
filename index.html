@@ -656,7 +656,7 @@ const DONATE_URL='https://buymeacoffee.com/thechurchatlas';
 const SITE_URL='https://thechurchatlas.com';
 
 /* Sürüm damgası: yönetici penceresinin altında görünür; yeni dosyanın yayında olup olmadığını anlamak içindir */
-const APP_VERSION='2026.11.07-q';
+const APP_VERSION='2026.11.07-r';
 
 const $=id=>document.getElementById(id);
 const toastEl=$('toast');let toastTimer;
@@ -2179,7 +2179,8 @@ function mapDenomination(tags){
   if(/assyrian|nestorian|church.of.the.east/.test(d))return 'Doğu Kilisesi';
   if(/armenian|coptic|syriac|ethiopian|eritrean|oriental|malankara|jacobite|tewahedo/.test(d))return 'Oryantal Ortodoks';
   if(/orthodox/.test(d))return 'Ortodoks';
-  if(/protestant|evangelical|baptist|lutheran|presbyterian|pentecostal|methodist|reformed|adventist|charismatic|free_church/.test(d))return 'Protestan';
+  // united = birleşik (uniert) kiliseler, ör. Almanya'daki Ren ve Vestfalya Evanjelik Kiliseleri
+  if(/protestant|evangelical|baptist|lutheran|presbyterian|pentecostal|methodist|reformed|adventist|charismatic|free_church|united|uniting|waldensian|mennonite|moravian|congregational|quaker|nazarene|salvation_army|hussite/.test(d))return 'Protestan';
   return 'Diğer';
 }
 
