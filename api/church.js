@@ -77,34 +77,47 @@ async function wikipediaImage(titles){
 // Commons dosya adı: Special:FilePath bağlantısından ya da upload.wikimedia.org/wikipedia/commons/... adresinden.
 // Commons dışındaki (yerel Vikipedi'de barınan, çoğu adil kullanım kapsamındaki) görseller kullanılmaz.
 function commonsFile(u){
+  // Wikimedia dosyası: {file, api, page, source}. Commons ya da yerel Vikipedi (ör. de.wikipedia) olabilir.
+  // Yerel dosyalarda özgür olmayanlar (adil kullanım) bilgi alınırken elenir.
   try{
     const x=new URL(u);
-    if(x.hostname==='commons.wikimedia.org'){const m=x.pathname.match(/\/wiki\/Special:FilePath\/(.+)$/);return m?decodeURIComponent(m[1]).replace(/_/g,' '):null}
-    if(x.hostname==='upload.wikimedia.org'){
-      const p=x.pathname.split('/');if(p[1]!=='wikipedia'||p[2]!=='commons')return null;
-      const name=p[3]==='thumb'?p[6]:p[5];return name?decodeURIComponent(name).replace(/_/g,' '):null}
+    const mk=(file,host)=>{file=decodeURIComponent(file).replace(/_/g,' ');
+      const commons=host==='commons';
+      return {file,commons,api:commons?'https://commons.wikimedia.org/w/api.php':'https://'+host+'.wikipedia.org/w/api.php',
+        page:(commons?'https://commons.wikimedia.org':'https://'+host+'.wikipedia.org')+'/wiki/File:'+encodeURIComponent(file.replace(/ /g,'_')),
+        source:commons?'Wikimedia Commons':'Wikipedia'}};
+    if(x.hostname==='commons.wikimedia.org'){const m=x.pathname.match(/\/wiki\/Special:FilePath\/(.+)$/);return m?mk(m[1],'commons'):null}
+    if(x.hostname==='upload.wikimedia.org'||x.hostname==='thumb.wikimedia.org'){
+      const p=x.pathname.split('/');
+      if(p[1]!=='wikipedia'||!/^(commons|[a-z]{2,3})$/.test(p[2]||''))return null;
+      const name=p[3]==='thumb'?p[6]:p[5];
+      return name?mk(name,p[2]):null;
+    }
   }catch(e){}
   return null;
 }
+// Commons'taki yazar alanında kullanıcı adının yanına eklenen "(talk)", "(Diskussion)" gibi bağlantıları temizler
+const cleanAuthor=s=>String(s||'').replace(/\((?:[^()]*\b(?:talk|contribs?|diskussion|discussion|discussione|tartışma|обсуждение)\b[^()]*)\)/gi,'').replace(/\s+/g,' ').replace(/\s+([,·])/g,'$1').trim();
 const stripHtml=s=>String(s||'').replace(/<[^>]*>/g,' ').replace(/&nbsp;/g,' ').replace(/&quot;/g,'"').replace(/&#0?39;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&').replace(/\s+/g,' ').trim();
 // CC lisansları yazar, lisans (bağlantısıyla) ve kaynak ister: bunlar Commons'tan alınır
-async function commonsMeta(file){
-  const page='https://commons.wikimedia.org/wiki/File:'+encodeURIComponent(file.replace(/ /g,'_'));
-  const out={page,author:'',license:'',licenseUrl:null,source:'Wikimedia Commons'};
+async function commonsMeta(f){
+  const out={page:f.page,author:'',license:'',licenseUrl:null,source:f.source};
   const ctrl=new AbortController();const timer=setTimeout(()=>ctrl.abort(),2500);
   try{
-    const r=await fetch('https://commons.wikimedia.org/w/api.php?action=query&prop=imageinfo&iiprop=extmetadata&iiextmetadatafilter=Artist|Credit|LicenseShortName|LicenseUrl&format=json&titles='+encodeURIComponent('File:'+file),{signal:ctrl.signal,headers:WIKI_HEADERS});
-    if(!r.ok)return out;
+    const r=await fetch(f.api+'?action=query&prop=imageinfo&iiprop=extmetadata&iiextmetadatafilter=Artist|Credit|LicenseShortName|LicenseUrl|NonFree&format=json&titles='+encodeURIComponent('File:'+f.file),{signal:ctrl.signal,headers:WIKI_HEADERS});
+    if(!r.ok)return f.commons?out:null;
     const j=await r.json();
     const pg=Object.values((j&&j.query&&j.query.pages)||{})[0];
     const m=(pg&&pg.imageinfo&&pg.imageinfo[0]&&pg.imageinfo[0].extmetadata)||{};
     const v=k=>m[k]&&m[k].value;
-    let author=stripHtml(v('Artist'))||stripHtml(v('Credit'));
+    if(/^true$/i.test(String(v('NonFree')||'')))return null;          // adil kullanım: gösterilmez
+    if(!f.commons&&!v('LicenseShortName'))return null;                  // yerel dosyada lisans yoksa gösterilmez
+    let author=cleanAuthor(stripHtml(v('Artist'))||stripHtml(v('Credit')));
     if(author.length>80)author=author.slice(0,79).trimEnd()+'…';
     out.author=author;
     out.license=stripHtml(v('LicenseShortName')).slice(0,40);
     out.licenseUrl=httpsUrl(String(v('LicenseUrl')||'').replace(/^http:\/\//,'https://'));
-  }catch(e){}finally{clearTimeout(timer)}
+  }catch(e){return f.commons?out:null}finally{clearTimeout(timer)}
   return out;
 }
 
@@ -168,8 +181,9 @@ async function enrich(c,lang,needImage,needSummary){
   // Görsel yalnızca Commons'taysa, yazar ve lisans bilgisiyle birlikte kullanılır
   let image=null;
   const imgUrl=needImage?((entity&&entity.image)||pageImage):null;
-  const file=imgUrl&&commonsFile(imgUrl);
-  if(file)image=Object.assign({url:imgUrl},await commonsMeta(file));
+  const f=imgUrl&&commonsFile(imgUrl);
+  const meta=f&&await commonsMeta(f);
+  if(meta)image=Object.assign({url:imgUrl},meta);
   return{image,summary:finalSummary};
 }
 
@@ -254,7 +268,7 @@ function userCreditHtml(x,lang){
 
 function buildChurchPage(c,contribs,nearby,lang,wikiImage,summary){
   // Eski çağrılar için: düz adres verildiyse en azından dosya sayfasına bağlanan atıf hazırlanır
-  if(typeof wikiImage==='string'){const f=commonsFile(wikiImage);wikiImage=f?{url:wikiImage,page:'https://commons.wikimedia.org/wiki/File:'+encodeURIComponent(f.replace(/ /g,'_')),author:'',license:'',licenseUrl:null,source:'Wikimedia Commons'}:null}
+  if(typeof wikiImage==='string'){const f=commonsFile(wikiImage);wikiImage=f&&f.commons?{url:wikiImage,page:f.page,author:'',license:'',licenseUrl:null,source:f.source}:null}
   const ui=UI[lang],den=(DEN[lang]||DEN.en)[c.denomination]||c.denomination||'';
   const country=countryLabel(c,lang);
   const place=[c.city,c.region&&c.region!==c.city?c.region:'',country].filter(Boolean).join(', ');
