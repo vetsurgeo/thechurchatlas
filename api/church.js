@@ -16,7 +16,22 @@ const WIKI_SRC={"tr": "Wikipedia'dan · CC BY-SA 4.0", "en": "From Wikipedia · 
 const CLAIM_UI={
   en:{link:'Church official? Correct or claim this page',badge:'Verified by a church representative'},
   tr:{link:'Kilise yetkilisi misiniz? Bu sayfayı düzeltin ya da sahiplenin',badge:'Kilise temsilcisince doğrulandı'},
-  it:{link:'Sei un responsabile della chiesa? Correggi o rivendica questa pagina',badge:'Verificata da un rappresentante della chiesa'}
+  it:{link:'Sei un responsabile della chiesa? Correggi o rivendica questa pagina',badge:'Verificata da un rappresentante della chiesa'},
+  de:{"link": "Kirchenvertreter? Diese Seite korrigieren oder übernehmen", "badge": "Von einem Kirchenvertreter bestätigt"},
+  es:{"link": "¿Representa a esta iglesia? Corrija o reclame esta página", "badge": "Verificada por un representante de la iglesia"},
+  fr:{"link": "Responsable de l'église ? Corrigez ou revendiquez cette page", "badge": "Vérifiée par un représentant de l'église"},
+  pt:{"link": "Representa esta igreja? Corrija ou reivindique esta página", "badge": "Verificada por um representante da igreja"},
+  nl:{"link": "Vertegenwoordiger van de kerk? Corrigeer of claim deze pagina", "badge": "Geverifieerd door een vertegenwoordiger van de kerk"},
+  pl:{"link": "Reprezentujesz ten kościół? Popraw lub przejmij tę stronę", "badge": "Zweryfikowane przez przedstawiciela kościoła"},
+  ro:{"link": "Reprezentați această biserică? Corectați sau revendicați această pagină", "badge": "Verificată de un reprezentant al bisericii"},
+  ru:{"link": "Вы представитель церкви? Исправьте или подтвердите эту страницу", "badge": "Подтверждено представителем церкви"},
+  uk:{"link": "Ви представник церкви? Виправте або підтвердьте цю сторінку", "badge": "Підтверджено представником церкви"},
+  el:{"link": "Εκπροσωπείτε την εκκλησία; Διορθώστε ή διεκδικήστε αυτή τη σελίδα", "badge": "Επαληθεύτηκε από εκπρόσωπο της εκκλησίας"},
+  hy:{"link": "Եկեղեցու ներկայացուցի՞չ եք։ Ուղղեք կամ հաստատեք այս էջը", "badge": "Հաստատված է եկեղեցու ներկայացուցչի կողմից"},
+  ar:{"link": "هل تمثّل هذه الكنيسة؟ صحّح هذه الصفحة أو اطلب إدارتها", "badge": "موثّقة من قِبل ممثل الكنيسة"},
+  ja:{"link": "教会の関係者の方へ：このページの修正・管理申請", "badge": "教会の代表者により確認済み"},
+  ko:{"link": "교회 관계자이신가요? 이 페이지를 수정하거나 소유권을 요청하세요", "badge": "교회 대표자가 확인함"},
+  zh:{"link": "您是教会负责人吗？更正或认领此页面", "badge": "已由教会代表核实"}
 };
 const WIKI_READ={"tr": "Wikipedia'da oku", "en": "Read on Wikipedia", "es": "Leer en Wikipedia", "fr": "Lire sur Wikipédia", "de": "Auf Wikipedia lesen", "it": "Leggi su Wikipedia", "pt": "Ler na Wikipédia", "nl": "Lees op Wikipedia", "pl": "Czytaj w Wikipedii", "ro": "Citește pe Wikipedia", "ru": "Читать в Википедии", "uk": "Читати у Вікіпедії", "el": "Διαβάστε στη Βικιπαίδεια", "hy": "Կարդալ Վիքիպեդիայում", "ar": "اقرأ في ويكيبيديا", "ja": "Wikipedia で読む", "ko": "위키백과에서 읽기", "zh": "在维基百科阅读"};
 const OSM_EDIT={"en": "Improve this church on OpenStreetMap", "tr": "Bu kiliseyi OpenStreetMap'te iyileştir", "es": "Mejora esta iglesia en OpenStreetMap", "fr": "Améliorer cette église sur OpenStreetMap", "de": "Diese Kirche in OpenStreetMap verbessern", "it": "Migliora questa chiesa su OpenStreetMap", "pt": "Melhore esta igreja no OpenStreetMap", "nl": "Verbeter deze kerk op OpenStreetMap", "pl": "Popraw ten kościół w OpenStreetMap", "ro": "Îmbunătățește această biserică pe OpenStreetMap", "ru": "Улучшить эту церковь в OpenStreetMap", "uk": "Покращити цю церкву в OpenStreetMap", "el": "Βελτιώστε αυτή την εκκλησία στο OpenStreetMap", "hy": "Բարելավել այս եկեղեցին OpenStreetMap-ում", "ar": "حسّن بيانات هذه الكنيسة على OpenStreetMap", "ja": "OpenStreetMapでこの教会の情報を改善する", "ko": "OpenStreetMap에서 이 교회 정보 개선하기", "zh": "在 OpenStreetMap 上完善这座教堂"};
