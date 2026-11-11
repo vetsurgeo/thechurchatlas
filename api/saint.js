@@ -33,6 +33,12 @@ const pickLang=q=>{const c=String(q||'').toLowerCase().split('-')[0];return UI[c
 const clip=(s,n)=>{s=String(s||'').replace(/\s+/g,' ').trim();return s.length>n?s.slice(0,n-1).trimEnd()+'…':s};
 const jsonSafe=o=>JSON.stringify(o).replace(/</g,'\\u003c').replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029');
 const num=v=>{const n=Number(v);return Number.isFinite(n)?n:null};
+// Veritabanında şehirler Türkçe kayıtlı; İngilizce sayfada yaygın İngilizce adları gösterilir
+const CITY={en:{'sakız':'Chios','sisam':'Samos','selanik':'Thessaloniki','istanbul':'Istanbul','i̇stanbul':'Istanbul','roma':'Rome','florans':'Florence','venedik':'Venice',
+  'napoli':'Naples','milano':'Milan','moskova':'Moscow','kişinev':'Chișinău','praha':'Prague','köln':'Cologne','san jose':'San Jose','atina':'Athens','viyana':'Vienna',
+  'kudüs':'Jerusalem','lizbon':'Lisbon','varşova':'Warsaw','budapeşte':'Budapest','bükreş':'Bucharest','belgrad':'Belgrade','sofya':'Sofia','brüksel':'Brussels','cenevre':'Geneva'},
+  tr:{'san jose':'San Jose','praha':'Prag'}};
+const cityName=(c,lang)=>{const k=String(c||'').trim().toLocaleLowerCase('tr');return (CITY[lang]&&CITY[lang][k])||String(c||'').trim()};
 const tx=(o,lang)=>(o&&typeof o==='object'&&(o[lang]||o.en||o.tr))||'';
 
 async function rest(path){
@@ -115,7 +121,7 @@ function buildSaintPage(s,churches,lang){
   const src='saint-'+s.slug;
   const rows=churches.filter(c=>c&&num(c.lat)!==null&&num(c.lng)!==null).map(c=>({
     id:c.id,name:c.name,lat:num(c.lat),lng:num(c.lng),code:String(c.country_code||'').toUpperCase(),
-    country:countryName(c.country_code,c.country,lang),city:c.city||'',den:den[c.denomination]||c.denomination||'',
+    country:countryName(c.country_code,c.country,lang),city:cityName(c.city,lang),den:den[c.denomination]||c.denomination||'',
     url:'/church/'+c.id+'?lang='+lang+'&src='+src}));
   // Ülkelere göre grupla: önce kilise sayısı çok olan
   const groups=new Map();
