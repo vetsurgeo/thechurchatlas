@@ -1,16 +1,5 @@
 {
-  "redirects": [
-    {
-      "source": "/church/395",
-      "destination": "/church/414",
-      "permanent": true
-    }
-  ],
   "rewrites": [
-    {
-      "source": "/seven-churches",
-      "destination": "/api/seven-churches"
-    },
     {
       "source": "/church/:id",
       "destination": "/api/church?id=:id"
@@ -28,16 +17,12 @@
       "destination": "/api/collection?slug=:slug"
     },
     {
-      "source": "/churches-in/:slug",
-      "destination": "/api/city?slug=:slug"
+      "source": "/saints",
+      "destination": "/api/saint"
     },
     {
-      "source": "/sitemap-cities.xml",
-      "destination": "/api/city-sitemap"
-    },
-    {
-      "source": "/cities",
-      "destination": "/api/cities"
+      "source": "/saint/:slug",
+      "destination": "/api/saint?slug=:slug"
     }
   ],
   "headers": [
