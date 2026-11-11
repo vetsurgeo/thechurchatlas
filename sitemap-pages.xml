@@ -41,11 +41,13 @@
     <lastmod>2026-10-26</lastmod>
   </url>
   <url>
-    <loc>https://thechurchatlas.com/cities</loc>
-    <lastmod>2026-10-31</lastmod>
+    <loc>https://thechurchatlas.com/saints</loc>
+    <lastmod>2026-11-09</lastmod>
   </url>
   <url>
-    <loc>https://thechurchatlas.com/seven-churches</loc>
-    <lastmod>2026-11-02</lastmod>
+    <loc>https://thechurchatlas.com/saint/nikolaos</loc>
+    <lastmod>2026-11-09</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://thechurchatlas.com/saint/nikolaos?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://thechurchatlas.com/saint/nikolaos?lang=tr"/>
   </url>
 </urlset>
