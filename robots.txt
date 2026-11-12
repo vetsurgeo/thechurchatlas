@@ -1,6 +1,24 @@
+# The Church Atlas
+# Arama motorları ve ziyaretçi getiren yapay zekâ aramaları açık.
+# Siteye ziyaretçi getirmeyen, ama binlerce sayfayı tarayarak sunucu kotasını tüketen botlar kapalı.
+
+User-agent: AhrefsBot
+User-agent: SemrushBot
+User-agent: MJ12bot
+User-agent: DotBot
+User-agent: BLEXBot
+User-agent: DataForSeoBot
+User-agent: serpstatbot
+User-agent: PetalBot
+User-agent: Bytespider
+User-agent: CCBot
+User-agent: Amazonbot
+User-agent: meta-externalagent
+User-agent: ImagesiftBot
+Disallow: /
+
 User-agent: *
 Allow: /
+Disallow: /api/
 
 Sitemap: https://thechurchatlas.com/sitemap.xml
-Sitemap: https://thechurchatlas.com/sitemap-churches.xml
-Sitemap: https://thechurchatlas.com/sitemap-cities.xml
