@@ -23,9 +23,30 @@
     {
       "source": "/saint/:slug",
       "destination": "/api/saint?slug=:slug"
+    },
+    {
+      "source": "/cities",
+      "destination": "/api/city"
+    },
+    {
+      "source": "/churches-in/:slug",
+      "destination": "/api/city?slug=:slug"
+    },
+    {
+      "source": "/seven-churches",
+      "destination": "/api/seven-churches"
     }
   ],
   "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=63072000; includeSubDomains; preload"
+        }
+      ]
+    },
     {
       "source": "/(favicon\\.svg|apple-touch-icon\\.png|og-image\\.png)",
       "headers": [
