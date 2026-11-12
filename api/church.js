@@ -52,17 +52,24 @@ async function rest(path){
   return r.json();
 }
 
-// Wikidata kaydı: P18 görsel dosyası ve Vikipedi bağlantıları tek istekte alınır
+// Wikidata kaydı: P18 görsel dosyası, Vikipedi bağlantıları ve açıklamalar (iki küçük paralel istek)
 async function wikidataEntity(qid){
   if(!/^Q\d+$/.test(String(qid||'')))return null;
   const ctrl=new AbortController();const timer=setTimeout(()=>ctrl.abort(),2500);
   try{
-    const r=await fetch('https://www.wikidata.org/w/api.php?action=wbgetentities&props=claims|sitelinks|descriptions&format=json&ids='+qid,{signal:ctrl.signal,headers:WIKI_HEADERS});
+    // Tüm kaydı (claims) indirmek ünlü kiliselerde yüzlerce KB veri ve işlemci süresi demek; yalnızca gerekenler istenir:
+    // P18 (fotoğraf) wbgetclaims ile, Vikipedi bağlantıları ve açıklamalar ayrı ve küçük bir istekle — ikisi paralel.
+    const W='https://www.wikidata.org/w/api.php?format=json&';
+    const [r,rc]=await Promise.all([
+      fetch(W+'action=wbgetentities&props=sitelinks|descriptions&ids='+qid,{signal:ctrl.signal,headers:WIKI_HEADERS}),
+      fetch(W+'action=wbgetclaims&property=P18&entity='+qid,{signal:ctrl.signal,headers:WIKI_HEADERS}).catch(()=>null)]);
     if(!r.ok)return null;
     const j=await r.json();
     const e=j&&j.entities&&j.entities[qid];
     if(!e)return null;
-    const p18=e.claims&&e.claims.P18&&e.claims.P18[0]&&e.claims.P18[0].mainsnak&&e.claims.P18[0].mainsnak.datavalue&&e.claims.P18[0].mainsnak.datavalue.value;
+    let claims=null;
+    if(rc&&rc.ok){try{claims=(await rc.json()).claims}catch(x){}}
+    const p18=claims&&claims.P18&&claims.P18[0]&&claims.P18[0].mainsnak&&claims.P18[0].mainsnak.datavalue&&claims.P18[0].mainsnak.datavalue.value;
     const links={};
     Object.keys(e.sitelinks||{}).forEach(k=>{const m=k.match(/^([a-z]{2,3})wiki$/);if(m&&e.sitelinks[k]&&typeof e.sitelinks[k].title==='string')links[m[1]]=e.sitelinks[k].title});
     const desc={};Object.keys(e.descriptions||{}).forEach(k=>{if(e.descriptions[k]&&typeof e.descriptions[k].value==='string')desc[k]=e.descriptions[k].value});
@@ -364,7 +371,7 @@ module.exports=async function handler(req,res){
     const wikiImage=extra.image,summary=extra.summary;
     res.setHeader('Content-Type','text/html; charset=utf-8');
     res.setHeader('Content-Language',lang);
-    res.setHeader('Cache-Control','public, max-age=0, s-maxage=3600, stale-while-revalidate=86400');
+    res.setHeader('Cache-Control','public, max-age=0, s-maxage=604800, stale-while-revalidate=2592000');
     res.status(200).send(buildChurchPage(c,contribs,nearby,lang,wikiImage,summary));
   }catch(e){
     res.setHeader('Cache-Control','no-store');

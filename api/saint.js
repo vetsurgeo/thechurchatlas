@@ -184,7 +184,7 @@ module.exports=async function handler(req,res){
     if(!slug){
       const saints=await rest('atlas_saints?select=slug,names,origin_places,story&order=id.asc');
       res.setHeader('Content-Language',lang);
-      res.setHeader('Cache-Control','public, max-age=0, s-maxage=3600, stale-while-revalidate=86400');
+      res.setHeader('Cache-Control','public, max-age=0, s-maxage=86400, stale-while-revalidate=604800');
       return res.status(200).send(buildIndexPage(saints,lang));
     }
     if(!/^[a-z0-9-]{1,40}$/.test(slug))return notFound(res,lang);
@@ -193,7 +193,7 @@ module.exports=async function handler(req,res){
     const links=await rest('atlas_church_saints?saint_id=eq.'+Number(found[0].id)+'&select=atlas_churches(id,name,city,country,country_code,denomination,lat,lng)&limit=2000');
     const churches=links.map(l=>l.atlas_churches).filter(Boolean);
     res.setHeader('Content-Language',lang);
-    res.setHeader('Cache-Control','public, max-age=0, s-maxage=3600, stale-while-revalidate=86400');
+    res.setHeader('Cache-Control','public, max-age=0, s-maxage=86400, stale-while-revalidate=604800');
     return res.status(200).send(buildSaintPage(found[0],churches,lang));
   }catch(e){
     res.setHeader('Cache-Control','no-store');res.setHeader('Content-Type','text/plain; charset=utf-8');
