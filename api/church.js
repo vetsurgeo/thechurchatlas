@@ -288,6 +288,30 @@ function userCreditHtml(x,lang){
   return '<p class="credit">'+esc(parts[0]||'')+who+esc(parts[1]||'')+'</p>\n';
 }
 
+// Curated English metadata for the first five content-optimization pages.
+const CHURCH_SEO_EN = {
+  "1277": {
+    "title": "Andreaskyrkan, Helsinki — History | The Church Atlas",
+    "description": "Explore Andreaskyrkan in Helsinki, with roots dating to 1883 and a church building consecrated in 1886. Discover its history and map location."
+  },
+  "3516": {
+    "title": "Portuguese Church, Dadar, Mumbai | The Church Atlas",
+    "description": "Discover Our Lady of Salvation, known as the Portuguese Church, in Dadar West, Mumbai. Explore its courtyard layout, history and map location."
+  },
+  "2996": {
+    "title": "St. Andrew the Apostle Church, Makati | The Church Atlas",
+    "description": "Explore St. Andrew the Apostle Church in Bel-Air, Makati, designed by Leandro V. Locsin and opened in 1968. Read its history and find its location."
+  },
+  "2956": {
+    "title": "Our Lady of Loreto Church, Sampaloc | The Church Atlas",
+    "description": "Discover Our Lady of Loreto Church in Sampaloc, Manila. Learn about its wartime destruction, 1958 rebuilding and location on Figueras Street."
+  },
+  "2962": {
+    "title": "Central United Methodist Church, Manila | The Church Atlas",
+    "description": "Explore Central United Methodist Church in Ermita, Manila, founded in 1899 and rebuilt in 1949. Discover its architectural history and map location."
+  }
+};
+
 function buildChurchPage(c,contribs,nearby,lang,wikiImage,summary){
   // Eski çağrılar için: düz adres verildiyse en azından dosya sayfasına bağlanan atıf hazırlanır
   if(typeof wikiImage==='string'){const f=commonsFile(wikiImage);wikiImage=f&&f.commons?{url:wikiImage,page:f.page,author:'',license:'',licenseUrl:null,source:f.source}:null}
@@ -300,7 +324,8 @@ function buildChurchPage(c,contribs,nearby,lang,wikiImage,summary){
   const heroUrl=photos[0]||(curated&&curated.url)||(wikiImage&&wikiImage.url)||null;  // ziyaretçi fotoğrafı > doğrulanmış fotoğraf > Wikimedia görseli
   const image=heroUrl||SITE+'/og-image.png';
   const citySlug=c.city?slugify(c.city):'';
-  const title=c.name+(place?' · '+place:'')+' | The Church Atlas';
+  const seo=lang==='en'?CHURCH_SEO_EN[String(c.id)]:null;
+  const title=seo?seo.title:c.name+(place?' · '+place:'')+' | The Church Atlas';
   const ownText=String(c.description||'').trim();
   const ownLang=String(c.description_lang||'').trim().toLowerCase();
   const showSummary=summary&&summary.text&&summary.wlang===lang;
@@ -309,7 +334,7 @@ function buildChurchPage(c,contribs,nearby,lang,wikiImage,summary){
     :esc(WIKI_SRC[lang]||WIKI_SRC.en)+' — <a href="'+esc(summary.url)+'" rel="noopener nofollow">'+esc(WIKI_READ[lang]||WIKI_READ.en)+'</a>'):null;
   const addr=String(c.address||'').trim();
   const base=(showSummary?summary.text:ownText)||(summary&&summary.text)||([den,place].filter(Boolean).join(' · ')+' — '+(TAG[lang]||TAG.en));
-  const desc=clip((addr?addr+(place?', '+place:'')+'. ':'')+base,155);
+  const desc=seo?seo.description:clip((addr?addr+(place?', '+place:'')+'. ':'')+base,155);
 
   const ld={'@context':'https://schema.org','@type':'Church',name:c.name,url,description:clip(showSummary?summary.text:ownText,500)||clip(summary&&summary.text,500)||undefined,
     inLanguage:lang,
