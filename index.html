@@ -664,7 +664,7 @@ const DONATE_URL='https://buymeacoffee.com/thechurchatlas';
 const SITE_URL='https://thechurchatlas.com';
 
 /* Sürüm damgası: yönetici penceresinin altında görünür; yeni dosyanın yayında olup olmadığını anlamak içindir */
-const APP_VERSION='2026.11.11-v';
+const APP_VERSION='2026.11.12-w';
 
 const $=id=>document.getElementById(id);
 const toastEl=$('toast');let toastTimer;
@@ -2300,20 +2300,26 @@ async function runWikidata([s,w,n,e]){
   }finally{clearTimeout(timer)}
 }
 
-// Yunanca/Arapça/Kiril gibi harflerle yazılmış adlar yerine, varsa Türkçe ya da İngilizce ad tercih edilir
+// Ad seçimi: Türkiye'de önce Türkçe ad. Diğer ülkelerde önce yerel ad (Latin harfliyse), sonra İngilizce, Türkçe en son —
+// aksi halde Köln'deki St. Gereon ya da Paris'teki Notre-Dame haritada Türkçe adla görünür.
 const NONLATIN=/[\u0370-\u03ff\u1f00-\u1fff\u0400-\u04ff\u0530-\u058f\u0590-\u05ff\u0600-\u06ff\u3040-\u30ff\u4e00-\u9fff\uac00-\ud7af]/;
-function pickName(t){
+function pickName(t,cc){
   const tr=String(t['name:tr']||'').trim();
-  if(tr)return tr;
   const local=String(t.name||'').trim();
-  if(local&&!NONLATIN.test(local))return local;          // Latin harfli yerel ad (örn. İtalyanca) olduğu gibi kalır
   const alt=String(t['name:en']||t.int_name||'').trim();
-  return alt||local;
+  cc=String(cc||'').toUpperCase();
+  if(cc==='TR'||!cc){                                      // Türkiye (ya da ülke bilinmiyorsa eski davranış)
+    if(tr)return tr;
+    if(local&&!NONLATIN.test(local))return local;
+    return alt||local;
+  }
+  if(local&&!NONLATIN.test(local))return local;            // Latin harfli yerel ad (örn. Almanca, İtalyanca) olduğu gibi kalır
+  return alt||local||tr;
 }
 
 function toCandidate(el){
   const t=el.tags||{};
-  const name=pickName(t);
+  const name=pickName(t,importPlace&&importPlace.countryCode);
   const lat=el.lat!=null?el.lat:el.center&&el.center.lat;
   const lng=el.lon!=null?el.lon:el.center&&el.center.lon;
   if(!name||lat==null||lng==null)return null;
