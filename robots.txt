@@ -20,5 +20,10 @@ Disallow: /
 User-agent: *
 Allow: /
 Disallow: /api/
+# Kilise sayfalarının dil kopyaları (?lang=..) taranmasın: asıl adres /church/NUMARA.
+# 5.000 kilise x 18 dil = 90.000 kopya adres, kotanın büyük kısmını bunlar tüketiyordu.
+Disallow: /church/*?
+Disallow: /*?church=
+Crawl-delay: 10
 
 Sitemap: https://thechurchatlas.com/sitemap.xml
